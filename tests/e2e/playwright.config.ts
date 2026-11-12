@@ -42,6 +42,7 @@ export default defineConfig({
         "hoondok.spec.ts",
         "hoondok-garden.spec.ts",
         "hoondok-settings.spec.ts",
+        "hoondok-login-methods.spec.ts",
         "hoondok-jeongseong.spec.ts",
         "hoondok-ask.spec.ts",
         "hoondok-preview.spec.ts",

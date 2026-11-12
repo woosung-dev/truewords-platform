@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogleApi, test } from "./hoondok-test";
 
 // C1 나의 기록 · 이 기기에만 있는 기록. 시드(apps/api/scripts/seed_hoondok_journey.py)의 합성 권
 // `말씀선집 355권`(청크 25개, 목차: 1장 0~19 · 제2편 20~24)에 구절 형광펜(API-HD-053)을 남기고
@@ -10,11 +10,8 @@ const headers = { "X-Requested-With": "XMLHttpRequest" };
 type Chunk = { chunk_id: string; chunk_index: number; display_text: string };
 
 async function signUp(page: Page, prefix: string) {
-  const response = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `${prefix}-${Date.now()}@example.com`, password: "password1", display_name: "기록" },
-  });
-  expect(response.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `${prefix}-${Date.now()}@example.com`, name: "기록" });
+  expect(status).toBe("created");
 }
 
 /** 원문 두 페이지의 청크(0~24). chunk_id 는 시드가 정하므로 API 로 읽는다. */

@@ -1,22 +1,18 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogleApi, test } from "./hoondok-test";
 
 // 홈 "말씀 읽기 · 이어 읽기" 카드 → 원문 도착 라벨 (A1). 합성 코퍼스(apps/api/scripts/seed_hoondok_journey.py):
 // "말씀선집 355권" 25단락, 장 목차 = 제1편(0~19) · 1장(0~19) · 제2편(20~24). 원장 work_title 은 volume 과 같다.
 const volume = "말씀선집 355권";
 const wordsPath = `/words/${encodeURIComponent(volume)}`;
-const headers = { "X-Requested-With": "XMLHttpRequest" };
 
 function resumeCard(page: Page) {
   return page.locator(".mission").filter({ hasText: "말씀 읽기 · 이어 읽기" });
 }
 
 test("로그인: 원문 2구간을 열면 홈 카드가 그 자리를 보이고 누르면 21단락 앞에 도착한다", async ({ page }) => {
-  const signup = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `resume-${Date.now()}@example.com`, password: "password1", display_name: "이어" },
-  });
-  expect(signup.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `resume-${Date.now()}@example.com`, name: "이어" });
+  expect(status).toBe("created");
   await page.setViewportSize({ width: 390, height: 844 });
 
   const saved = page.waitForResponse(

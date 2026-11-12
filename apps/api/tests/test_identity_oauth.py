@@ -10,14 +10,23 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
+from oidc_support import (
+    DROP,
+    KEY,
+    OTHER_KEY,
+    FakeGoogle,
+    forge,
+    make_claims,
+    sign_rs256,
+)
 from pydantic import SecretStr
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlmodel import Session, SQLModel, select
@@ -27,11 +36,14 @@ from app.core.config import settings
 from app.main import app
 from app.modules.admin.auth import create_access_token, hash_password
 from app.modules.identity import oauth_flow
-from app.modules.identity.dependencies import COOKIE_NAME, get_login_providers, get_user_data_purgers
+from app.modules.identity.dependencies import (
+    COOKIE_NAME,
+    get_login_providers,
+    get_user_data_purgers,
+)
 from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.oidc import GOOGLE_ISSUER, clear_jwks_cache
 from app.modules.identity.service import IdentityService
-from oidc_support import DROP, KEY, OTHER_KEY, FakeGoogle, forge, make_claims, sign_rs256
 
 XHR = {"X-Requested-With": "XMLHttpRequest"}
 WEB = "https://app.example.com"
@@ -39,6 +51,14 @@ CALLBACK_URI = f"{WEB}/api/backend/hoondok/auth/oauth/google/callback"
 START = "/hoondok/auth/oauth/google/start"
 CALLBACK = "/hoondok/auth/oauth/google/callback"
 FLOW = oauth_flow.FLOW_COOKIE_NAME
+
+
+def _no_purgers() -> list:
+    return []
+
+
+def _no_providers() -> dict:
+    return {}
 
 
 class Env:
@@ -162,7 +182,7 @@ def env(tmp_path, monkeypatch):
     clear_jwks_cache()
     app.dependency_overrides[get_async_session] = _session
     app.dependency_overrides[get_login_providers] = lambda: {"google": provider, "kakao": provider}
-    app.dependency_overrides[get_user_data_purgers] = lambda: []
+    app.dependency_overrides[get_user_data_purgers] = _no_purgers
     try:
         yield Env(TestClient(app), google, sync_engine)
     finally:
@@ -227,7 +247,7 @@ def test_start_unregistered_provider_is_404(env: Env, provider: str):
 
 
 def test_start_unconfigured_google_is_404(env: Env):
-    app.dependency_overrides[get_login_providers] = lambda: {}
+    app.dependency_overrides[get_login_providers] = _no_providers
     res = env.start("login")
     assert res.status_code == 404 and res.json()["error_code"] == "OAUTH_PROVIDER_UNAVAILABLE"
 
@@ -498,7 +518,7 @@ def test_existing_identity_login_signs_in_same_user_without_new_rows(env: Env):
     env.add_identity(user, "google-sub-1")
     before = env.counts()
     res = env.run(claims={"email": "changed@gmail.com"}, start_body={"return_to": "/words/3"})
-    path, q = location(res)
+    _, q = location(res)
     assert q == {"status": "signed_in", "returnTo": "/words/3"}
     assert env.counts() == before == (1, 1)
     assert session_cookie_issued(res)
@@ -583,7 +603,7 @@ def test_invite_flag_cannot_be_forged_through_callback_query(env: Env, monkeypat
 
 
 def test_identity_pointing_to_deleted_user_is_removed_and_signup_proceeds(env: Env):
-    old = env.add_user("x@example.com", password=None, deleted_at=datetime.now(timezone.utc))
+    old = env.add_user("x@example.com", password=None, deleted_at=datetime.now(UTC))
     env.add_identity(old, "google-sub-1")
     res = env.run()
     assert outcome(res) == "created"
@@ -610,6 +630,14 @@ def test_link_attaches_google_clears_password_and_blocks_password_login(env: Env
     login = env.client.post("/hoondok/auth/login", json={"email": "a@example.com", "password": "password1"}, headers=XHR)
     assert login.status_code == 401  # 500 이 아니다
     assert env.counts() == (1, 1)
+
+
+def test_link_is_not_blocked_by_invite_gate(env: Env, monkeypatch):
+    """초대 게이트는 새 계정 생성만 막는다 — 기존 계정에 구글을 붙이는 일은 코드 없이도 된다."""
+    monkeypatch.setattr(settings, "hoondok_invite_code", SecretStr("새벽-2026"))
+    user = env.add_user("a@example.com")
+    env.login_as(user)
+    assert outcome(env.run("link")) == "linked"
 
 
 def test_link_to_other_users_google_is_already_linked_and_moves_nothing(env: Env):
@@ -686,7 +714,7 @@ def test_link_records_email_verification_only_when_authoritative_and_equal(env: 
 
 
 def test_link_picks_up_identity_of_deleted_user_and_attaches_to_session_user(env: Env):
-    old = env.add_user("x@example.com", password=None, deleted_at=datetime.now(timezone.utc))
+    old = env.add_user("x@example.com", password=None, deleted_at=datetime.now(UTC))
     env.add_identity(old, "google-sub-1")
     me = env.add_user("me@example.com")
     env.login_as(me)
@@ -750,6 +778,42 @@ def test_link_race_on_subject_conflict_leaves_db_consistent(env: Env, monkeypatc
 def test_link_race_on_subject_conflict_reports_already_linked(env: Env, monkeypatch):
     _, _, res = _link_race(env, monkeypatch)
     assert outcome(res) == "error=already_linked"
+
+
+def test_first_signup_race_on_email_conflict_is_email_exists(env: Env, monkeypatch):
+    env.add_user("person@gmail.com", password="password1")  # 같은 이메일을 동시 요청이 먼저 만든 상황
+    _blind_first_lookup(monkeypatch, email_lookup=True)
+    res = env.run()
+    assert outcome(res) == "error=email_exists" and not session_cookie_issued(res)
+    assert env.counts() == (1, 0)
+
+
+@pytest.mark.parametrize(
+    "url, google, ok",
+    [
+        ("http://app.example.com", True, False),
+        ("https://app.example.com", True, True),
+        ("http://app.example.com", False, True),
+    ],
+    ids=["http+google", "https+google", "http-no-google"],
+)
+def test_production_requires_https_web_url_when_google_enabled(url, google, ok):
+    from app.core.config import Settings
+
+    kwargs = {
+        "_env_file": None,
+        "environment": "production",
+        "admin_jwt_secret": SecretStr("x" * 40),
+        "cookie_secure": True,
+        "web_frontend_url": url,
+        "hoondok_google_client_id": "cid" if google else None,
+        "hoondok_google_client_secret": SecretStr("sec") if google else None,
+    }
+    if ok:
+        Settings(**kwargs)
+    else:
+        with pytest.raises(ValueError, match="WEB_FRONTEND_URL"):
+            Settings(**kwargs)
 
 
 def test_callback_ignores_extra_query_params_sent_by_google(env: Env):

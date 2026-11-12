@@ -18,7 +18,12 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from jose import jwt
 from pydantic import SecretStr
 
-from app.modules.identity.oidc import OidcConfig, OidcProvider, google_config, map_google_claims
+from app.modules.identity.oidc import (
+    OidcConfig,
+    OidcProvider,
+    google_config,
+    map_google_claims,
+)
 
 CLIENT_ID = "test-client-id.apps.googleusercontent.com"
 CLIENT_SECRET = "test-client-secret"
@@ -37,7 +42,7 @@ class SigningKey:
     jwk: dict[str, str]
 
     @classmethod
-    def generate(cls, kid: str) -> "SigningKey":
+    def generate(cls, kid: str) -> SigningKey:
         private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         pem = private.private_bytes(
             serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()

@@ -11,18 +11,6 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
-from pydantic import SecretStr
-
-from app.core.config import Settings
-from app.modules.identity import oidc
-from app.modules.identity.oidc import (
-    OidcError,
-    OidcProvider,
-    build_login_providers,
-    clear_jwks_cache,
-    google_config,
-    map_google_claims,
-)
 from oidc_support import (
     CLIENT_ID,
     CLIENT_SECRET,
@@ -35,6 +23,18 @@ from oidc_support import (
     forge,
     make_claims,
     sign_rs256,
+)
+from pydantic import SecretStr
+
+from app.core.config import Settings
+from app.modules.identity import oidc
+from app.modules.identity.oidc import (
+    OidcError,
+    OidcProvider,
+    build_login_providers,
+    clear_jwks_cache,
+    google_config,
+    map_google_claims,
 )
 
 REDIRECT = "https://app.example.com/api/backend/hoondok/auth/oauth/google/callback"

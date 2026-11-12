@@ -1,4 +1,4 @@
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogleApi, test } from "./hoondok-test";
 
 const volume = "말씀선집 355권";
 const wordsPath = `/words/${encodeURIComponent(volume)}`;
@@ -8,11 +8,8 @@ const seriesPath = "/library/father_anthology";
 const headers = { "X-Requested-With": "XMLHttpRequest" };
 
 async function signUp(page: import("@playwright/test").Page, prefix: string) {
-  const response = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `${prefix}-${Date.now()}@example.com`, password: "password1", display_name: "서고" },
-  });
-  expect(response.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `${prefix}-${Date.now()}@example.com`, name: "서고" });
+  expect(status).toBe("created");
 }
 
 for (const width of [375, 768, 1280]) {
@@ -90,11 +87,8 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
 });
 
 test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말씀 · 홈/read 일치", async ({ page }) => {
-  const signup = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `journey-${Date.now()}@example.com`, password: "password1", display_name: "여정" },
-  });
-  expect(signup.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `journey-${Date.now()}@example.com`, name: "여정" });
+  expect(status).toBe("created");
   const create = await page.request.post("/api/backend/hoondok/me/jeongseong", {
     headers,
     data: { topic: "감사", duration_days: 7 },

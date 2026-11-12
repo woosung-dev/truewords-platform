@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithPassword, test } from "./hoondok-test";
 
 // SCR-PWA-014 나의 정원 (PLAN-HD-002 W1-G). 시드 사용자로 오늘 훈독을 기록한 뒤 통계·달력·탭을 본다.
 // 플래그 ON 은 playwright.config webServer env 가 준다.
@@ -23,11 +23,7 @@ async function collectConsoleErrors(page: Page) {
 }
 
 async function login(page: Page) {
-  await page.goto("/onboarding");
-  await page.getByRole("button", { name: "로그인" }).click();
-  await page.getByLabel(/이메일/).fill(SEED.email);
-  await page.getByLabel(/비밀번호/).fill(SEED.password);
-  await page.getByRole("button", { name: "로그인" }).click();
+  await signInWithPassword(page, SEED);
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 }
 

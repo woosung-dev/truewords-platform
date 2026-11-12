@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, setFakeGoogleIdentity, signInWithGoogle, signInWithPassword, test } from "./hoondok-test";
 
 // 훈독 Phase 1 스모크 (PLAN-HD-001 §4 sub-PR 1). 플래그 ON 은 playwright.config webServer env 가 준다.
 const PATHS = ["/", "/read", "/garden", "/settings"] as const;
@@ -89,14 +89,16 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();
   await expect(page).toHaveURL(/\/onboarding\?returnTo=%2Fread$/);
 
-  // 온보딩 최소형: 베타 고지 · 교회 선택 없음 · 가입
+  // 온보딩 최소형: 베타 고지 · 교회 선택 없음 · 구글로 계속하기(가입은 구글로만)
   await expect(page.getByText(/독립 운영 베타/).first()).toBeVisible();
   await expect(page.getByRole("radiogroup")).toHaveCount(0);
-  const email = `e2e-${Date.now()}@example.com`;
-  await page.getByLabel(/이름/).fill("이투이");
-  await page.getByLabel(/이메일/).fill(email);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await expect(page.getByRole("form", { name: "이메일 로그인" })).toHaveCount(0);
+  await setFakeGoogleIdentity(page, {
+    sub: `e2e-sub-${Date.now()}`,
+    email: `e2e-${Date.now()}@example.com`,
+    name: "이투이",
+  });
+  await page.getByRole("button", { name: "Google로 계속하기" }).click();
 
   // returnTo 로 복귀 → 로컬 체크가 당일분으로 소급 기록되고 로그인 링크는 사라진다
   await expect(page).toHaveURL(/\/read$/);
@@ -143,11 +145,7 @@ test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫
 // 새 계정으로 직접 완료(user → 201 recorded)를 만든다.
 test("설치 안내: 직접 완료 뒤 하단 안내 노출 · 방법 보기 펼침 · reload 유지 · 첫 나중에 3일 숨김", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill("설치");
-  await page.getByLabel(/이메일/).fill(`e2e-install-${Date.now()}@example.com`);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name: "설치" });
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
@@ -191,11 +189,7 @@ test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내
   const errors = await collectConsoleErrors(page);
   const requests: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill("첫말씀");
-  await page.getByLabel(/이메일/).fill(`e2e-start-${Date.now()}@example.com`);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name: "첫말씀" });
   await expect(page).toHaveURL(/\/start$/);
   // 탭바가 없는 온보딩 프레임이다
   await expect(page.getByRole("navigation", { name: "주 메뉴" })).toHaveCount(0);
@@ -227,11 +221,7 @@ test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내
 });
 
 test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 API 401", async ({ page }) => {
-  await page.goto("/onboarding");
-  await page.getByRole("button", { name: "로그인" }).click();
-  await page.getByLabel(/이메일/).fill("hoondok@example.com");
-  await page.getByLabel(/비밀번호/).fill("test1234");
-  await page.getByRole("button", { name: "로그인" }).click();
+  await signInWithPassword(page, { email: "hoondok@example.com", password: "test1234" });
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("시드식구님")).toBeVisible();
 
@@ -249,7 +239,7 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
   // 로그아웃 → 완료·요약 API 는 401, 홈은 여전히 비로그인 열람
   await page.goto("/onboarding");
   await page.getByRole("button", { name: "로그아웃" }).click();
-  await expect(page.getByRole("form", { name: "가입" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Google로 계속하기" })).toBeVisible();
   expect((await page.request.get("/api/backend/hoondok/me/summary")).status()).toBe(401);
   expect(
     (
@@ -390,11 +380,7 @@ const FAKE_VAPID_KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSn
 const FAKE_ENDPOINT = "https://push.example/abc";
 
 async function loginAsSeedUser(page: Page) {
-  await page.goto("/onboarding");
-  await page.getByRole("button", { name: "로그인" }).click();
-  await page.getByLabel(/이메일/).fill("hoondok@example.com");
-  await page.getByLabel(/비밀번호/).fill("test1234");
-  await page.getByRole("button", { name: "로그인" }).click();
+  await signInWithPassword(page, { email: "hoondok@example.com", password: "test1234" });
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 }
 
@@ -498,11 +484,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
     await route.fulfill({ json: { enabled: true, public_key: FAKE_VAPID_KEY } });
   });
 
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill("알림");
-  await page.getByLabel(/이메일/).fill(`e2e-push-${Date.now()}@example.com`);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name: "알림" });
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();

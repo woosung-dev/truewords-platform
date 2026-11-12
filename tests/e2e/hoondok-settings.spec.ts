@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogle, signInWithGoogleApi, test } from "./hoondok-test";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S). 계정을 지우는 흐름이라 **매번 새 계정**을 만든다 —
 // 시드 사용자(hoondok@example.com)는 다른 spec 이 계속 쓰므로 절대 삭제하지 않는다.
@@ -7,8 +7,6 @@ const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
   { name: "desktop", width: 1280, height: 900 },
 ] as const;
-const PASSWORD = "password1";
-const XHR = { "X-Requested-With": "XMLHttpRequest" } as const;
 
 // 비로그인 방문의 `GET /hoondok/auth/me` 401 은 계약이다(API-HD-003) — 브라우저가 리소스 오류로 찍는다.
 // 이 한 건만 제외하고 나머지는 0 을 단언한다 (hoondok.spec.ts 와 같은 필터).
@@ -35,22 +33,19 @@ function collectConsoleErrors(page: Page) {
 }
 
 async function signUp(page: Page, email: string) {
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill("설정");
-  await page.getByLabel(/이메일/).fill(email);
-  await page.getByLabel(/비밀번호/).fill(PASSWORD);
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  const identity = await signInWithGoogle(page, { name: "설정", email });
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("설정님")).toBeVisible();
+  return identity;
 }
 
 test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 2단계 뒤 계정이 사라진다", async ({ page }) => {
   const errors = collectConsoleErrors(page);
   const email = `e2e-settings-${Date.now()}@example.com`;
-  await signUp(page, email);
+  const identity = await signUp(page, email);
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
@@ -89,13 +84,10 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
   await confirm.getByRole("button", { name: "지우기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 
-  // 쿠키가 지워졌고(요약 401), 같은 자격으로는 다시 로그인되지 않는다(계정 익명화, API-HD-011)
+  // 쿠키가 지워졌고(요약 401), 같은 구글 계정으로 들어가도 지운 계정으로 돌아가지 않는다 — 로그인 수단이 함께 지워져 새 계정이다(API-HD-011)
   expect((await page.request.get("/api/backend/hoondok/me/summary")).status()).toBe(401);
-  const login = await page.request.post("/api/backend/hoondok/auth/login", {
-    headers: XHR,
-    data: { email, password: PASSWORD },
-  });
-  expect(login.status()).toBe(401);
+  const again = await signInWithGoogleApi(page, identity);
+  expect(again.status).toBe("created");
 
   expect(errors).toEqual([]);
 });

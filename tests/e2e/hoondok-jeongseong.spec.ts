@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogle, test } from "./hoondok-test";
 
 // 훈독 정성 기간 (PLAN-HD-002 W1-J · SCR-PWA-004 시트 + SCR-PWA-002 홈 카드).
 // 시드 사용자는 이미 정성이 있을 수 있어(409) 매 실행 새 계정을 만든다.
@@ -21,13 +21,9 @@ async function collectConsoleErrors(page: Page) {
   return errors;
 }
 
-/** 새 계정으로 가입해 홈으로 돌아온다 (hoondok.spec.ts 의 가입 흐름). */
+/** 새 구글 계정으로 가입해 홈으로 돌아온다 (hoondok.spec.ts 의 가입 흐름). */
 async function signUp(page: Page, name: string) {
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill(name);
-  await page.getByLabel(/이메일/).fill(`e2e-jeongseong-${Date.now()}@example.com`);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name, email: `e2e-jeongseong-${Date.now()}@example.com` });
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();

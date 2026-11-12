@@ -7,6 +7,8 @@ apps/api에서 `uv run uvicorn e2e_app:app --app-dir tests --port 18000`으로 �
 """
 
 import asyncio
+import base64
+import binascii
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -14,7 +16,8 @@ import sys
 import uuid
 from urllib.parse import urlparse
 
-from fastapi import Depends
+from fastapi import Depends, Request
+from fastapi.responses import RedirectResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -30,8 +33,10 @@ from app.modules.chat.service import ChatService
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.service import ChatbotService
 from app.modules.search import hybrid
-from app.modules.identity.dependencies import get_current_user, verify_csrf
+from app.modules.identity.dependencies import get_current_user, get_login_providers, verify_csrf
 from app.modules.identity.models import User
+from app.modules.identity.oauth_flow import redirect_uri as oauth_redirect_uri
+from app.modules.identity.oidc import GOOGLE_ISSUER, GOOGLE_PROVIDER, ExternalIdentity, LoginProvider, OidcError
 
 
 database_url = urlparse(settings.database_url.get_secret_value())
@@ -170,3 +175,72 @@ async def seed_previous_jeongseong_day(
             mission.mission_date = yesterday
         await session.commit()
     return {"previous_date": yesterday.isoformat(), "today": today.isoformat()}
+
+
+# --- 가짜 구글 로그인 제공자 (하네스 전용) -------------------------------------------------------------------
+# 가입이 닫혀 신규 계정은 구글 OIDC 로만 생긴다. 실제 구글에 가지 않고 같은 서버 경로(start → 콜백 → 세션 쿠키)를 타도록
+# get_login_providers 만 바꾼다. 이 모듈은 운영 앱(app.main)이 import 하지 않으므로 가짜는 하네스에만 존재한다.
+#
+# 사용자 지정: 테스트가 브라우저 컨텍스트에 `e2e_fake_google` 쿠키(base64url JSON {sub,email,name})를 심는다.
+# authorization_url 은 웹 origin 의 `/api/backend/__e2e/fake-oidc/authorize` 라 쿠키가 웹 호스트에 붙고, 컨텍스트마다
+# 따로라 병렬 실행에도 안전하다. authorize 가 그 신원을 code 에 담아 실제 콜백 경로로 302 하고, complete 가 code 를 푼다.
+FAKE_IDENTITY_COOKIE = "e2e_fake_google"
+FAKE_GOOGLE_CLIENT_ID = "e2e-fake-google-client"
+
+
+def _b64url_decode_json(raw: str) -> dict:
+    try:
+        data = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)))
+    except (ValueError, binascii.Error):
+        raise OidcError("fake identity malformed") from None
+    if not isinstance(data, dict):
+        raise OidcError("fake identity malformed")
+    return data
+
+
+class FakeOidcProvider:
+    key = GOOGLE_PROVIDER
+
+    def authorization_url(self, *, redirect_uri: str, state: str, nonce: str, code_challenge: str) -> str:
+        from urllib.parse import urlencode
+
+        base = settings.web_frontend_url.strip().rstrip("/")
+        return f"{base}/api/backend/__e2e/fake-oidc/authorize?{urlencode({'state': state})}"
+
+    async def complete(self, *, code: str, redirect_uri: str, code_verifier: str, nonce: str) -> ExternalIdentity:
+        claims = _b64url_decode_json(code)
+        sub, email = claims.get("sub"), claims.get("email")
+        if not isinstance(sub, str) or not sub or not isinstance(email, str) or not email:
+            raise OidcError("fake identity incomplete")
+        name = claims.get("name")
+        return ExternalIdentity(
+            provider=GOOGLE_PROVIDER,
+            issuer=GOOGLE_ISSUER,
+            subject_scope="",
+            subject=sub,
+            client_id=FAKE_GOOGLE_CLIENT_ID,
+            email=email.strip().lower(),
+            email_verified=claims.get("email_verified", True) is True,
+            email_authoritative=email.strip().lower().endswith("@gmail.com"),
+            display_name=name if isinstance(name, str) else None,
+        )
+
+
+def _fake_login_providers() -> dict[str, LoginProvider]:
+    return {GOOGLE_PROVIDER: FakeOidcProvider()}
+
+
+app.dependency_overrides[get_login_providers] = _fake_login_providers
+
+
+@app.get("/__e2e/fake-oidc/authorize", include_in_schema=False)
+async def fake_oidc_authorize(request: Request, state: str = ""):
+    """제공자 화면 대신, 쿠키로 지정된 신원을 code 에 담아 실제 콜백으로 돌려보낸다. 쿠키가 없으면 취소(error=access_denied)."""
+    from urllib.parse import urlencode
+
+    callback = oauth_redirect_uri(GOOGLE_PROVIDER)
+    code = request.cookies.get(FAKE_IDENTITY_COOKIE)
+    query = {"code": code, "state": state} if code else {"error": "access_denied", "state": state}
+    response = RedirectResponse(f"{callback}?{urlencode(query)}", status_code=302)
+    response.headers["Cache-Control"] = "no-store"
+    return response
