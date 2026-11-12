@@ -30,7 +30,7 @@ from app.modules.hoondok.models import (
 )
 from app.modules.hoondok.repository import JeongseongRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
-from app.modules.identity.models import User
+from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.service import IdentityService
 from app.modules.qdrant import QdrantPoint
@@ -62,6 +62,7 @@ async def ctx():
             SQLModel.metadata.create_all,
             tables=[
                 User.__table__,
+                UserIdentity.__table__,
                 ContentRight.__table__,
                 VolumeSection.__table__,
                 ReadingPosition.__table__,
@@ -150,11 +151,8 @@ async def add_right(session: AsyncSession, volume: str, **kwargs) -> ContentRigh
 
 
 async def login(client: TestClient, email: str = "reader@example.com") -> User:
-    from app.modules.identity.schemas import SignupRequest
-
-    user = await IdentityService(client.users).signup(  # type: ignore[attr-defined]
-        SignupRequest(email=email, password="password1", display_name="식구")
-    )
+    # 가입 API 는 닫혔다 — 저장소에 직접 만들고 issue_token 쿠키를 건다.
+    user = await client.users.create(User(email=email, display_name="식구"))  # type: ignore[attr-defined]
     client.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
     return user
 

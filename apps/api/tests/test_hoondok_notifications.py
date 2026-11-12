@@ -19,7 +19,7 @@ from app.modules.hoondok.dependencies import get_notification_repository
 from app.modules.hoondok.models import NotificationPreference, PushSubscription
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
-from app.modules.identity.models import User
+from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.service import IdentityService
 
 XHR = {"X-Requested-With": "XMLHttpRequest"}
@@ -56,7 +56,7 @@ async def repo():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__],
+            tables=[User.__table__, UserIdentity.__table__, NotificationPreference.__table__, PushSubscription.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     try:
@@ -109,7 +109,7 @@ async def client():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__],
+            tables=[User.__table__, UserIdentity.__table__, NotificationPreference.__table__, PushSubscription.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     me = User(email="me@example.com", password_hash="x", display_name="효진")
@@ -367,7 +367,6 @@ async def test_account_deletion_purges_notification_rows():
     )
     from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
     from app.modules.identity.repository import UserRepository
-    from app.modules.identity.schemas import SignupRequest
 
     engine = create_async_engine(
         "sqlite+aiosqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
@@ -377,6 +376,7 @@ async def test_account_deletion_purges_notification_rows():
             SQLModel.metadata.create_all,
             tables=[
                 User.__table__,
+                UserIdentity.__table__,
                 MissionLog.__table__,
                 JeongseongPeriod.__table__,
                 JeongseongReading.__table__,
@@ -391,9 +391,7 @@ async def test_account_deletion_purges_notification_rows():
     session = AsyncSession(engine, expire_on_commit=False)
     users = UserRepository(session)
     notifications = NotificationRepository(session)
-    me = await IdentityService(users).signup(
-        SignupRequest(email="purge@example.com", password="password1", display_name="효진")
-    )
+    me = await users.create(User(email="purge@example.com", display_name="효진"))
     await notifications.save_subscription(
         PushSubscription(user_id=me.id, endpoint=ENDPOINT, p256dh="a", auth="b")
     )

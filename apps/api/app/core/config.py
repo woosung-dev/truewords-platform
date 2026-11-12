@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # 미설정·빈 값 = 게이트 OFF(로컬·E2E 기존 동작). 운영 값은 VM .env 에만 둔다. 로그인·기존 계정은 무관.
     hoondok_invite_code: SecretStr | None = None
 
+    # 훈독 구글 로그인(OIDC). 두 값이 모두 있어야 켜진다 — 하나라도 비면 /oauth/google/* 는 404 OAUTH_PROVIDER_UNAVAILABLE.
+    # redirect URI 는 `{WEB_FRONTEND_URL}/api/backend/hoondok/auth/oauth/google/callback` 로 고정이라 콘솔에 같은 값을 등록한다.
+    hoondok_google_client_id: str | None = None
+    hoondok_google_client_secret: SecretStr | None = None
+
     # 훈독 Web Push (PLAN-HD-006). 3값이 모두 있어야 구독이 열린다 — 하나라도 비면 기능 OFF(구독 409 PUSH_DISABLED).
     # 공개 키만 클라이언트에 내려간다(API-HD-019). 비밀 키·subject 는 발송기(sub-PR B)만 쓴다.
     hoondok_vapid_public_key: str | None = None  # base64url (uncompressed P-256)
@@ -66,6 +71,14 @@ class Settings(BaseSettings):
     def is_hoondok_tts_enabled(self) -> bool:
         key = self.google_tts_api_key
         return bool(key and key.get_secret_value().strip())
+
+    def is_hoondok_google_enabled(self) -> bool:
+        """구글 client id·secret 이 모두 설정되고 공백이 아닐 때만 True."""
+        secret = self.hoondok_google_client_secret
+        return bool(
+            (self.hoondok_google_client_id or "").strip()
+            and (secret.get_secret_value().strip() if secret else "")
+        )
 
     def is_hoondok_push_enabled(self) -> bool:
         """VAPID 3값이 모두 설정되고 공백이 아닐 때만 True. 미설정이면 구독 API 가 열리지 않는다."""
@@ -147,6 +160,8 @@ class Settings(BaseSettings):
                 raise ValueError("ADMIN_JWT_SECRET must be changed in production")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE must be True in production")
+            if self.is_hoondok_google_enabled() and not self.web_frontend_url.strip().lower().startswith("https://"):
+                raise ValueError("WEB_FRONTEND_URL must be https when Google login is enabled in production")
         return self
 
 

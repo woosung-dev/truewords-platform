@@ -2,6 +2,8 @@
 
 import re
 import uuid
+from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -37,11 +39,33 @@ class LoginRequest(BaseModel):
     _email = field_validator("email")(_validate_email)
 
 
+class LoginMethod(BaseModel):
+    """계정에 연결된 로그인 수단. 비밀번호는 provider="password"·identity_id=None 이다."""
+
+    provider: str
+    identity_id: uuid.UUID | None = None
+    email: str | None = None
+    linked_at: datetime | None = None
+
+
 class UserPublic(BaseModel):
     id: uuid.UUID
     email: str
     display_name: str
+    login_methods: list[LoginMethod] = Field(default_factory=list)
 
 
 class UserEnvelope(BaseModel):
     user: UserPublic
+
+
+class OAuthStartRequest(BaseModel):
+    """return_to 는 서버가 검증한다(통과 못 하면 "/"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다)."""
+
+    intent: Literal["login", "link"]
+    return_to: str | None = None
+    invite_code: str | None = None
+
+
+class OAuthStartResponse(BaseModel):
+    authorization_url: str

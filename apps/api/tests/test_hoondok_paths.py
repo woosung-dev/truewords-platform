@@ -40,7 +40,7 @@ from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepos
 from app.modules.hoondok.schemas import JeongseongCreate
 from app.modules.hoondok.service import JeongseongService
 from app.modules.identity.dependencies import COOKIE_NAME
-from app.modules.identity.models import User
+from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.service import IdentityService
 from app.modules.qdrant import QdrantPoint
@@ -51,6 +51,7 @@ VOLUME = "천성경.pdf"
 XHR = {"X-Requested-With": "XMLHttpRequest"}
 TABLES = [
     User.__table__,
+    UserIdentity.__table__,
     MissionLog.__table__,
     JeongseongPeriod.__table__,
     JeongseongReading.__table__,

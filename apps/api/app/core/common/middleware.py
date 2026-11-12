@@ -1,6 +1,7 @@
 """FastAPI/Starlette 미들웨어."""
 
 import logging
+import re
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -33,6 +34,12 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 # 쿼리를 통째로 지우는 경로: 검색어(개인 관심사)와 push endpoint(기기 식별 capability URL — 소유 이전 upsert 와
 # 결합하면 남의 구독을 가져갈 수 있다).
 _QUERY_STRIPPED_PATHS = frozenset({"/hoondok/search", "/hoondok/me/push"})
+# 경로에 제공자 키가 들어가는 OAuth 콜백 — 쿼리의 code·state 가 접근 로그에 남지 않게 한다.
+_QUERY_STRIPPED_PATTERNS = (re.compile(r"^/hoondok/auth/oauth/[^/]+/callback$"),)
+
+
+def _strips_query(path: str) -> bool:
+    return path in _QUERY_STRIPPED_PATHS or any(p.match(path) for p in _QUERY_STRIPPED_PATTERNS)
 
 
 class HoondokAccessLogFilter(logging.Filter):
@@ -42,7 +49,7 @@ class HoondokAccessLogFilter(logging.Filter):
         if isinstance(record.args, tuple) and len(record.args) == 5:
             args = list(record.args)
             target = str(args[2])
-            if target.split("?", 1)[0].rstrip("/") in _QUERY_STRIPPED_PATHS:
+            if _strips_query(target.split("?", 1)[0].rstrip("/")):
                 args[2] = target.split("?", 1)[0]
                 record.args = tuple(args)
         return True

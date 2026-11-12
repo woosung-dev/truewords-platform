@@ -27,9 +27,8 @@ from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepos
 from app.modules.hoondok.schemas import JeongseongCreate
 from app.modules.hoondok.service import JeongseongService
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
-from app.modules.identity.models import User
+from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import SignupRequest
 from app.modules.identity.service import IdentityService
 
 TODAY = date(2026, 9, 19)
@@ -93,6 +92,7 @@ async def session():
             # 정성 말씀·오류 기록은 계정 삭제(delete_for_user)가 함께 지우므로 테이블이 있어야 한다
             tables=[
                 User.__table__,
+                UserIdentity.__table__,
                 MissionLog.__table__,
                 JeongseongPeriod.__table__,
                 JeongseongReading.__table__,
@@ -320,7 +320,7 @@ async def test_last_ended_picks_latest_completed(session: AsyncSession):
 @pytest.mark.asyncio
 async def test_last_ended_gone_after_account_delete(session: AsyncSession):
     identity = IdentityService(UserRepository(session))
-    me = await identity.signup(SignupRequest(email="me@example.com", password="password1", display_name="효진"))
+    me = await UserRepository(session).create(User(email="me@example.com", display_name="효진"))
     repo = JeongseongRepository(session)
     await _ended(repo, me.id, -1, resolution="날마다 감사")
     service = _service(session)

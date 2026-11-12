@@ -26,7 +26,9 @@ from app.modules.hoondok.paths_repository import PathRepository
 from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.models import User
-from app.modules.identity.repository import UserRepository
+from app.modules.identity.oauth_service import OAuthService
+from app.modules.identity.oidc import LoginProvider, build_login_providers
+from app.modules.identity.repository import UserIdentityRepository, UserRepository
 from app.modules.identity.service import AUDIENCE, IdentityService, UserDataPurger
 
 COOKIE_NAME = "hoondok_token"
@@ -49,10 +51,30 @@ async def get_identity_repository(
     return UserRepository(session)
 
 
+async def get_user_identity_repository(
+    repo: UserRepository = Depends(get_identity_repository),
+) -> UserIdentityRepository:
+    # 사용자 저장소와 같은 세션을 공유한다 — 가입·연결·계정 삭제가 한 트랜잭션으로 묶인다.
+    return UserIdentityRepository(repo.session)
+
+
 async def get_identity_service(
     repo: UserRepository = Depends(get_identity_repository),
+    identities: UserIdentityRepository = Depends(get_user_identity_repository),
 ) -> IdentityService:
-    return IdentityService(repo)
+    return IdentityService(repo, identities)
+
+
+async def get_oauth_service(
+    repo: UserRepository = Depends(get_identity_repository),
+    identities: UserIdentityRepository = Depends(get_user_identity_repository),
+) -> OAuthService:
+    return OAuthService(repo, identities)
+
+
+def get_login_providers() -> dict[str, LoginProvider]:
+    """설정된 로그인 제공자. 테스트·E2E 는 dependency_overrides 로 가짜 제공자를 주입한다."""
+    return build_login_providers(settings)
 
 
 async def get_user_data_purgers(

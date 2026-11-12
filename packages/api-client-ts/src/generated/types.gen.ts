@@ -2244,6 +2244,30 @@ export type LlmUsage = {
 };
 
 /**
+ * LoginMethod
+ *
+ * 계정에 연결된 로그인 수단. 비밀번호는 provider="password"·identity_id=None 이다.
+ */
+export type LoginMethod = {
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Identity Id
+     */
+    identity_id?: string | null;
+    /**
+     * Linked At
+     */
+    linked_at?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
  * LoginRequest
  */
 export type LoginRequest = {
@@ -2579,6 +2603,36 @@ export type NotificationPreferenceResponse = {
      * Subscription Count
      */
     subscription_count: number;
+};
+
+/**
+ * OAuthStartRequest
+ *
+ * return_to 는 서버가 검증한다(통과 못 하면 "/"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다).
+ */
+export type OAuthStartRequest = {
+    /**
+     * Intent
+     */
+    intent: 'login' | 'link';
+    /**
+     * Invite Code
+     */
+    invite_code?: string | null;
+    /**
+     * Return To
+     */
+    return_to?: string | null;
+};
+
+/**
+ * OAuthStartResponse
+ */
+export type OAuthStartResponse = {
+    /**
+     * Authorization Url
+     */
+    authorization_url: string;
 };
 
 /**
@@ -5384,6 +5438,10 @@ export type UserPublic = {
      * Id
      */
     id: string;
+    /**
+     * Login Methods
+     */
+    login_methods?: Array<LoginMethod>;
 };
 
 /**
@@ -8145,6 +8203,36 @@ export type AskStreamHoondokAskStreamPostResponses = {
 
 export type AskStreamHoondokAskStreamPostResponse = AskStreamHoondokAskStreamPostResponses[keyof AskStreamHoondokAskStreamPostResponses];
 
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Identity Id
+         */
+        identity_id: string;
+    };
+    query?: never;
+    url: '/hoondok/auth/identities/{identity_id}';
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteError = DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors[keyof DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors];
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponse = DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses[keyof DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses];
+
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;
     path?: never;
@@ -8218,6 +8306,70 @@ export type MeHoondokAuthMeGetResponses = {
 
 export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
 
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetData = {
+    body?: never;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: {
+        /**
+         * Code
+         */
+        code?: string | null;
+        /**
+         * State
+         */
+        state?: string | null;
+        /**
+         * Error
+         */
+        error?: string | null;
+    };
+    url: '/hoondok/auth/oauth/{provider}/callback';
+};
+
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetError = OauthCallbackHoondokAuthOauthProviderCallbackGetErrors[keyof OauthCallbackHoondokAuthOauthProviderCallbackGetErrors];
+
+export type OauthStartHoondokAuthOauthProviderStartPostData = {
+    body: OAuthStartRequest;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/hoondok/auth/oauth/{provider}/start';
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostError = OauthStartHoondokAuthOauthProviderStartPostErrors[keyof OauthStartHoondokAuthOauthProviderStartPostErrors];
+
+export type OauthStartHoondokAuthOauthProviderStartPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: OAuthStartResponse;
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostResponse = OauthStartHoondokAuthOauthProviderStartPostResponses[keyof OauthStartHoondokAuthOauthProviderStartPostResponses];
+
 export type SignupHoondokAuthSignupPostData = {
     body: SignupRequest;
     path?: never;
@@ -8226,6 +8378,10 @@ export type SignupHoondokAuthSignupPostData = {
 };
 
 export type SignupHoondokAuthSignupPostErrors = {
+    /**
+     * PASSWORD_SIGNUP_CLOSED — 이메일·비밀번호 가입 종료
+     */
+    410: unknown;
     /**
      * Validation Error
      */

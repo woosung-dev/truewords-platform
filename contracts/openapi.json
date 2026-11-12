@@ -3822,6 +3822,55 @@
         "title": "LlmUsage",
         "type": "object"
       },
+      "LoginMethod": {
+        "description": "계정에 연결된 로그인 수단. 비밀번호는 provider=\"password\"·identity_id=None 이다.",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "identity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
+          "linked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked At"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "title": "LoginMethod",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -4381,6 +4430,59 @@
           "subscription_count"
         ],
         "title": "NotificationPreferenceResponse",
+        "type": "object"
+      },
+      "OAuthStartRequest": {
+        "description": "return_to 는 서버가 검증한다(통과 못 하면 \"/\"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다).",
+        "properties": {
+          "intent": {
+            "enum": [
+              "login",
+              "link"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "invite_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Code"
+          },
+          "return_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return To"
+          }
+        },
+        "required": [
+          "intent"
+        ],
+        "title": "OAuthStartRequest",
+        "type": "object"
+      },
+      "OAuthStartResponse": {
+        "properties": {
+          "authorization_url": {
+            "title": "Authorization Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorization_url"
+        ],
+        "title": "OAuthStartResponse",
         "type": "object"
       },
       "PaginatedResponse_ChatbotConfigResponse_": {
@@ -9012,6 +9114,13 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "login_methods": {
+            "items": {
+              "$ref": "#/components/schemas/LoginMethod"
+            },
+            "title": "Login Methods",
+            "type": "array"
           }
         },
         "required": [
@@ -13505,9 +13614,47 @@
         }
       }
     },
+    "/hoondok/auth/identities/{identity_id}": {
+      "delete": {
+        "description": "로그인 수단 해제 → 204. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.",
+        "operationId": "delete_identity_hoondok_auth_identities__identity_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Identity",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/auth/login": {
       "post": {
-        "description": "API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.",
+        "deprecated": true,
+        "description": "API-HD-003 로그인 → 200 + 쿠키(기존 이메일 계정의 구글 연결용 임시 경로). 401 은 이메일 존재 여부·비밀번호 없는 계정을 구분하지 않는다.",
         "operationId": "login_hoondok_auth_login_post",
         "requestBody": {
           "content": {
@@ -13564,7 +13711,7 @@
     },
     "/hoondok/auth/me": {
       "delete": {
-        "description": "API-HD-011 내 데이터 삭제 → 204 + 쿠키 삭제. 훈독 기록 하드 삭제, 계정 소프트 삭제 + 이메일 익명화. 이후 me 는 401.",
+        "description": "API-HD-011 내 데이터 삭제 → 204 + 쿠키 삭제. 훈독 기록·로그인 수단 하드 삭제, 계정 소프트 삭제 + 이메일 익명화. 이후 me 는 401.",
         "operationId": "delete_me_hoondok_auth_me_delete",
         "responses": {
           "204": {
@@ -13577,7 +13724,7 @@
         ]
       },
       "get": {
-        "description": "API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.",
+        "description": "API-HD-003 현재 사용자 + 로그인 수단. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.",
         "operationId": "me_hoondok_auth_me_get",
         "responses": {
           "200": {
@@ -13597,9 +13744,147 @@
         ]
       }
     },
+    "/hoondok/auth/oauth/{provider}/callback": {
+      "get": {
+        "description": "제공자가 돌려보내는 곳. 항상 302 `{WEB}/onboarding/done?status=…|error=…` — 응답 본문·JSON 오류를 내지 않는다.",
+        "operationId": "oauth_callback_hoondok_auth_oauth__provider__callback_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth Callback",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/oauth/{provider}/start": {
+      "post": {
+        "description": "제공자 로그인 시작 → 200 {authorization_url} + 흐름 쿠키(hoondok_oauth, 10분).\n\n404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음). invite_code 가 틀려도 막지 않는다 —\n초대 게이트는 새 계정을 만드는 콜백에서만 확인한다(재로그인 사용자일 수 있다).",
+        "operationId": "oauth_start_hoondok_auth_oauth__provider__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth Start",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/auth/signup": {
       "post": {
-        "description": "API-HD-002 가입 → 201 + hoondok_token 쿠키. 409 이메일 중복.",
+        "deprecated": true,
+        "description": "이메일·비밀번호 가입은 닫혔다 → 항상 410 PASSWORD_SIGNUP_CLOSED. 새 계정은 구글 로그인으로 만든다.",
         "operationId": "signup_hoondok_auth_signup_post",
         "requestBody": {
           "content": {
@@ -13621,6 +13906,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "410": {
+            "description": "PASSWORD_SIGNUP_CLOSED — 이메일·비밀번호 가입 종료"
           },
           "422": {
             "content": {

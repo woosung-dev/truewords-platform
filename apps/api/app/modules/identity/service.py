@@ -1,4 +1,7 @@
-"""훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트 · 계정 삭제(API-HD-011)."""
+"""훈독 identity Service — 로그인·토큰 발급 · 로그인 수단 관리 · 초대 코드 게이트 · 계정 삭제(API-HD-011).
+
+이메일·비밀번호 가입은 닫혔다(410). 계정은 OAuth 콜백(oauth_service.py)에서만 만들어진다.
+"""
 
 import asyncio
 import secrets
@@ -7,15 +10,14 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError
 
 from app.core.common.clock import utcnow
 from app.core.config import settings
-from app.modules.admin.auth import create_access_token, hash_password, verify_login_password
-from app.modules.identity.exceptions import InviteRequiredError
+from app.modules.admin.auth import create_access_token, verify_login_password
+from app.modules.identity.exceptions import IdentityError, InviteRequiredError
 from app.modules.identity.models import User
-from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import LoginRequest, SignupRequest, UserPublic
+from app.modules.identity.repository import UserIdentityRepository, UserRepository
+from app.modules.identity.schemas import LoginMethod, LoginRequest, UserPublic
 
 AUDIENCE = "hoondok"
 # 이메일 존재 여부를 구분하지 않는다 (API-HD-003).
@@ -54,25 +56,10 @@ class UserDataPurger(Protocol):
 
 
 class IdentityService:
-    def __init__(self, repo: UserRepository) -> None:
+    def __init__(self, repo: UserRepository, identities: UserIdentityRepository | None = None) -> None:
         self.repo = repo
-
-    async def signup(self, data: SignupRequest) -> User:
-        # 게이트를 중복 검사보다 먼저 — 초대받지 않은 요청에 이메일 존재 여부(409)를 알리지 않는다
-        await check_invite_code(data.invite_code)
-        if await self.repo.get_by_email(data.email):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 등록된 이메일입니다")
-        user = User(
-            email=data.email,
-            password_hash=hash_password(data.password),
-            display_name=data.display_name.strip(),
-        )
-        try:
-            return await self.repo.create(user)
-        except IntegrityError:
-            # 동시 가입 경쟁 — unique 제약이 잡은 경우도 같은 409.
-            await self.repo.session.rollback()
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 등록된 이메일입니다")
+        # 같은 세션을 공유한다 — 계정 삭제·로그인 수단 해제가 한 트랜잭션으로 묶인다.
+        self.identities = identities or UserIdentityRepository(repo.session)
 
     async def login(self, data: LoginRequest) -> User:
         user = await self.repo.get_by_email(data.email)
@@ -98,6 +85,9 @@ class IdentityService:
             await purger.delete_for_user(user.id)
         user.deleted_at = utcnow()
         user.email = f"deleted:{user.id}"
+        # 로그인 수단도 같은 트랜잭션에서 지운다 — 같은 구글 계정으로 다시 가입할 수 있어야 한다.
+        await self.identities.delete_for_user(user.id)
+        user.password_hash = None
         await self.repo.save(user)  # 한 번의 커밋 — purger 의 DELETE 도 같은 세션에서 함께 반영된다
 
     @staticmethod
@@ -108,6 +98,51 @@ class IdentityService:
             expires_minutes=settings.hoondok_jwt_expire_minutes,
         )
 
+    async def remove_identity(self, user: User, identity_id: uuid.UUID) -> None:
+        """로그인 수단 해제. 사용자 행을 잠근 뒤 남는 수단이 있는지 판정해 동시 해제로 계정이 잠기지 않게 한다."""
+        locked = await self.repo.get_for_update(user.id)
+        if locked is None or locked.deleted_at is not None:
+            raise IdentityError(status.HTTP_404_NOT_FOUND, "IDENTITY_NOT_FOUND", "로그인 수단을 찾을 수 없어요")
+        identity = await self.identities.get_for_user(locked.id, identity_id)
+        if identity is None:
+            await self.repo.session.rollback()  # 잠금을 푼다
+            raise IdentityError(status.HTTP_404_NOT_FOUND, "IDENTITY_NOT_FOUND", "로그인 수단을 찾을 수 없어요")
+        remaining = await self.identities.count_for_user(locked.id) + (1 if locked.password_hash else 0)
+        if remaining <= 1:
+            await self.repo.session.rollback()
+            raise IdentityError(
+                status.HTTP_409_CONFLICT, "LAST_LOGIN_METHOD", "마지막 로그인 수단은 해제할 수 없어요"
+            )
+        await self.identities.delete_and_commit(identity)
+
+    async def login_methods(self, user: User) -> list[LoginMethod]:
+        methods: list[LoginMethod] = []
+        if user.password_hash:
+            methods.append(LoginMethod(provider="password", identity_id=None, email=user.email, linked_at=None))
+        for identity in await self.identities.list_for_user(user.id):
+            methods.append(
+                LoginMethod(
+                    provider=identity.provider,
+                    identity_id=identity.id,
+                    email=identity.email,
+                    linked_at=identity.created_at,
+                )
+            )
+        return methods
+
     @staticmethod
-    def to_public(user: User) -> UserPublic:
-        return UserPublic(id=user.id, email=user.email, display_name=user.display_name)
+    def issue_token(user: User) -> str:
+        """JWT aud="hoondok". admin 디코더는 aud 가 있는 토큰을 거부하므로 admin API 에 쓸 수 없다."""
+        return create_access_token(
+            {"sub": str(user.id), "aud": AUDIENCE},
+            expires_minutes=settings.hoondok_jwt_expire_minutes,
+        )
+
+    @staticmethod
+    def to_public(user: User, login_methods: Sequence[LoginMethod] = ()) -> UserPublic:
+        return UserPublic(
+            id=user.id, email=user.email, display_name=user.display_name, login_methods=list(login_methods)
+        )
+
+    async def public_user(self, user: User) -> UserPublic:
+        return self.to_public(user, await self.login_methods(user))

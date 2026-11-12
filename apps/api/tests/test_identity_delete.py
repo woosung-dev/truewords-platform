@@ -1,7 +1,11 @@
-"""훈독 API-HD-011 계정 삭제 — deleted_at 소프트 삭제 + 이메일 익명화 + 훈독 기록 하드 삭제 · 204 + 쿠키 삭제 · 403/401 · 재가입 201."""
+"""훈독 API-HD-011 계정 삭제 — deleted_at 소프트 삭제 + 이메일 익명화 + 훈독 기록·로그인 수단 하드 삭제 · 204 + 쿠키 삭제 · 403/401 · 같은 이메일 재생성.
+
+가입 API 는 닫혔다(410). 계정은 저장소에 직접 만들고 issue_token 쿠키를 건다.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import date
 from unittest.mock import MagicMock
@@ -15,7 +19,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, select
 
 from app.main import app
-from app.modules.admin.auth import create_access_token
+from app.modules.admin.auth import create_access_token, hash_password
 from app.modules.hoondok.dependencies import (
     get_ask_repository,
     get_card_repository,
@@ -28,10 +32,10 @@ from app.modules.hoondok.dependencies import (
 )
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
-from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
-from app.modules.identity.models import User
+from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository, get_user_identity_repository
+from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import LoginRequest, SignupRequest
+from app.modules.identity.schemas import LoginRequest
 from app.modules.identity.service import IdentityService
 
 TODAY = date(2026, 9, 19)
@@ -39,8 +43,8 @@ XHR = {"X-Requested-With": "XMLHttpRequest"}
 ME = "/hoondok/auth/me"
 
 
-def _signup(email: str, password: str = "password1", display_name: str = "효진") -> SignupRequest:
-    return SignupRequest(email=email, password=password, display_name=display_name)
+def _new_user(email: str, password: str = "password1", display_name: str = "효진") -> User:
+    return User(email=email, password_hash=hash_password(password), display_name=display_name)
 
 
 # --- service (aiosqlite, 실제 리포) -----------------------------------------------
@@ -54,7 +58,7 @@ async def session():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, MissionLog.__table__, JeongseongPeriod.__table__, JeongseongReading.__table__, ClientErrorEvent.__table__],
+            tables=[User.__table__, UserIdentity.__table__, MissionLog.__table__, JeongseongPeriod.__table__, JeongseongReading.__table__, ClientErrorEvent.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     try:
@@ -68,13 +72,18 @@ async def session():
 async def test_delete_account_sets_deleted_at_anonymizes_email_and_blocks_login(session: AsyncSession):
     users = UserRepository(session)
     service = IdentityService(users)
-    user = await service.signup(_signup("Del@Example.com"))
+    user = await users.create(_new_user("Del@Example.com"))
+    # 구글 연결 계정과 같은 상태 — 로그인 수단을 지우고 해시도 비운다
+    session.add(UserIdentity(user_id=user.id, provider="google", issuer="https://accounts.google.com", subject="g-1", client_id="cid"))
+    await session.commit()
 
     await service.delete_account(user, purgers=[])
 
     fetched = await users.get_by_id(user.id)
     assert fetched is not None and fetched.deleted_at is not None
     assert fetched.email == f"deleted:{user.id}"
+    assert fetched.password_hash is None
+    assert (await session.execute(select(UserIdentity))).first() is None  # 같은 구글 계정으로 다시 가입할 수 있다
     assert await users.get_by_email("del@example.com") is None
     with pytest.raises(HTTPException) as exc:
         await service.login(LoginRequest(email="del@example.com", password="password1"))
@@ -86,8 +95,8 @@ async def test_delete_account_purges_hoondok_rows_in_same_commit(session: AsyncS
     """실 리포로 하드 삭제 + 다른 사용자 데이터 보존. purger 는 커밋하지 않고 users.save 커밋에 묶인다."""
     users, missions, periods = UserRepository(session), MissionLogRepository(session), JeongseongRepository(session)
     service = IdentityService(users)
-    me = await service.signup(_signup("me@example.com"))
-    other = await service.signup(_signup("other@example.com"))
+    me = await users.create(_new_user("me@example.com"))
+    other = await users.create(_new_user("other@example.com"))
     for u in (me, other):
         await missions.create(MissionLog(user_id=u.id, mission_date=TODAY, kind="read"))
         period = await periods.create(JeongseongPeriod(user_id=u.id, topic="감사", duration_days=7, started_on=TODAY))
@@ -105,7 +114,7 @@ async def test_delete_account_purges_hoondok_rows_in_same_commit(session: AsyncS
     errors = (await session.execute(select(ClientErrorEvent))).scalars().all()
     assert len(errors) == 1 and errors[0].user_id == other.id
     # 같은 이메일로 재가입 — unique 인덱스 충돌 없음
-    again = await service.signup(_signup("me@example.com", password="password2"))
+    again = await users.create(_new_user("me@example.com", password="password2"))
     assert again.id != me.id and again.email == "me@example.com"
 
 
@@ -119,7 +128,7 @@ async def test_delete_account_partial_failure_leaves_nothing_deleted(session: As
 
     users, missions, periods = UserRepository(session), MissionLogRepository(session), JeongseongRepository(session)
     service = IdentityService(users)
-    me = await service.signup(_signup("boom@example.com"))
+    me = await users.create(_new_user("boom@example.com"))
     await missions.create(MissionLog(user_id=me.id, mission_date=TODAY, kind="read"))
     await periods.create(JeongseongPeriod(user_id=me.id, topic="감사", duration_days=7, started_on=TODAY))
 
@@ -160,6 +169,20 @@ class _MemoryUsers:
     async def save(self, user: User) -> User:
         self.users[user.id] = user
         return user
+
+
+class _MemoryIdentities:
+    """로그인 수단 저장소 fake — 이 파일은 DB 없이 라우터 배선만 본다. 실제 삭제는 위 service 테스트가 실 리포로 본다."""
+
+    def __init__(self) -> None:
+        self.purged: list[uuid.UUID] = []
+        self.session = MagicMock()
+
+    async def delete_for_user(self, user_id) -> None:
+        self.purged.append(user_id)
+
+    async def list_for_user(self, user_id) -> list:
+        return []
 
 
 class _FakeLogs:
@@ -248,7 +271,9 @@ class _FakePathRuns(_FakeCards):
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
     notifications, library = _FakeNotifications(), _FakeLibrary()
+    identities = _MemoryIdentities()
     app.dependency_overrides[get_identity_repository] = lambda: users
+    app.dependency_overrides[get_user_identity_repository] = lambda: identities
     app.dependency_overrides[get_mission_repository] = lambda: logs
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
     app.dependency_overrides[get_notification_repository] = lambda: notifications
@@ -261,11 +286,12 @@ def client():
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
-        c.notifications, c.library = notifications, library  # type: ignore[attr-defined]
+        c.notifications, c.library, c.identities = notifications, library, identities  # type: ignore[attr-defined]
         yield c
     finally:
         for dep in (
             get_identity_repository,
+            get_user_identity_repository,
             get_mission_repository,
             get_jeongseong_repository,
             get_notification_repository,
@@ -279,11 +305,10 @@ def client():
 
 
 def _join(client: TestClient, email: str = "new@example.com") -> dict:
-    created = client.post(
-        "/hoondok/auth/signup", json={"email": email, "password": "password1", "display_name": "새벽"}, headers=XHR
-    )
-    assert created.status_code == 201, created.text
-    return created.json()["user"]
+    """가입 API 가 닫혔으므로 저장소에 직접 만들고 세션 쿠키를 건다."""
+    user = asyncio.run(client.users.create(_new_user(email, display_name="새벽")))  # type: ignore[attr-defined]
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
+    return {"id": str(user.id), "email": user.email, "display_name": user.display_name}
 
 
 def test_delete_me_204_clears_cookie_then_me_401(client: TestClient):
@@ -342,9 +367,11 @@ def test_delete_me_removes_mission_logs_and_jeongseong(client: TestClient):
     assert stored.deleted_at is not None and stored.email == f"deleted:{me_id}"
 
 
-def test_signup_same_email_after_delete_is_201(client: TestClient):
+def test_same_email_can_be_created_again_after_delete(client: TestClient):
     first = _join(client, "Again@Example.com")
     assert client.delete(ME, headers=XHR).status_code == 204
+    assert client.identities.purged == [uuid.UUID(first["id"])]  # type: ignore[attr-defined]
+    assert client.users.users[uuid.UUID(first["id"])].password_hash is None  # type: ignore[attr-defined]
 
     second = _join(client, "again@example.com")
     assert second["id"] != first["id"] and second["email"] == "again@example.com"

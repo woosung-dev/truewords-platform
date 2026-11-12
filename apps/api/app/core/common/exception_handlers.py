@@ -13,7 +13,7 @@ from app.core.common.schemas import ErrorResponse
 from app.modules.chat.exceptions import SessionOwnershipError
 from app.core.common.clock import utcnow
 from app.modules.hoondok.exceptions import AskDailyLimitError, PathError, PushDisabledError, TtsError
-from app.modules.identity.exceptions import InviteRequiredError
+from app.modules.identity.exceptions import IdentityError, InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -123,6 +123,20 @@ async def path_error_handler(request: Request, exc: PathError) -> JSONResponse:
     """7일 정성 거절 (읽기 정성 1a). 남긴 한 줄 등 사용자 입력은 로그에 남기지 않는다."""
     rid = _get_request_id(request)
     logger.info("PathError", extra={"request_id": rid, "error_code": exc.error_code})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(
+            error_code=exc.error_code,
+            message=str(exc),
+            request_id=rid,
+        ).model_dump(),
+    )
+
+
+async def identity_error_handler(request: Request, exc: IdentityError) -> JSONResponse:
+    """로그인 수단 거절. 이메일·토큰·코드 원문은 로그에 남기지 않는다."""
+    rid = _get_request_id(request)
+    logger.info("IdentityError", extra={"request_id": rid, "error_code": exc.error_code})
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
