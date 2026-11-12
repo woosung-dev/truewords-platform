@@ -112,3 +112,25 @@ test("기존 비밀번호 계정: 로그인 → 연결 안내 → 구글 연결 
   await signInWithGoogle(page, linked);
   expect((await me(page)).id).toBe(before.id);
 });
+
+test("설정에서 구글 연결: 비밀번호 계정은 비밀번호를 다시 확인한 뒤 연결된다", async ({ page }) => {
+  const email = `e2e-legacy-settings-${Date.now()}@example.com`;
+  seedPasswordUser(email, "설정연결");
+  await signInWithPassword(page, { email, password: PASSWORD });
+  const before = await me(page);
+
+  const stamp = Date.now();
+  await setFakeGoogleIdentity(page, { sub: `e2e-sub-s-${stamp}`, email: `e2e-s-${stamp}@example.com`, name: "설정구글" });
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "구글 계정 연결", exact: true }).click();
+  // [확인 필요] 비밀번호 확인 입력란이 펼쳐진 뒤의 제출 방식(버튼 이름)은 구현 확정 전이라 Enter 로 제출한다
+  const confirm = page.getByLabel("비밀번호 확인");
+  await confirm.fill(PASSWORD);
+  await confirm.press("Enter");
+  await page.waitForURL((url) => url.pathname === "/settings");
+  await expect(page.getByText("구글", { exact: true })).toBeVisible();
+  // 연결 뒤에도 현재 브라우저는 로그인 상태(세션 쿠키 재발급)이고 같은 계정이다
+  const after = await me(page);
+  expect(after.id).toBe(before.id);
+  expect(after.login_methods?.map((method) => method.provider)).toEqual(["google"]);
+});
