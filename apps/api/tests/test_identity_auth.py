@@ -20,6 +20,7 @@ from app.modules.admin.auth import create_access_token, hash_password
 from app.modules.admin.dependencies import get_current_admin
 from app.modules.identity.dependencies import (
     COOKIE_NAME,
+    decode_hoondok_session,
     decode_hoondok_token,
     get_current_user,
     get_identity_repository,
@@ -127,6 +128,24 @@ def test_hoondok_token_round_trips_with_aud():
     user = User(email="a@b.c", password_hash="x", display_name="n")
     token = IdentityService.issue_token(user)
     assert decode_hoondok_token(token) == user.id
+
+
+def test_issue_token_carries_session_version_and_decoder_reads_it():
+    user = User(email="a@b.c", password_hash="x", display_name="n", session_version=3)
+    assert decode_hoondok_session(IdentityService.issue_token(user)) == (user.id, 3)
+    assert decode_hoondok_session(IdentityService.issue_token(User(email="a@b.c", display_name="n")))[1] == 0
+
+
+def test_token_without_sv_is_read_as_version_zero():
+    """배포 전에 발급된 토큰 호환."""
+    uid = uuid.uuid4()
+    assert decode_hoondok_session(create_access_token({"sub": str(uid), "aud": AUDIENCE})) == (uid, 0)
+
+
+@pytest.mark.parametrize("bad", ["1", 1.5, None, True, [1]])
+def test_token_with_non_integer_sv_is_rejected(bad):
+    token = create_access_token({"sub": str(uuid.uuid4()), "aud": AUDIENCE, "sv": bad})
+    assert decode_hoondok_session(token) is None
 
 
 def test_admin_style_token_without_aud_is_rejected_by_hoondok_decoder():

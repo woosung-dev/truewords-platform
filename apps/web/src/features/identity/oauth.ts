@@ -24,6 +24,8 @@ export function oauthErrorMessage(code: string | null | undefined): string | nul
 /** start 호출 실패를 사용자 문구로 바꾼다. */
 export function oauthStartErrorMessage(error: unknown, intent: OAuthIntent): string {
   if (error instanceof ApiError) {
+    // 비밀번호 계정이 구글을 연결할 때의 재확인 실패(없음·불일치)
+    if (error.status === 401 && error.errorCode === "REAUTH_REQUIRED") return "비밀번호가 올바르지 않아요";
     if (error.errorCode === "OAUTH_PROVIDER_UNAVAILABLE") return "지금은 구글 로그인을 쓸 수 없어요. 잠시 뒤 다시 시도해 주세요";
     if (error.status === 401 && intent === "link") return "로그인이 풀렸어요. 다시 로그인한 뒤 연결해 주세요";
     if (error.status === 429) return "요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요";
@@ -40,6 +42,8 @@ export async function startOAuth(options: {
   intent: OAuthIntent;
   returnTo?: string;
   inviteCode?: string;
+  /** 비밀번호 계정이 intent=link 를 시작할 때의 재확인. 호출자 상태에서만 오고, 어디에도 저장하지 않는다. */
+  password?: string;
 }): Promise<void> {
   const inviteCode = options.inviteCode?.trim();
   const { authorization_url } = await identityAPI.oauthStart(options.provider ?? "google", {
@@ -47,6 +51,7 @@ export async function startOAuth(options: {
     return_to: options.returnTo ?? null,
     // 비워 두면 보내지 않는다
     ...(inviteCode ? { invite_code: inviteCode } : {}),
+    ...(options.password ? { password: options.password } : {}),
   });
   window.location.assign(authorization_url);
 }

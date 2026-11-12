@@ -72,12 +72,52 @@ describe("로그인 수단 카드", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("마지막 로그인 수단은 해제할 수 없어요");
   });
 
-  it("구글이 없으면 연결 버튼이 link 의도·설정 returnTo 로 start 를 부른다", async () => {
+  it("비밀번호 수단이 있으면 연결을 누를 때 비밀번호 확인 입력을 펼치고, 입력 전에는 start 를 부르지 않는다", async () => {
     renderCard({ ...base, login_methods: [PASSWORD] });
+    expect(screen.queryByLabelText("비밀번호 확인")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결" }));
+    expect(await screen.findByLabelText("비밀번호 확인")).toHaveAttribute("type", "password");
+    expect(identityAPI.oauthStart).not.toHaveBeenCalled();
+  });
+
+  it("확인한 비밀번호를 link 의도·설정 returnTo 와 함께 start 로 보내고, 저장소에는 남기지 않는다", async () => {
+    renderCard({ ...base, login_methods: [PASSWORD] });
+    vi.mocked(identityAPI.oauthStart).mockResolvedValueOnce({ authorization_url: "https://g.example/link" });
+    fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결" }));
+    fireEvent.change(await screen.findByLabelText("비밀번호 확인"), { target: { value: "password1" } });
+    fireEvent.submit(screen.getByRole("form", { name: "구글 연결을 위한 비밀번호 확인" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://g.example/link"));
+    expect(identityAPI.oauthStart).toHaveBeenCalledWith("google", {
+      intent: "link",
+      return_to: "/settings",
+      password: "password1",
+    });
+    for (const store of [window.localStorage, window.sessionStorage]) {
+      expect(JSON.stringify({ ...store })).not.toContain("password1");
+    }
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain("password1");
+  });
+
+  it("401 REAUTH_REQUIRED 면 비밀번호가 올바르지 않다고 안내하고 이동하지 않는다", async () => {
+    renderCard({ ...base, login_methods: [PASSWORD] });
+    vi.mocked(identityAPI.oauthStart).mockRejectedValueOnce(
+      new ApiError(401, { error_code: "REAUTH_REQUIRED", message: "x" }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결" }));
+    fireEvent.change(await screen.findByLabelText("비밀번호 확인"), { target: { value: "wrong-pass" } });
+    fireEvent.submit(screen.getByRole("form", { name: "구글 연결을 위한 비밀번호 확인" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("비밀번호가 올바르지 않아요");
+    expect(assign).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("비밀번호 확인")).toHaveValue(""); // 다시 입력할 수 있게 비우고 폼은 유지한다
+  });
+
+  it("비밀번호 수단이 없는 계정은 확인 입력 없이 바로 start 를 부른다", async () => {
+    renderCard({ ...base, login_methods: [{ provider: "kakao", identity_id: "k1", email: "k@kakao.com" }] });
     vi.mocked(identityAPI.oauthStart).mockResolvedValueOnce({ authorization_url: "https://g.example/link" });
     fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://g.example/link"));
     expect(identityAPI.oauthStart).toHaveBeenCalledWith("google", { intent: "link", return_to: "/settings" });
+    expect(screen.queryByLabelText("비밀번호 확인")).toBeNull();
   });
 
   it("비로그인이면 아무것도 그리지 않는다", async () => {

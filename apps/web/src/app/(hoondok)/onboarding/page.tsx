@@ -65,14 +65,16 @@ function InAppBrowserNotice() {
   );
 }
 
-function LinkPrompt({ returnTo, onLater }: { returnTo: string; onLater: () => void }) {
+// password 는 방금 로그인에 쓴 비밀번호다 — 서버가 연결 시작 때 재확인하므로 다시 묻지 않고 함께 보낸다.
+// 컴포넌트 상태에만 두고 localStorage·sessionStorage·쿼리 캐시에 넣지 않는다.
+function LinkPrompt({ returnTo, password, onLater }: { returnTo: string; password: string; onLater: () => void }) {
   const [message, setMessage] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   async function handleLink() {
     setMessage("");
     setIsStarting(true);
     try {
-      await startOAuth({ intent: "link", returnTo });
+      await startOAuth({ intent: "link", returnTo, password });
     } catch (error) {
       setMessage(oauthStartErrorMessage(error, "link"));
       setIsStarting(false);
@@ -97,7 +99,7 @@ function LinkPrompt({ returnTo, onLater }: { returnTo: string; onLater: () => vo
   );
 }
 
-function PasswordLoginForm({ onSignedIn }: { onSignedIn: (user: HoondokUser) => void }) {
+function PasswordLoginForm({ onSignedIn }: { onSignedIn: (user: HoondokUser, password: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -109,7 +111,7 @@ function PasswordLoginForm({ onSignedIn }: { onSignedIn: (user: HoondokUser) => 
     setIsSubmitting(true);
     try {
       const { user } = await identityAPI.login({ email, password });
-      onSignedIn(user);
+      onSignedIn(user, password);
     } catch (error) {
       setMessage(passwordErrorMessage(error));
     } finally {
@@ -168,6 +170,7 @@ function OnboardingBody() {
   const [oauthMessage, setOauthMessage] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   const [linkPrompt, setLinkPrompt] = useState(false);
+  const [linkPassword, setLinkPassword] = useState("");
   const [message, setMessage] = useState("");
   const logout = useLogout();
 
@@ -182,12 +185,15 @@ function OnboardingBody() {
     }
   }
 
-  function handlePasswordSignedIn(signedIn: HoondokUser) {
+  function handlePasswordSignedIn(signedIn: HoondokUser, password: string) {
     completeSignIn(queryClient, signedIn, false);
     // 비밀번호뿐인 계정이면 바로 떠나지 않고 구글 연결을 한 번 권한다
     const hasOtherMethod = (signedIn.login_methods ?? []).some((method) => method.provider !== "password");
     if (hasOtherMethod) router.replace(returnTo);
-    else setLinkPrompt(true);
+    else {
+      setLinkPassword(password);
+      setLinkPrompt(true);
+    }
   }
 
   function handleLogout() {
@@ -198,7 +204,7 @@ function OnboardingBody() {
     );
   }
 
-  if (linkPrompt) return <LinkPrompt returnTo={returnTo} onLater={() => router.replace(returnTo)} />;
+  if (linkPrompt) return <LinkPrompt returnTo={returnTo} password={linkPassword} onLater={() => router.replace(returnTo)} />;
 
   if (!isLoading && user) {
     return (

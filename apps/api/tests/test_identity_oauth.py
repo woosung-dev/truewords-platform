@@ -172,7 +172,7 @@ def issued_session_token(res) -> str:
     raise AssertionError("세션 쿠키가 발급되지 않았다")
 
 
-def me_status(env: "Env", token: str) -> int:
+def me_status(env: Env, token: str) -> int:
     """주어진 세션 토큰만 가진 클라이언트로 /me 를 친다."""
     env.cookies()
     env.client.cookies.set(COOKIE_NAME, token)

@@ -874,7 +874,9 @@ export const askStreamHoondokAskStreamPost = <ThrowOnError extends boolean = fal
 /**
  * Delete Identity
  *
- * 로그인 수단 해제 → 204. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.
+ * 로그인 수단 해제 → 204 + 새 세션 쿠키. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.
+ *
+ * 해제로 session_version 이 오르므로 다른 기기·옛 토큰은 끊기고, 이 응답의 새 쿠키로 현재 브라우저만 로그인이 유지된다.
  */
 export const deleteIdentityHoondokAuthIdentitiesIdentityIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteData, ThrowOnError>): RequestResult<DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses, DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors, ThrowOnError> => (options.client ?? client).delete<DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses, DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors, ThrowOnError>({ url: '/hoondok/auth/identities/{identity_id}', ...options });
 
@@ -927,7 +929,8 @@ export const oauthCallbackHoondokAuthOauthProviderCallbackGet = <ThrowOnError ex
  *
  * 제공자 로그인 시작 → 200 {authorization_url} + 흐름 쿠키(hoondok_oauth, 10분).
  *
- * 404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음). invite_code 가 틀려도 막지 않는다 —
+ * 404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음) · 401 REAUTH_REQUIRED(비밀번호 계정의 link 에서
+ * password 없음·불일치). invite_code 가 틀려도 막지 않는다 —
  * 초대 게이트는 새 계정을 만드는 콜백에서만 확인한다(재로그인 사용자일 수 있다).
  */
 export const oauthStartHoondokAuthOauthProviderStartPost = <ThrowOnError extends boolean = false>(options: Options<OauthStartHoondokAuthOauthProviderStartPostData, ThrowOnError>): RequestResult<OauthStartHoondokAuthOauthProviderStartPostResponses, OauthStartHoondokAuthOauthProviderStartPostErrors, ThrowOnError> => (options.client ?? client).post<OauthStartHoondokAuthOauthProviderStartPostResponses, OauthStartHoondokAuthOauthProviderStartPostErrors, ThrowOnError>({

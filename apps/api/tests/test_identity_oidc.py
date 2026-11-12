@@ -131,6 +131,27 @@ async def test_invalid_claims_are_rejected(overrides):
         await _complete(FakeGoogle(), sign_rs256(make_claims(**overrides)))
 
 
+async def test_multiple_audiences_without_azp_are_rejected():
+    """OIDC Core 3.1.3.7 — aud 가 둘 이상이면 azp 가 반드시 있어야 한다."""
+    with _rejects():
+        await _complete(FakeGoogle(), sign_rs256(make_claims(aud=[CLIENT_ID, "other-client"], azp=DROP)))
+
+
+async def test_multiple_audiences_with_other_azp_are_rejected():
+    with _rejects():
+        await _complete(FakeGoogle(), sign_rs256(make_claims(aud=[CLIENT_ID, "other-client"], azp="other-client")))
+
+
+async def test_multiple_audiences_with_our_azp_are_accepted():
+    ext = await _complete(FakeGoogle(), sign_rs256(make_claims(aud=[CLIENT_ID, "other-client"], azp=CLIENT_ID)))
+    assert ext.subject == "google-sub-1"
+
+
+async def test_single_element_audience_list_without_azp_is_accepted():
+    ext = await _complete(FakeGoogle(), sign_rs256(make_claims(aud=[CLIENT_ID], azp=DROP)))
+    assert ext.subject == "google-sub-1"
+
+
 async def test_token_expired_within_clock_leeway_is_still_accepted():
     ext = await _complete(FakeGoogle(), sign_rs256(make_claims(NONCE, exp=int(time.time()) - 10)))
     assert ext.subject == "google-sub-1"
@@ -284,6 +305,18 @@ def test_authoritative_for_gmail():
 
 def test_authoritative_for_workspace_domain_with_hd_claim():
     assert _map(email="staff@church.example", hd="church.example").email_authoritative is True
+
+
+def test_not_authoritative_when_hd_does_not_match_email_domain():
+    """hd 클레임이 있어도 이메일 도메인이 hd 와 다르면 그 도메인의 소유를 보증하지 않는다."""
+    assert _map(email="staff@church.example", hd="other.example").email_authoritative is False
+    assert _map(email="staff@sub.church.example", hd="church.example").email_authoritative is False
+    assert _map(email="staff@church.example", hd="").email_authoritative is False
+    assert _map(email="staff@church.example", hd=123).email_authoritative is False
+
+
+def test_hd_comparison_is_case_insensitive():
+    assert _map(email="Staff@Church.Example", hd="CHURCH.example").email_authoritative is True
 
 
 def test_not_authoritative_for_other_domain_without_hd():

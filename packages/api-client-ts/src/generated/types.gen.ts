@@ -2620,6 +2620,10 @@ export type OAuthStartRequest = {
      */
     invite_code?: string | null;
     /**
+     * Password
+     */
+    password?: string | null;
+    /**
      * Return To
      */
     return_to?: string | null;

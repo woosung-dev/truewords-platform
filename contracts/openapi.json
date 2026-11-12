@@ -4446,6 +4446,7 @@
           "invite_code": {
             "anyOf": [
               {
+                "maxLength": 64,
                 "type": "string"
               },
               {
@@ -4454,9 +4455,22 @@
             ],
             "title": "Invite Code"
           },
+          "password": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
           "return_to": {
             "anyOf": [
               {
+                "maxLength": 2048,
                 "type": "string"
               },
               {
@@ -13616,7 +13630,7 @@
     },
     "/hoondok/auth/identities/{identity_id}": {
       "delete": {
-        "description": "로그인 수단 해제 → 204. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.",
+        "description": "로그인 수단 해제 → 204 + 새 세션 쿠키. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.\n\n해제로 session_version 이 오르므로 다른 기기·옛 토큰은 끊기고, 이 응답의 새 쿠키로 현재 브라우저만 로그인이 유지된다.",
         "operationId": "delete_identity_hoondok_auth_identities__identity_id__delete",
         "parameters": [
           {
@@ -13830,7 +13844,7 @@
     },
     "/hoondok/auth/oauth/{provider}/start": {
       "post": {
-        "description": "제공자 로그인 시작 → 200 {authorization_url} + 흐름 쿠키(hoondok_oauth, 10분).\n\n404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음). invite_code 가 틀려도 막지 않는다 —\n초대 게이트는 새 계정을 만드는 콜백에서만 확인한다(재로그인 사용자일 수 있다).",
+        "description": "제공자 로그인 시작 → 200 {authorization_url} + 흐름 쿠키(hoondok_oauth, 10분).\n\n404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음) · 401 REAUTH_REQUIRED(비밀번호 계정의 link 에서\npassword 없음·불일치). invite_code 가 틀려도 막지 않는다 —\n초대 게이트는 새 계정을 만드는 콜백에서만 확인한다(재로그인 사용자일 수 있다).",
         "operationId": "oauth_start_hoondok_auth_oauth__provider__start_post",
         "parameters": [
           {

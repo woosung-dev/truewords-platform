@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { startOAuth, oauthStartErrorMessage } from "@/features/identity/oauth";
 import { identityAPI } from "@/features/identity/api";
@@ -18,6 +18,9 @@ export function LoginMethodsCard() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [isLinking, setIsLinking] = useState(false);
+  // 비밀번호 수단이 있는 계정은 구글을 연결하기 전에 비밀번호를 다시 받는다. 컴포넌트 상태에만 둔다.
+  const [askPassword, setAskPassword] = useState(false);
+  const [password, setPassword] = useState("");
 
   const unlink = useMutation({
     mutationFn: (identityId: string) => identityAPI.unlinkIdentity(identityId),
@@ -37,15 +40,32 @@ export function LoginMethodsCard() {
   const hasGoogle = methods.some((method) => method.provider === "google");
   const isLastMethod = methods.length <= 1;
 
-  async function handleLink() {
+  const hasPassword = methods.some((method) => method.provider === "password");
+
+  async function startLink(confirmedPassword?: string) {
     setMessage("");
     setIsLinking(true);
     try {
-      await startOAuth({ intent: "link", returnTo: SETTINGS_PATH });
+      await startOAuth({ intent: "link", returnTo: SETTINGS_PATH, password: confirmedPassword });
     } catch (error) {
       setMessage(oauthStartErrorMessage(error, "link"));
+      setPassword(""); // 틀렸을 때 남겨 두지 않는다
       setIsLinking(false);
     }
+  }
+
+  function handleLinkClick() {
+    if (hasPassword) {
+      setMessage("");
+      setAskPassword(true);
+    } else {
+      void startLink();
+    }
+  }
+
+  function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void startLink(password);
   }
 
   return (
@@ -81,10 +101,30 @@ export function LoginMethodsCard() {
         ))}
       </div>
       {isLastMethod && hasGoogle && <p className="hint">{LAST_METHOD_TEXT}</p>}
-      {!hasGoogle && (
-        <HoondokButton onClick={handleLink} isLoading={isLinking}>
+      {!hasGoogle && !askPassword && (
+        <HoondokButton onClick={handleLinkClick} isLoading={isLinking}>
           구글 계정 연결
         </HoondokButton>
+      )}
+      {!hasGoogle && askPassword && (
+        <form className="form" onSubmit={handlePasswordSubmit} aria-label="구글 연결을 위한 비밀번호 확인">
+          <label className="field">
+            <span className="field__label">비밀번호 확인</span>
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={128}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <p className="field__help">계정을 지키기 위해 한 번 더 확인해요</p>
+          <HoondokButton type="submit" isLoading={isLinking}>
+            구글 계정 연결 계속하기
+          </HoondokButton>
+        </form>
       )}
       {message && (
         <p className="hint" role="alert">
