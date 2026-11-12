@@ -25,6 +25,9 @@ class User(SQLModel, table=True):
     deleted_at: datetime | None = Field(default=None)  # 소프트 삭제. 삭제 API 는 Phase 2 비범위
     email_verified_at: datetime | None = Field(default=None)  # 권위 있는 제공자가 이메일을 확인한 시각
     email_verified_by: str | None = Field(default=None, max_length=255)  # 확인한 제공자 issuer
+    # 로그인 수단이 바뀔 때(연결·해제) 올린다. 세션 토큰의 sv 와 다르면 미인증 — 옛 세션을 끊는다.
+    # server_default 가 있어 이 컬럼을 모르는 직전 이미지가 INSERT 해도 0 으로 들어간다.
+    session_version: int = Field(default=0, sa_column_kwargs={"server_default": "0"})
 
 
 class UserIdentity(SQLModel, table=True):

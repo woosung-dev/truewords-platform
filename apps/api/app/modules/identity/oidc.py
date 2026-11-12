@@ -209,6 +209,9 @@ class OidcProvider:
         authorized_party = claims.get("azp")
         if authorized_party is not None and authorized_party != self.config.client_id:
             raise OidcError("azp rejected")
+        audience = claims.get("aud")
+        if isinstance(audience, list) and len(audience) > 1 and authorized_party != self.config.client_id:
+            raise OidcError("azp required")  # OIDC Core 3.1.3.7: aud 가 여럿이면 azp 가 있고 client_id 와 같아야 한다
         token_nonce = claims.get("nonce")
         if not isinstance(token_nonce, str) or not hmac.compare_digest(
             token_nonce.encode("utf-8"), nonce.encode("utf-8")
@@ -228,8 +231,12 @@ def map_google_claims(claims: Mapping[str, Any], config: OidcConfig) -> External
     raw_email = claims.get("email")
     email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else None
     email_verified = email is not None and _claim_true(claims.get("email_verified"))
-    # gmail.com 주소는 구글이 소유를 보증한다. 그 밖의 주소는 구글 Workspace 도메인(hd 클레임)일 때만 권위가 있다.
-    authoritative = bool(email_verified and email is not None and (email.endswith("@gmail.com") or "hd" in claims))
+    # gmail.com 주소는 구글이 소유를 보증한다. 그 밖의 주소는 구글 Workspace 도메인(hd 클레임)이고
+    # 이메일 도메인이 hd 와 같을 때만 권위가 있다(hd 만 있고 도메인이 다르면 보증이 아니다).
+    domain = email.rsplit("@", 1)[-1] if email is not None and "@" in email else None
+    hosted_domain = claims.get("hd")
+    hosted = isinstance(hosted_domain, str) and bool(hosted_domain) and domain == hosted_domain.strip().lower()
+    authoritative = bool(email_verified and domain is not None and (domain == "gmail.com" or hosted))
     name = next(
         (str(claims[k]).strip() for k in ("given_name", "name") if isinstance(claims.get(k), str) and claims[k].strip()),
         None,

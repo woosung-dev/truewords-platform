@@ -30,7 +30,7 @@ from app.modules.identity.schemas import (
     SignupRequest,
     UserEnvelope,
 )
-from app.modules.identity.service import IdentityService, UserDataPurger, check_invite_code
+from app.modules.identity.service import IdentityService, UserDataPurger, check_invite_code, verify_reauth_password
 from app.modules.safety.exceptions import RateLimitExceededError
 from app.modules.safety.middleware import check_login_rate_limit
 
@@ -109,11 +109,16 @@ async def delete_me(
 )
 async def delete_identity(
     identity_id: uuid.UUID,
+    response: Response,
     user: User = Depends(get_current_user),
     service: IdentityService = Depends(get_identity_service),
 ) -> None:
-    """로그인 수단 해제 → 204. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD."""
-    await service.remove_identity(user, identity_id)
+    """로그인 수단 해제 → 204 + 새 세션 쿠키. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.
+
+    해제로 session_version 이 오르므로 다른 기기·옛 토큰은 끊기고, 이 응답의 새 쿠키로 현재 브라우저만 로그인이 유지된다.
+    """
+    updated = await service.remove_identity(user, identity_id)
+    _set_cookie(response, service.issue_token(updated))
 
 
 def _unavailable() -> IdentityError:
@@ -134,7 +139,8 @@ async def oauth_start(
 ) -> OAuthStartResponse:
     """제공자 로그인 시작 → 200 {authorization_url} + 흐름 쿠키(hoondok_oauth, 10분).
 
-    404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음). invite_code 가 틀려도 막지 않는다 —
+    404 OAUTH_PROVIDER_UNAVAILABLE · 401(intent=link 인데 세션 없음) · 401 REAUTH_REQUIRED(비밀번호 계정의 link 에서
+    password 없음·불일치). invite_code 가 틀려도 막지 않는다 —
     초대 게이트는 새 계정을 만드는 콜백에서만 확인한다(재로그인 사용자일 수 있다).
     """
     login_provider = providers.get(provider)
@@ -142,6 +148,10 @@ async def oauth_start(
         raise _unavailable()
     if data.intent == "link" and user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다")
+    if data.intent == "link" and user is not None and user.password_hash:
+        # 비밀번호 계정은 로그인 수단을 바꾸기 전에 비밀번호를 다시 확인한다(탈취된 세션으로 구글을 붙여 계정을 가로채는 것을 막는다).
+        # 실패도 이 엔드포인트의 check_login_rate_limit 에 이미 센다.
+        await verify_reauth_password(user, data.password)
     try:
         await check_invite_code(data.invite_code)
         invite_ok = True

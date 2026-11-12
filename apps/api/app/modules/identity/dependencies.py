@@ -98,35 +98,48 @@ async def get_user_data_purgers(
     return [missions, jeongseong, notifications, library, cards, public_questions, asks, paths]
 
 
-def decode_hoondok_token(token: str) -> uuid.UUID | None:
-    """훈독 토큰 → user id. aud 가 "hoondok" 이 아니면 None.
+def decode_hoondok_session(token: str) -> tuple[uuid.UUID, int] | None:
+    """훈독 토큰 → (user id, session_version). aud 가 "hoondok" 이 아니면 None.
 
     python-jose 는 audience 를 넘겨도 토큰에 aud 가 **없으면 통과**시킨다
     (jose/jwt.py _validate_aud). admin_token(aud 없음)이 여기서 통과하지 않도록 aud 를 명시 검사한다.
+    sv 가 없으면 0(배포 전 발급된 토큰 호환), 정수가 아니면 위조로 보고 None.
     """
     payload = decode_access_token(token, audience=AUDIENCE)
     if payload is None or payload.get("aud") != AUDIENCE:
         return None
+    version = payload.get("sv", 0)
+    if isinstance(version, bool) or not isinstance(version, int):
+        return None
     try:
-        return uuid.UUID(str(payload.get("sub")))
+        return uuid.UUID(str(payload.get("sub"))), version
     except ValueError:
         return None
+
+
+def decode_hoondok_token(token: str) -> uuid.UUID | None:
+    """훈독 토큰 → user id (sv 는 get_optional_user 가 DB 값과 대조한다)."""
+    session = decode_hoondok_session(token)
+    return session[0] if session is not None else None
 
 
 async def get_optional_user(
     request: Request,
     repo: UserRepository = Depends(get_identity_repository),
 ) -> User | None:
-    """hoondok_token 이 유효하고 삭제되지 않은 계정이면 User, 아니면 None. admin_token 은 읽지 않는다."""
+    """hoondok_token 이 유효하고 삭제되지 않은 계정이며 sv 가 DB 와 같으면 User, 아니면 None. admin_token 은 읽지 않는다."""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         return None
-    user_id = decode_hoondok_token(token)
-    if user_id is None:
+    session = decode_hoondok_session(token)
+    if session is None:
         return None
+    user_id, token_version = session
     user = await repo.get_by_id(user_id)
     if user is None or user.deleted_at is not None:
         return None
+    if token_version != user.session_version:
+        return None  # 로그인 수단이 바뀐 뒤의 옛 세션
     return user
 
 

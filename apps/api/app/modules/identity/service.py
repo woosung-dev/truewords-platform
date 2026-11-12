@@ -45,6 +45,21 @@ async def check_invite_code(provided: str | None) -> None:
     raise InviteRequiredError()
 
 
+async def verify_reauth_password(user: User, password: str | None) -> None:
+    """로그인 수단을 바꾸는 민감 작업 전 비밀번호 재확인. 없거나 틀리면 401 REAUTH_REQUIRED.
+
+    bcrypt 는 로그인과 같은 방식으로 스레드에서 돌린다. 비밀번호가 없는(소셜 전용) 계정은 호출하지 않는다.
+    """
+    if not password or not user.password_hash:
+        raise IdentityError(status.HTTP_401_UNAUTHORIZED, "REAUTH_REQUIRED", "비밀번호를 다시 확인해 주세요")
+    try:
+        ok = await asyncio.to_thread(verify_login_password, password, user.password_hash)
+    except ValueError:
+        ok = False  # bcrypt 는 72바이트 초과 입력에 예외를 낸다 — 500 이 아니라 불일치로 본다
+    if not ok:
+        raise IdentityError(status.HTTP_401_UNAUTHORIZED, "REAUTH_REQUIRED", "비밀번호를 다시 확인해 주세요")
+
+
 class UserDataPurger(Protocol):
     """계정 삭제 시 함께 지울 사용자 데이터 저장소(hoondok 의 mission_logs·jeongseong_periods 리포).
 
@@ -90,16 +105,12 @@ class IdentityService:
         user.password_hash = None
         await self.repo.save(user)  # 한 번의 커밋 — purger 의 DELETE 도 같은 세션에서 함께 반영된다
 
-    @staticmethod
-    def issue_token(user: User) -> str:
-        """JWT aud="hoondok". admin 디코더는 aud 가 있는 토큰을 거부하므로 admin API 에 쓸 수 없다."""
-        return create_access_token(
-            {"sub": str(user.id), "aud": AUDIENCE},
-            expires_minutes=settings.hoondok_jwt_expire_minutes,
-        )
+    async def remove_identity(self, user: User, identity_id: uuid.UUID) -> User:
+        """로그인 수단 해제. 사용자 행을 잠근 뒤 남는 수단이 있는지 판정해 동시 해제로 계정이 잠기지 않게 한다.
 
-    async def remove_identity(self, user: User, identity_id: uuid.UUID) -> None:
-        """로그인 수단 해제. 사용자 행을 잠근 뒤 남는 수단이 있는지 판정해 동시 해제로 계정이 잠기지 않게 한다."""
+        같은 트랜잭션에서 session_version 을 올려 다른 기기·옛 토큰을 끊는다. 호출자는 돌려받은 사용자로
+        새 세션 쿠키를 발급해 현재 브라우저의 로그인 상태를 유지한다.
+        """
         locked = await self.repo.get_for_update(user.id)
         if locked is None or locked.deleted_at is not None:
             raise IdentityError(status.HTTP_404_NOT_FOUND, "IDENTITY_NOT_FOUND", "로그인 수단을 찾을 수 없어요")
@@ -113,7 +124,10 @@ class IdentityService:
             raise IdentityError(
                 status.HTTP_409_CONFLICT, "LAST_LOGIN_METHOD", "마지막 로그인 수단은 해제할 수 없어요"
             )
+        locked.session_version += 1
         await self.identities.delete_and_commit(identity)
+        await self.repo.session.refresh(locked)
+        return locked
 
     async def login_methods(self, user: User) -> list[LoginMethod]:
         methods: list[LoginMethod] = []
@@ -132,9 +146,12 @@ class IdentityService:
 
     @staticmethod
     def issue_token(user: User) -> str:
-        """JWT aud="hoondok". admin 디코더는 aud 가 있는 토큰을 거부하므로 admin API 에 쓸 수 없다."""
+        """JWT aud="hoondok". admin 디코더는 aud 가 있는 토큰을 거부하므로 admin API 에 쓸 수 없다.
+
+        sv 는 users.session_version 이다. 로그인 수단이 바뀌면(연결·해제) DB 값이 올라가 옛 토큰이 무효가 된다.
+        """
         return create_access_token(
-            {"sub": str(user.id), "aud": AUDIENCE},
+            {"sub": str(user.id), "aud": AUDIENCE, "sv": user.session_version},
             expires_minutes=settings.hoondok_jwt_expire_minutes,
         )
 

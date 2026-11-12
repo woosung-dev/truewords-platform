@@ -63,8 +63,10 @@ class OAuthStartRequest(BaseModel):
     """return_to 는 서버가 검증한다(통과 못 하면 "/"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다)."""
 
     intent: Literal["login", "link"]
-    return_to: str | None = None
-    invite_code: str | None = None
+    return_to: str | None = Field(default=None, max_length=2048)  # 서버 검증은 512 초과를 "/" 로 본다
+    invite_code: str | None = Field(default=None, max_length=64)
+    # intent=link 이고 계정에 비밀번호가 있을 때만 쓴다(재확인). 소셜 전용 계정은 보내지 않는다.
+    password: str | None = Field(default=None, max_length=128)
 
 
 class OAuthStartResponse(BaseModel):

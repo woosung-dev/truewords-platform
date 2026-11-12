@@ -4,8 +4,10 @@
 이메일은 키가 아니다. users.email 은 건드리지 않는다.
 
 - upgrade 는 추가·완화뿐이라 직전 이미지와 호환된다(password_hash NULL 계정의 비밀번호 로그인은 401).
-- 롤백은 이미지만 되돌린다. downgrade 는 비상용이다 — 구글 전용 계정(password_hash NULL)은
-  사용할 수 없는 해시가 채워져 비밀번호로 로그인할 수 없게 되므로 잠긴다.
+- users.session_version 은 로그인 수단이 바뀔 때 올려 옛 세션을 끊는 값이다. server_default 가 있어 이 컬럼을
+  모르는 직전 이미지가 INSERT 해도 0 으로 들어간다.
+- 롤백은 이미지만 되돌린다. downgrade 는 비상용이다 — 구글 전용 계정뿐 아니라 구글을 연결해 비밀번호가 지워진
+  기존 계정도(password_hash NULL) 사용할 수 없는 해시가 채워져 비밀번호로 로그인할 수 없게 되므로 잠긴다.
 
 Revision ID: f7a8b9c0d1e2
 Revises: e6f7a8b9c0d1
@@ -25,6 +27,8 @@ _UNUSABLE_BCRYPT_HASH = "$2b$12$" + "." * 53
 
 
 def upgrade() -> None:
+    # users 에 ALTER 를 걸 때 긴 트랜잭션 뒤에서 대기하면 그 뒤의 users 조회가 줄줄이 막힌다 — 오래 기다리지 말고 실패시킨다.
+    op.execute("SET LOCAL lock_timeout = '5s'")
     op.create_table(
         "user_identities",
         sa.Column("id", sa.Uuid(), primary_key=True),
@@ -46,11 +50,13 @@ def upgrade() -> None:
     op.alter_column("users", "password_hash", existing_type=sa.String(255), nullable=True)
     op.add_column("users", sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("users", sa.Column("email_verified_by", sa.String(255), nullable=True))
+    op.add_column("users", sa.Column("session_version", sa.Integer(), nullable=False, server_default="0"))
 
 
 def downgrade() -> None:
-    """비상용. 롤백은 이미지만 되돌리는 것이 기본이다 — 구글 전용 계정은 여기서 잠긴다."""
+    """비상용. 롤백은 이미지만 되돌리는 것이 기본이다 — 구글 전용 계정뿐 아니라 구글을 연결해 비밀번호가 지워진 기존 계정도 여기서 잠긴다."""
     op.drop_table("user_identities")
+    op.drop_column("users", "session_version")
     op.drop_column("users", "email_verified_by")
     op.drop_column("users", "email_verified_at")
     op.execute(

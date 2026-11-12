@@ -143,4 +143,5 @@ class UserIdentityRepository:
             await self.session.rollback()
             raise
         await self.session.refresh(identity)
+        await self.session.refresh(user)  # 커밋으로 만료된 사용자(session_version 등)를 다시 읽어 둔다
         return identity

@@ -67,6 +67,8 @@ class Env:
         self.google = google
         self.engine = sync_engine
         self.last_code = "auth-code-12345"
+        # 비밀번호 계정의 link start 는 비밀번호 재확인이 필요하다. add_user 의 기본 비밀번호를 기본으로 실어 보낸다.
+        self.link_password = "password1"
 
     # --- DB 조회·시드 (동기 엔진) ---
     def users(self) -> list[User]:
@@ -116,6 +118,8 @@ class Env:
 
     # --- 흐름 ---
     def start(self, intent: str = "login", **body):
+        if intent == "link" and "password" not in body:
+            body["password"] = self.link_password  # 소셜 전용 계정은 서버가 무시한다
         res = self.client.post(START, json={"intent": intent, **body}, headers=XHR)
         return res
 
@@ -158,6 +162,21 @@ def set_cookies(res) -> list[str]:
 
 def session_cookie_issued(res) -> bool:
     return any(c.startswith(f"{COOKIE_NAME}=") and "Max-Age=0" not in c for c in set_cookies(res))
+
+
+def issued_session_token(res) -> str:
+    """응답의 Set-Cookie 에서 hoondok_token 값을 꺼낸다(쿠키 항아리의 도메인 충돌을 피해 직접 파싱)."""
+    for cookie in set_cookies(res):
+        if cookie.startswith(f"{COOKIE_NAME}=") and "Max-Age=0" not in cookie:
+            return cookie.split(";", 1)[0].split("=", 1)[1]
+    raise AssertionError("세션 쿠키가 발급되지 않았다")
+
+
+def me_status(env: "Env", token: str) -> int:
+    """주어진 세션 토큰만 가진 클라이언트로 /me 를 친다."""
+    env.cookies()
+    env.client.cookies.set(COOKIE_NAME, token)
+    return env.client.get("/hoondok/auth/me").status_code
 
 
 def flow_cookie_deleted(res) -> bool:
@@ -621,7 +640,7 @@ def test_link_attaches_google_clears_password_and_blocks_password_login(env: Env
     user = env.add_user("a@example.com", password="password1")
     env.login_as(user)
     res = env.run("link", claims={"email": "other@gmail.com", "sub": "sub-a"})
-    assert outcome(res) == "linked" and not session_cookie_issued(res)
+    assert outcome(res) == "linked" and session_cookie_issued(res)  # 새 sv 의 세션 쿠키로 현재 브라우저를 유지한다
     (identity,) = env.identities()
     assert identity.user_id == user.id and identity.subject == "sub-a"
     assert env.user(user.id).password_hash is None
@@ -723,6 +742,185 @@ def test_link_picks_up_identity_of_deleted_user_and_attaches_to_session_user(env
     assert identity.user_id == me.id
 
 
+# =============================== 세션 무효화(session_version) ===============================
+
+
+def test_link_bumps_session_version_and_keeps_only_current_browser_logged_in(env: Env):
+    user = env.add_user("a@example.com", password="password1")
+    old_token = IdentityService.issue_token(user)  # 연결 전에 다른 기기가 가진 토큰(sv=0)
+    env.login_as(user)
+    res = env.run("link", claims={"email": "other@gmail.com", "sub": "sub-a"})
+    assert outcome(res) == "linked"
+    assert env.user(user.id).session_version == 1
+    new_token = issued_session_token(res)
+    assert jwt.get_unverified_claims(new_token)["sv"] == 1
+    assert me_status(env, new_token) == 200  # 현재 브라우저는 로그인 유지
+    assert me_status(env, old_token) == 401  # 옛 세션은 끊긴다
+
+
+def test_unlink_bumps_session_version_and_reissues_cookie(env: Env):
+    user = env.add_user("g@gmail.com", password="password1")
+    identity = env.add_identity(user)
+    old_token = IdentityService.issue_token(user)
+    env.login_as(user)
+    res = env.client.delete(f"/hoondok/auth/identities/{identity.id}", headers=XHR)
+    assert res.status_code == 204
+    assert env.user(user.id).session_version == 1
+    new_token = issued_session_token(res)
+    assert jwt.get_unverified_claims(new_token)["sv"] == 1
+    assert me_status(env, new_token) == 200
+    assert me_status(env, old_token) == 401
+
+
+def test_rejected_unlink_does_not_bump_session_version(env: Env):
+    user = env.add_user("g@gmail.com", password=None)
+    identity = env.add_identity(user)
+    env.login_as(user)
+    res = env.client.delete(f"/hoondok/auth/identities/{identity.id}", headers=XHR)
+    assert res.status_code == 409
+    assert env.user(user.id).session_version == 0
+    assert env.client.get("/hoondok/auth/me").status_code == 200
+
+
+def test_failed_link_does_not_bump_session_version(env: Env):
+    owner = env.add_user("owner@gmail.com", password=None)
+    env.add_identity(owner, "sub-owner")
+    me = env.add_user("me@example.com", password="password1")
+    env.login_as(me)
+    res = env.run("link", claims={"sub": "sub-owner", "email": "owner@gmail.com"})
+    assert outcome(res) == "error=already_linked"
+    assert env.user(me.id).session_version == 0
+
+
+def test_token_with_mismatched_sv_is_unauthenticated(env: Env):
+    user = env.add_user("a@example.com", password="password1", session_version=2)
+    for sv in (0, 1, 3):
+        token = create_access_token({"sub": str(user.id), "aud": "hoondok", "sv": sv}, expires_minutes=5)
+        assert me_status(env, token) == 401, sv
+    assert me_status(env, IdentityService.issue_token(user)) == 200  # sv=2 일치
+    forged = create_access_token({"sub": str(user.id), "aud": "hoondok", "sv": "2"}, expires_minutes=5)
+    assert me_status(env, forged) == 401  # 정수가 아닌 sv 는 위조로 본다
+
+
+def test_legacy_token_without_sv_works_only_for_version_zero_account(env: Env):
+    """배포 전에 발급된 토큰(sv 없음)은 version 0 계정에서만 통과한다."""
+    fresh = env.add_user("fresh@example.com", password="password1")
+    bumped = env.add_user("bumped@example.com", password="password1", session_version=1)
+    for user, expected in ((fresh, 200), (bumped, 401)):
+        legacy = create_access_token({"sub": str(user.id), "aud": "hoondok"}, expires_minutes=5)
+        assert me_status(env, legacy) == expected
+
+
+def test_password_login_after_link_cycle_issues_current_sv(env: Env):
+    user = env.add_user("g@gmail.com", password="password1")
+    identity = env.add_identity(user)
+    env.login_as(user)
+    assert env.client.delete(f"/hoondok/auth/identities/{identity.id}", headers=XHR).status_code == 204
+    env.cookies()
+    login = env.client.post("/hoondok/auth/login", json={"email": "g@gmail.com", "password": "password1"}, headers=XHR)
+    assert login.status_code == 200
+    assert jwt.get_unverified_claims(issued_session_token(login))["sv"] == 1
+
+
+# =============================== 비밀번호 계정의 연결 시 재확인 ===============================
+
+
+def test_start_link_for_password_account_without_password_is_401_reauth_required(env: Env):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    res = env.start("link", password=None)
+    assert res.status_code == 401 and res.json()["error_code"] == "REAUTH_REQUIRED"
+    assert not any(c.startswith(f"{FLOW}=") for c in set_cookies(res))  # 흐름이 시작되지 않는다
+
+
+def test_start_link_for_password_account_with_wrong_password_is_401_reauth_required(env: Env):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    for wrong in ("wrong-password", " password1", ""):
+        res = env.start("link", password=wrong)
+        assert res.status_code == 401 and res.json()["error_code"] == "REAUTH_REQUIRED", wrong
+        assert not any(c.startswith(f"{FLOW}=") for c in set_cookies(res))
+
+
+def test_start_link_for_password_account_with_correct_password_is_200(env: Env):
+    user = env.add_user("a@example.com", password="password1")
+    env.login_as(user)
+    env.start_ok("link", password="password1")
+    claims = jwt.get_unverified_claims(env.client.cookies.get(FLOW))
+    assert claims["i"] == "link" and claims["u"] == str(user.id)
+    assert "password1" not in env.client.cookies.get(FLOW)  # 흐름 쿠키에 비밀번호를 싣지 않는다
+
+
+def test_start_link_for_social_only_account_does_not_require_password(env: Env):
+    user = env.add_user("g@gmail.com", password=None)
+    env.add_identity(user, "sub-g")
+    env.login_as(user)
+    assert env.start("link", password=None).status_code == 200
+
+
+def test_start_login_never_asks_for_password(env: Env):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    assert env.start("login", password=None).status_code == 200
+
+
+def test_reauth_runs_bcrypt_in_worker_thread(env: Env, monkeypatch):
+    """로그인과 같은 방식 — bcrypt 가 이벤트 루프를 막지 않도록 asyncio.to_thread 로 돈다."""
+    import threading
+
+    from app.modules.identity import service as service_module
+
+    seen: list[int] = []
+    real = service_module.verify_login_password
+
+    def spy(plain, hashed):
+        seen.append(threading.get_ident())
+        return real(plain, hashed)
+
+    monkeypatch.setattr(service_module, "verify_login_password", spy)
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    assert env.start("link", password="password1").status_code == 200
+    assert len(seen) == 1 and seen[0] != threading.get_ident()
+
+
+def test_reauth_failures_count_toward_login_rate_limit(env: Env):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    for _ in range(30):
+        assert env.start("link", password="wrong-password").status_code == 401
+    blocked = env.start("link", password="password1")  # 맞는 비밀번호여도 상한 뒤에는 막힌다
+    assert blocked.status_code == 429
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("return_to", "/" + "a" * 2048), ("invite_code", "x" * 65), ("password", "x" * 129)],
+)
+def test_start_rejects_oversized_fields(env: Env, field, value):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    res = env.start("link", **{"password": "password1", field: value})
+    assert res.status_code == 422
+
+
+def test_start_accepts_fields_at_their_limits(env: Env):
+    env.login_as(env.add_user("a@example.com", password="password1"))
+    body = {"return_to": "/" + "a" * 2047, "invite_code": "x" * 64, "password": "password1"}
+    assert env.start("link", **body).status_code == 200  # 512 초과 return_to 는 서버가 "/" 로 바꾼다
+    assert oauth_flow.safe_return_to(body["return_to"]) == "/"
+    # 128자 비밀번호(bcrypt 72바이트 초과)도 500 이 아니라 불일치로 처리한다
+    res = env.start("link", password="x" * 128)
+    assert res.status_code == 401 and res.json()["error_code"] == "REAUTH_REQUIRED"
+
+
+# =============================== 초대 게이트 순서 · 연결 경쟁 결과 ===============================
+
+
+def test_invite_gate_is_checked_before_email_exists(env: Env, monkeypatch):
+    """초대받지 않은 요청에는 이메일이 이미 있는지(email_exists)를 알리지 않는다."""
+    monkeypatch.setattr(settings, "hoondok_invite_code", SecretStr("새벽-2026"))
+    env.add_user("person@gmail.com", password="password1")
+    res = env.run(claims={"sub": "s-new"})
+    assert outcome(res) == "error=invite_required" and not session_cookie_issued(res)
+    res = env.run(claims={"sub": "s-new"}, start_body={"invite_code": "새벽-2026"})
+    assert outcome(res) == "error=email_exists"  # 초대 코드가 맞으면 그제야 중복을 알린다
+
+
 def _blind_first_lookup(monkeypatch, *, email_lookup: bool = False) -> None:
     """첫 조회만 '아직 없음'으로 속여, 동시 요청이 먼저 행을 만든 경쟁 상황(unique 충돌)을 흉내 낸다."""
     from app.modules.identity.repository import UserIdentityRepository, UserRepository
@@ -770,11 +968,6 @@ def test_link_race_on_subject_conflict_leaves_db_consistent(env: Env, monkeypatc
     assert len(env.identities()) == 1 and env.identities()[0].user_id == owner.id
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="결함: oauth_service._after_race 가 롤백으로 만료된 current_user.id 를 읽어 MissingGreenlet 이 나고 "
-    "콜백이 already_linked 대신 error=failed 로 끝난다(oauth_service.py:149). 연결 경쟁 시 원인 불명 오류로 보인다.",
-)
 def test_link_race_on_subject_conflict_reports_already_linked(env: Env, monkeypatch):
     _, _, res = _link_race(env, monkeypatch)
     assert outcome(res) == "error=already_linked"
