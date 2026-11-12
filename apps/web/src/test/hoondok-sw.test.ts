@@ -109,6 +109,9 @@ describe("훈독 서비스워커", () => {
       { url: `${ORIGIN}/api/backend/hoondok/today`, method: "GET", mode: "cors" },
       { url: `${ORIGIN}/api/backend/hoondok/auth/me`, method: "GET", mode: "cors" },
       { url: `${ORIGIN}/onboarding`, method: "GET", mode: "navigate" },
+      // 구글 로그인 도착 페이지와 서버 콜백(code·state 가 붙는다)도 캐시하지 않는다
+      { url: `${ORIGIN}/onboarding/done?status=signed_in&returnTo=%2Fread`, method: "GET", mode: "navigate" },
+      { url: `${ORIGIN}/api/backend/hoondok/auth/oauth/google/callback?code=c&state=s`, method: "GET", mode: "navigate" },
       { url: `${ORIGIN}/hoondok/missions/read/complete`, method: "POST", mode: "cors" },
       { url: "https://cdn.jsdelivr.net/x.css", method: "GET", mode: "no-cors" },
       { url: `${ORIGIN}/api/chat/stream`, method: "GET", mode: "cors" },

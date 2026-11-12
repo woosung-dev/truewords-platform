@@ -8,6 +8,7 @@ import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
 import { usePushNotifications } from "@/features/hoondok/notifications/use-push-notifications";
 import { DeleteAccountCard } from "./delete-account-card";
+import { LoginMethodsCard } from "./login-methods-card";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S · PLAN-HD-006 알림).
 // 실제로 켜고 끄는 알림은 "훈독하기" 한 종류뿐이다 — 기도·가정예배·공지는 보낼 내용이 없어 "준비 중" 한 줄로 접는다.
@@ -84,6 +85,7 @@ export function SettingsScreen() {
             <span className="st-row__soon">{SOON}</span>
           </div>
         </div>
+        <LoginMethodsCard />
         <DeleteAccountCard />
       </div>
 
