@@ -123,10 +123,9 @@ test("설정에서 구글 연결: 비밀번호 계정은 비밀번호를 다시 
   await setFakeGoogleIdentity(page, { sub: `e2e-sub-s-${stamp}`, email: `e2e-s-${stamp}@example.com`, name: "설정구글" });
   await page.goto("/settings");
   await page.getByRole("button", { name: "구글 계정 연결", exact: true }).click();
-  // [확인 필요] 비밀번호 확인 입력란이 펼쳐진 뒤의 제출 방식(버튼 이름)은 구현 확정 전이라 Enter 로 제출한다
-  const confirm = page.getByLabel("비밀번호 확인");
-  await confirm.fill(PASSWORD);
-  await confirm.press("Enter");
+  const form = page.getByRole("form", { name: "구글 연결을 위한 비밀번호 확인" });
+  await form.getByLabel("비밀번호 확인", { exact: true }).fill(PASSWORD);
+  await form.getByRole("button", { name: "구글 계정 연결 계속하기" }).click();
   await page.waitForURL((url) => url.pathname === "/settings");
   await expect(page.getByText("구글", { exact: true })).toBeVisible();
   // 연결 뒤에도 현재 브라우저는 로그인 상태(세션 쿠키 재발급)이고 같은 계정이다
