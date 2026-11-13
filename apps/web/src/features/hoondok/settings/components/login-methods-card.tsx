@@ -63,6 +63,12 @@ export function LoginMethodsCard() {
     }
   }
 
+  function handlePasswordCancel() {
+    setAskPassword(false);
+    setPassword(""); // 입력값을 남겨 두지 않는다
+    setMessage("");
+  }
+
   function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void startLink(password);
@@ -123,6 +129,9 @@ export function LoginMethodsCard() {
           <p className="field__help">계정을 지키기 위해 한 번 더 확인해요</p>
           <HoondokButton type="submit" isLoading={isLinking}>
             구글 계정 연결 계속하기
+          </HoondokButton>
+          <HoondokButton variant="ghost" onClick={handlePasswordCancel} disabled={isLinking}>
+            취소
           </HoondokButton>
         </form>
       )}

@@ -65,20 +65,31 @@ function InAppBrowserNotice() {
   );
 }
 
-// password 는 방금 로그인에 쓴 비밀번호다 — 서버가 연결 시작 때 재확인하므로 다시 묻지 않고 함께 보낸다.
-// 컴포넌트 상태에만 두고 localStorage·sessionStorage·쿼리 캐시에 넣지 않는다.
-function LinkPrompt({ returnTo, password, onLater }: { returnTo: string; password: string; onLater: () => void }) {
+// initialPassword 는 방금 로그인에 쓴 비밀번호다 — 서버가 연결 시작 때 재확인하므로 다시 묻지 않고 함께 보낸다.
+// start 가 REAUTH_REQUIRED 를 주면(비었거나 맞지 않음) 카드 안에 비밀번호 확인 입력을 펼쳐 다시 받는다.
+// 비밀번호는 컴포넌트 상태에만 두고 localStorage·sessionStorage·쿼리 캐시에 넣지 않는다.
+function LinkPrompt({ returnTo, initialPassword, onLater }: { returnTo: string; initialPassword: string; onLater: () => void }) {
   const [message, setMessage] = useState("");
   const [isStarting, setIsStarting] = useState(false);
-  async function handleLink() {
+  const [password, setPassword] = useState(initialPassword);
+  const [askPassword, setAskPassword] = useState(false);
+  async function startLink() {
     setMessage("");
     setIsStarting(true);
     try {
       await startOAuth({ intent: "link", returnTo, password });
     } catch (error) {
       setMessage(oauthStartErrorMessage(error, "link"));
+      if (error instanceof ApiError && error.status === 401 && error.errorCode === "REAUTH_REQUIRED") {
+        setPassword(""); // 틀린 값을 남겨 두지 않고 다시 받는다
+        setAskPassword(true);
+      }
       setIsStarting(false);
     }
+  }
+  function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void startLink();
   }
   return (
     <div className="card" role="group" aria-label="구글 계정 연결 안내">
@@ -86,11 +97,33 @@ function LinkPrompt({ returnTo, password, onLater }: { returnTo: string; passwor
       <p className="field__help">
         이메일·비밀번호 로그인은 곧 없어질 예정이에요. 구글 계정을 연결하면 지금 기록 그대로 구글로 로그인할 수 있어요.
       </p>
+      {askPassword && (
+        <form className="form" onSubmit={handlePasswordSubmit} aria-label="구글 연결을 위한 비밀번호 확인">
+          <label className="field">
+            <span className="field__label">비밀번호 확인</span>
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={128}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <p className="field__help">계정을 지키기 위해 한 번 더 확인해요</p>
+          <HoondokButton type="submit" isLoading={isStarting}>
+            구글 계정 연결 계속하기
+          </HoondokButton>
+        </form>
+      )}
       {message && <ErrorHint message={message} />}
       <div className="onb-cta">
-        <HoondokButton onClick={handleLink} isLoading={isStarting}>
-          구글 계정 연결하기
-        </HoondokButton>
+        {!askPassword && (
+          <HoondokButton onClick={() => void startLink()} isLoading={isStarting}>
+            구글 계정 연결하기
+          </HoondokButton>
+        )}
         <HoondokButton variant="ghost" onClick={onLater} disabled={isStarting}>
           나중에 할게요
         </HoondokButton>
@@ -204,7 +237,7 @@ function OnboardingBody() {
     );
   }
 
-  if (linkPrompt) return <LinkPrompt returnTo={returnTo} password={linkPassword} onLater={() => router.replace(returnTo)} />;
+  if (linkPrompt) return <LinkPrompt returnTo={returnTo} initialPassword={linkPassword} onLater={() => router.replace(returnTo)} />;
 
   if (!isLoading && user) {
     return (

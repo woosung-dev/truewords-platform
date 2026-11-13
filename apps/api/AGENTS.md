@@ -10,7 +10,7 @@
 6. `/hoondok/words/{volume:path}`는 하위 경로까지 잡는 greedy 라우트다. 그 아래에 경로를 만들지 않고 목차처럼 별도 접두(`/hoondok/sections/{volume:path}`)를 쓴다.
 7. REST 경로는 `/hoondok/*` 그대로지만 웹 화면 주소는 루트 기준이다(`DEC-PWA-026`). 푸시 `url`·오류 경로 정규화 등 서버가 만드는 웹 링크는 `/bookmark`·`/words/…` 처럼 접두 없이 쓴다.
 8. 테스트는 Google TTS를 호출하지 않는다. conftest가 `GOOGLE_TTS_API_KEY`를 비워 낭독을 끈다.
-9. 훈독 계정 키는 `(issuer, subject_scope, subject)`이며 이메일로 계정을 찾아 로그인·연결·병합하지 않는다(사전 가입으로 인한 계정 탈취 방지). 로그인 수단 연결은 로그인 세션과 묶인 OAuth 흐름에서만 하고, 수단이 바뀌면 `session_version`을 올린다.
+9. 훈독 계정 키는 `(issuer, subject_scope, subject)`이며 이메일로 계정을 찾아 로그인·연결·병합하지 않는다(사전 가입으로 인한 계정 탈취 방지). 로그인 수단 연결은 로그인 세션과 묶인 OAuth 흐름에서만 하고, 수단이 바뀌면 `session_version`을 올린다. 두 번째 로그인 제공자를 추가하기 전에 비밀번호가 없는 계정의 연결(link)에도 기존 수단 재인증을 요구해야 한다.
 
 ## RAG·데이터 경계
 

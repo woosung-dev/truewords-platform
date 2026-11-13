@@ -18,7 +18,7 @@ from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.oauth_flow import OAuthFlow
 from app.modules.identity.oidc import ExternalIdentity
 from app.modules.identity.repository import UserIdentityRepository, UserRepository
-from app.modules.identity.service import required_invite_code
+from app.modules.identity.service import AuthSession, required_invite_code
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,14 @@ DISPLAY_NAME_FALLBACK = "식구"
 class OAuthOutcome:
     """status 는 성공(signed_in·created·linked), error 는 실패 코드. session_user 가 있으면 세션 쿠키를 발급한다.
 
-    linked 는 로그인 수단이 바뀌어 session_version 이 오르므로 session_user 로 새 쿠키를 발급해 현재 브라우저를 유지한다.
+    linked 는 로그인 수단이 바뀌어 session_version 이 오르므로 session_user·session_version 으로 새 쿠키를 발급해 현재 브라우저를 유지한다.
     """
 
     status: str | None = None
     error: str | None = None
     session_user: User | None = None
+    # 이번 요청이 기록한 session_version. 있으면 쿠키는 이 값으로 발급한다(커밋 뒤 다시 읽은 값은 남의 것일 수 있다).
+    session_version: int | None = None
 
 
 def _fail(code: str) -> OAuthOutcome:
@@ -73,7 +75,8 @@ class OAuthService:
         self.users = users
         self.identities = identities
 
-    async def resolve(self, ext: ExternalIdentity, flow: OAuthFlow, current_user: User | None) -> OAuthOutcome:
+    async def resolve(self, ext: ExternalIdentity, flow: OAuthFlow, session: AuthSession | None) -> OAuthOutcome:
+        current_user = session.user if session is not None else None
         if not ext.email_verified:
             return _fail("email_unverified")
 
@@ -86,7 +89,7 @@ class OAuthService:
             await self.identities.delete_and_commit(identity)
 
         if flow.intent == "link":
-            return await self._link_new(ext, flow, current_user)
+            return await self._link_new(ext, flow, session)
         return await self._create(ext, flow)
 
     async def _existing(
@@ -109,26 +112,33 @@ class OAuthService:
         await self.identities.save(identity)
         return OAuthOutcome(status="signed_in", session_user=owner)
 
-    async def _link_new(self, ext: ExternalIdentity, flow: OAuthFlow, current_user: User | None) -> OAuthOutcome:
+    async def _link_new(self, ext: ExternalIdentity, flow: OAuthFlow, session: AuthSession | None) -> OAuthOutcome:
+        current_user = session.user if session is not None else None
         # login CSRF 방어: 시작 때의 세션 사용자와 지금 세션이 같아야 한다.
         if current_user is None or flow.link_user_id is None or current_user.id != flow.link_user_id:
             return _fail("session_mismatch")
         # 롤백하면 current_user 가 만료돼 id 를 읽을 수 없다(MissingGreenlet) — 필요한 값은 먼저 지역 변수로 잡는다.
         current_user_id = current_user.id
+        token_version = session.token_version
         user = await self.users.get_for_update(current_user_id)
         if user is None or user.deleted_at is not None:
+            return _fail("session_mismatch")
+        if user.session_version != token_version:
+            # 인증 뒤 잠금 전에 다른 요청이 버전을 올렸다 — 이 요청의 토큰은 이미 끊긴 세션이다. 변경 없이 거절한다.
+            await self.users.session.rollback()  # 잠금을 푼다
             return _fail("session_mismatch")
         if await self.identities.get_by_user_issuer(user.id, ext.issuer, ext.subject_scope) is not None:
             await self.users.session.rollback()  # 잠금을 푼다
             return _fail("provider_linked")
         user.password_hash = None
-        user.session_version += 1  # 같은 트랜잭션에서 올려 옛 세션(다른 기기·옛 토큰)을 끊는다
+        new_version = token_version + 1  # 잠금 시점 값 + 1. 같은 트랜잭션에서 올려 옛 세션(다른 기기·옛 토큰)을 끊는다
+        user.session_version = new_version
         _record_verified_email(user, ext)
         try:
             await self.identities.link_to_user(user, _new_identity(ext))
         except IntegrityError:
             return await self._after_race(ext, flow, current_user_id, default_error="already_linked")
-        return OAuthOutcome(status="linked", session_user=user)
+        return OAuthOutcome(status="linked", session_user=user, session_version=new_version)
 
     async def _create(self, ext: ExternalIdentity, flow: OAuthFlow) -> OAuthOutcome:
         assert ext.email is not None  # email_verified 이면 이메일이 있다
@@ -158,8 +168,9 @@ class OAuthService:
             return _fail(default_error)
         if flow.intent == "link":
             if current_user_id is not None and owner.id == current_user_id:
-                # 같은 계정에 다른 요청이 먼저 연결했다 — 그 요청이 올린 session_version 으로 쿠키를 다시 발급한다.
-                return OAuthOutcome(status="linked", session_user=owner)
+                # 같은 계정에 다른 요청이 먼저 연결했다 — 이번 요청은 버전을 올리지 않았고 현재 브라우저의 토큰은
+                # 이미 옛 버전이다. 쿠키를 발급하지 않고 다시 로그인하도록 session_mismatch 로 안내한다.
+                return _fail("session_mismatch")
             return _fail("already_linked")
         identity.last_login_at = utcnow()
         await self.identities.save(identity)

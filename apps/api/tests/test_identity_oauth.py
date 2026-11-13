@@ -822,6 +822,77 @@ def test_password_login_after_link_cycle_issues_current_sv(env: Env):
     assert jwt.get_unverified_claims(issued_session_token(login))["sv"] == 1
 
 
+def _bump_version_at_lock(env: Env, monkeypatch, user: User) -> None:
+    """인증은 옛 sv 로 통과했지만 행 잠금을 얻는 시점에는 다른 요청이 이미 버전을 올려 둔 경쟁 상황을 흉내 낸다."""
+    from app.modules.identity.repository import UserRepository
+
+    real = UserRepository.get_for_update
+
+    async def get_for_update(self, user_id):
+        with Session(env.engine) as s:
+            row = s.get(User, user_id)
+            row.session_version += 1
+            s.add(row)
+            s.commit()
+        return await real(self, user_id)
+
+    monkeypatch.setattr(UserRepository, "get_for_update", get_for_update)
+
+
+def test_unlink_with_version_bumped_after_auth_is_401_and_changes_nothing(env: Env, monkeypatch):
+    user = env.add_user("g@gmail.com", password="password1")
+    identity = env.add_identity(user)
+    env.login_as(user)  # sv=0 토큰
+    _bump_version_at_lock(env, monkeypatch, user)
+    res = env.client.delete(f"/hoondok/auth/identities/{identity.id}", headers=XHR)
+    assert res.status_code == 401
+    assert not session_cookie_issued(res)
+    assert len(env.identities()) == 1  # 행 변화 없음
+    assert env.user(user.id).session_version == 1  # 이 요청은 버전을 올리지 않았다(경쟁 요청이 올린 1 그대로)
+
+
+def test_link_with_version_bumped_after_auth_is_session_mismatch_and_changes_nothing(env: Env, monkeypatch):
+    user = env.add_user("a@example.com", password="password1")
+    env.login_as(user)
+    q = env.start_ok("link")
+    _bump_version_at_lock(env, monkeypatch, user)
+    res = env.callback(q, claims={"email": "other@gmail.com", "sub": "sub-a"})
+    assert outcome(res) == "error=session_mismatch"
+    assert not session_cookie_issued(res)
+    assert env.identities() == []
+    stored = env.user(user.id)
+    assert stored.password_hash is not None  # 해시 제거가 일어나지 않았다
+    assert stored.session_version == 1
+
+
+def test_link_cookie_sv_is_version_written_by_this_request(env: Env):
+    user = env.add_user("a@example.com", password="password1", session_version=3)
+    env.login_as(user)
+    res = env.run("link", claims={"email": "other@gmail.com", "sub": "sub-a"})
+    assert outcome(res) == "linked"
+    token = issued_session_token(res)
+    assert jwt.get_unverified_claims(token)["sv"] == env.user(user.id).session_version == 4
+    assert me_status(env, token) == 200
+
+
+def test_link_race_same_account_linked_first_issues_no_cookie_and_asks_relogin(env: Env, monkeypatch):
+    """같은 계정에 다른 요청이 먼저 같은 구글을 연결했다 — 이번 요청은 버전을 올리지 않으므로 쿠키를 발급하지 않는다."""
+    me = env.add_user("me@example.com", password=None)
+    env.add_identity(me, "google-sub-1")  # 먼저 끝난 요청이 만든 연결
+    env.login_as(me)
+    _blind_first_lookup(monkeypatch)
+    from app.modules.identity.repository import UserIdentityRepository
+
+    async def not_linked_yet(self, user_id, issuer, subject_scope):
+        return None  # 잠금 시점에는 아직 연결이 없었다(다른 요청이 그 뒤에 커밋)
+
+    monkeypatch.setattr(UserIdentityRepository, "get_by_user_issuer", not_linked_yet)
+    res = env.run("link")
+    assert outcome(res) == "error=session_mismatch"
+    assert not session_cookie_issued(res)
+    assert len(env.identities()) == 1
+
+
 # =============================== 비밀번호 계정의 연결 시 재확인 ===============================
 
 

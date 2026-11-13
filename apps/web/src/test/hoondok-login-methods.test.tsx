@@ -111,6 +111,17 @@ describe("로그인 수단 카드", () => {
     expect(screen.getByLabelText("비밀번호 확인")).toHaveValue(""); // 다시 입력할 수 있게 비우고 폼은 유지한다
   });
 
+  it("비밀번호 확인 폼의 취소는 입력을 닫고 비우며 start 를 부르지 않는다", async () => {
+    renderCard({ ...base, login_methods: [PASSWORD] });
+    fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결" }));
+    fireEvent.change(await screen.findByLabelText("비밀번호 확인"), { target: { value: "typed-pass" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByLabelText("비밀번호 확인")).toBeNull();
+    expect(identityAPI.oauthStart).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "구글 계정 연결" }));
+    expect(await screen.findByLabelText("비밀번호 확인")).toHaveValue("");
+  });
+
   it("비밀번호 수단이 없는 계정은 확인 입력 없이 바로 start 를 부른다", async () => {
     renderCard({ ...base, login_methods: [{ provider: "kakao", identity_id: "k1", email: "k@kakao.com" }] });
     vi.mocked(identityAPI.oauthStart).mockResolvedValueOnce({ authorization_url: "https://g.example/link" });

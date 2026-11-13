@@ -11,10 +11,12 @@ from app.core.config import settings
 from app.modules.identity import oauth_flow
 from app.modules.identity.dependencies import (
     cookie_opts,
+    get_current_session,
     get_current_user,
     get_identity_service,
     get_login_providers,
     get_oauth_service,
+    get_optional_session,
     get_optional_user,
     get_user_data_purgers,
     verify_csrf,
@@ -30,7 +32,7 @@ from app.modules.identity.schemas import (
     SignupRequest,
     UserEnvelope,
 )
-from app.modules.identity.service import IdentityService, UserDataPurger, check_invite_code, verify_reauth_password
+from app.modules.identity.service import AuthSession, IdentityService, UserDataPurger, check_invite_code, verify_reauth_password
 from app.modules.safety.exceptions import RateLimitExceededError
 from app.modules.safety.middleware import check_login_rate_limit
 
@@ -110,15 +112,17 @@ async def delete_me(
 async def delete_identity(
     identity_id: uuid.UUID,
     response: Response,
-    user: User = Depends(get_current_user),
+    auth: AuthSession = Depends(get_current_session),
     service: IdentityService = Depends(get_identity_service),
 ) -> None:
     """로그인 수단 해제 → 204 + 새 세션 쿠키. 404 IDENTITY_NOT_FOUND(남의 것 포함) · 409 LAST_LOGIN_METHOD.
 
     해제로 session_version 이 오르므로 다른 기기·옛 토큰은 끊기고, 이 응답의 새 쿠키로 현재 브라우저만 로그인이 유지된다.
     """
-    updated = await service.remove_identity(user, identity_id)
-    _set_cookie(response, service.issue_token(updated))
+    # 인증 뒤 잠금 전에 다른 요청이 버전을 올렸다면 서비스가 변경 없이 401 로 거절한다(docstring 은 OpenAPI 에 노출되므로 주석으로 둔다).
+    user_id = auth.user.id  # 서비스가 롤백하면 ORM 객체가 만료되므로 먼저 잡는다
+    new_version = await service.remove_identity(auth.user, identity_id, auth.token_version)
+    _set_cookie(response, service.issue_session_token(user_id, new_version))
 
 
 def _unavailable() -> IdentityError:
@@ -199,7 +203,7 @@ async def oauth_callback(
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),
     error: str | None = Query(default=None),
-    current_user: User | None = Depends(get_optional_user),
+    session: AuthSession | None = Depends(get_optional_session),
     providers: dict[str, LoginProvider] = Depends(get_login_providers),
     oauth: OAuthService = Depends(get_oauth_service),
 ) -> RedirectResponse:
@@ -229,7 +233,7 @@ async def oauth_callback(
             code_verifier=flow.code_verifier,
             nonce=flow.nonce,
         )
-        outcome = await oauth.resolve(external, flow, current_user)
+        outcome = await oauth.resolve(external, flow, session)
     except Exception as exc:  # noqa: BLE001 — 콜백은 항상 302 로 끝낸다. 로그에는 예외 타입만 남긴다
         logger.warning("OAuthCallbackFailed", extra={"error_type": type(exc).__name__})
         return _redirect(error="failed")
@@ -238,6 +242,11 @@ async def oauth_callback(
         return _redirect(error=outcome.error)
     redirect = _redirect(status_=outcome.status, return_to=flow.return_to)
     if outcome.session_user is not None:
-        _set_cookie(redirect, IdentityService.issue_token(outcome.session_user))
+        if outcome.session_version is not None:
+            # 이번 요청이 기록한 버전으로 발급한다 — 커밋 뒤 다시 읽은 값이 아니다.
+            token = IdentityService.issue_session_token(outcome.session_user.id, outcome.session_version)
+        else:
+            token = IdentityService.issue_token(outcome.session_user)
+        _set_cookie(redirect, token)
     return redirect
 

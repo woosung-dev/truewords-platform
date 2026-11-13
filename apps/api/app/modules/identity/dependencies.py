@@ -29,7 +29,7 @@ from app.modules.identity.models import User
 from app.modules.identity.oauth_service import OAuthService
 from app.modules.identity.oidc import LoginProvider, build_login_providers
 from app.modules.identity.repository import UserIdentityRepository, UserRepository
-from app.modules.identity.service import AUDIENCE, IdentityService, UserDataPurger
+from app.modules.identity.service import AUDIENCE, AuthSession, IdentityService, UserDataPurger
 
 COOKIE_NAME = "hoondok_token"
 
@@ -123,11 +123,8 @@ def decode_hoondok_token(token: str) -> uuid.UUID | None:
     return session[0] if session is not None else None
 
 
-async def get_optional_user(
-    request: Request,
-    repo: UserRepository = Depends(get_identity_repository),
-) -> User | None:
-    """hoondok_token 이 유효하고 삭제되지 않은 계정이며 sv 가 DB 와 같으면 User, 아니면 None. admin_token 은 읽지 않는다."""
+async def _authenticate(request: Request, repo: UserRepository) -> AuthSession | None:
+    """hoondok_token 이 유효하고 삭제되지 않은 계정이며 sv 가 DB 와 같으면 AuthSession, 아니면 None. admin_token 은 읽지 않는다."""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         return None
@@ -140,7 +137,30 @@ async def get_optional_user(
         return None
     if token_version != user.session_version:
         return None  # 로그인 수단이 바뀐 뒤의 옛 세션
-    return user
+    return AuthSession(user=user, token_version=token_version)
+
+
+async def get_optional_user(
+    request: Request,
+    repo: UserRepository = Depends(get_identity_repository),
+) -> User | None:
+    """인증된 User, 아니면 None. 기존 호출자(반환 타입 User)를 유지한다."""
+    session = await _authenticate(request, repo)
+    return session.user if session is not None else None
+
+
+async def get_optional_session(
+    request: Request,
+    repo: UserRepository = Depends(get_identity_repository),
+) -> AuthSession | None:
+    """get_optional_user 와 같은 검증 + 검증한 토큰의 sv. 수단 변경 경로가 잠금 뒤 재대조에 쓴다."""
+    return await _authenticate(request, repo)
+
+
+async def get_current_session(session: AuthSession | None = Depends(get_optional_session)) -> AuthSession:
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다")
+    return session
 
 
 async def get_current_user(user: User | None = Depends(get_optional_user)) -> User:

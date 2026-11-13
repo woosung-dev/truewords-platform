@@ -255,6 +255,32 @@ describe("온보딩 (구글 로그인 + 예전 이메일 로그인)", () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
+  it("재확인에 실패하면 카드 안에 비밀번호 확인 입력을 펼쳐 다시 받아 재시도한다", async () => {
+    vi.mocked(identityAPI.login).mockResolvedValueOnce({
+      user: { ...USER, login_methods: [{ provider: "password", identity_id: null }] },
+    });
+    vi.mocked(identityAPI.oauthStart)
+      .mockRejectedValueOnce(new ApiError(401, { error_code: "REAUTH_REQUIRED", message: "x" }))
+      .mockResolvedValueOnce({ authorization_url: "https://g.example/link" });
+    await openPasswordForm();
+    expect(screen.queryByLabelText("비밀번호 확인")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "구글 계정 연결하기" }));
+    const input = await screen.findByLabelText("비밀번호 확인");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveValue(""); // 틀린 값은 비운다
+    fireEvent.change(input, { target: { value: "new-pass-2" } });
+    fireEvent.submit(screen.getByRole("form", { name: "구글 연결을 위한 비밀번호 확인" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://g.example/link"));
+    expect(identityAPI.oauthStart).toHaveBeenLastCalledWith("google", {
+      intent: "link",
+      return_to: "/read",
+      password: "new-pass-2",
+    });
+    for (const store of [window.localStorage, window.sessionStorage]) {
+      expect(JSON.stringify({ ...store })).not.toContain("new-pass-2");
+    }
+  });
+
   it("연결 안내에서 나중에 할게요는 returnTo 로 이동한다", async () => {
     vi.mocked(identityAPI.login).mockResolvedValueOnce({ user: { ...USER, login_methods: [] } });
     await openPasswordForm();
