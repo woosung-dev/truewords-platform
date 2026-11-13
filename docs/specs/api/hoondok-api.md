@@ -11,8 +11,8 @@
 | ID | Method | Path | 인증 | Phase |
 |---|---|---|---|---|
 | `API-HD-001` | GET | `/hoondok/today` | 없음(공개) | 1 |
-| `API-HD-002` | POST | `/hoondok/auth/signup` | 없음 | 2 |
-| `API-HD-003` | POST | `/hoondok/auth/login` · POST `/hoondok/auth/logout` · GET `/hoondok/auth/me` | login 없음 / logout·me 는 `hoondok_token` | 2 |
+| `API-HD-002` | POST | `/hoondok/auth/signup` (**종료 — 항상 410**) | 없음 | 2 |
+| `API-HD-003` | POST | `/hoondok/auth/login` (**deprecated**) · POST `/hoondok/auth/logout` · GET `/hoondok/auth/me` | login 없음 / logout·me 는 `hoondok_token` | 2 |
 | `API-HD-004` | GET | `/hoondok/me/summary` | `hoondok_token` | 2 |
 | `API-HD-005` | POST | `/hoondok/missions/{kind}/complete` | `hoondok_token` | 2 |
 | `API-HD-006` | GET | `/admin/hoondok/daily-readings` · GET `/admin/hoondok/daily-readings/{id}` | `admin_token` + `require_admin_gate` | 3 |
@@ -69,13 +69,15 @@
 | `API-HD-063` | POST · GET · DELETE | `/hoondok/me/path-runs` · `/hoondok/me/path-runs/current` | `hoondok_token` (쓰기는 `X-Requested-With`) · 플래그 | 7일 정성 1a |
 | `API-HD-064` | GET · POST | `/hoondok/me/path-runs/current/steps/{day_index}` · `…/steps/{day_index}/complete` | `hoondok_token` (쓰기는 `X-Requested-With`) · 플래그 | 7일 정성 1a |
 | `API-HD-065` | POST | `/hoondok/me/path-runs/current/finish` | `hoondok_token` + `X-Requested-With` · 플래그 | 7일 정성 1a |
+| `API-HD-066` | POST · GET | `/hoondok/auth/oauth/{provider}/start` · `/hoondok/auth/oauth/{provider}/callback` | start 는 없음(연결은 `hoondok_token`) + `X-Requested-With` / callback 은 흐름 쿠키 `hoondok_oauth` + `state` | 구글 로그인 |
+| `API-HD-067` | DELETE | `/hoondok/auth/identities/{identity_id}` | `hoondok_token` + `X-Requested-With` | 구글 로그인 |
 
 공통 규칙:
 
 - 라우터 prefix `/hoondok`, tag `hoondok`. `apps/api/app/main.py` 의 **공개 라우터 블록**에 등록한다(`require_admin_gate` 미적용).
 - 인증 쿠키는 `hoondok_token`(HttpOnly, `COOKIE_SECURE` 준수). `admin_token` 은 어떤 훈독 엔드포인트에서도 읽지 않는다.
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
-- 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다.
+- 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다. 로그인 수단 오류(API-HD-002 의 410 `PASSWORD_SIGNUP_CLOSED`, API-HD-066·067 의 `OAUTH_PROVIDER_UNAVAILABLE`·`REAUTH_REQUIRED`·`IDENTITY_NOT_FOUND`·`LAST_LOGIN_METHOD`)도 같은 `ErrorResponse` 형식이다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 - `API-HD-006~008`·`API-HD-012~013`은 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
 - `API-HD-019~022` 는 PLAN-HD-006(Web Push)이며 라우터는 `apps/api/app/modules/hoondok/notifications_router.py` 다. `API-HD-021` 의 409 `PUSH_DISABLED` 도 `ErrorResponse` 형식이다.
@@ -136,20 +138,21 @@ GET /hoondok/today
 
 ---
 
-## API-HD-002 `POST /hoondok/auth/signup` (Phase 2)
+## API-HD-002 `POST /hoondok/auth/signup` (Phase 2) — 종료
 
-요청 `{ email, password, display_name, invite_code? }` → 201 `{ user: { id, email, display_name } }` + `Set-Cookie: hoondok_token`(HttpOnly, `Path=/`, `Max-Age` = `HOONDOK_JWT_EXPIRE_MINUTES`×60, 기본 7일). 409 이메일 중복(대소문자 무시, 동시 가입 경쟁도 409), 422 검증 실패(이메일 형태 `로컬@도메인.tld`·비밀번호 8~128자·이름 1~64자). 약관 문구(`DEC-PWA-001` `[확인 필요]`) 확정 전이라 `consent_version` 은 받지 않으며 `users.consented_at` 은 NULL 로 남는다.
+**2026-11-13 이메일·비밀번호 가입을 닫았다.** 요청 본문과 무관하게 항상 **410** `{ error_code: "PASSWORD_SIGNUP_CLOSED", message, request_id }`(`ErrorResponse`)이며 계정·쿠키를 만들지 않는다. 계약 호환을 위해 기존 요청 스키마(`{ email, password, display_name, invite_code? }`)와 201 응답 선언은 OpenAPI 에 `deprecated` 로 남는다. 새 계정은 구글 로그인([API-HD-066](#api-hd-066-구글-로그인-시작과-콜백-post-get-hoondokauthoauthprovider))으로만 만든다.
 
-상태 변경 요청(signup·login·logout)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST 에 자동 부착한다.
+**제한 베타 게이트 (Phase 3 F, 2026-09-19):** 서버 env `HOONDOK_INVITE_CODE`(SecretStr) 의 판정은 그대로이며 이제 구글 신규 가입에 적용된다. 게이트가 켜져 있으면 start 요청의 `invite_code`(1~64자, 앞뒤 공백 무시)가 그 값과 일치해야 새 계정이 만들어진다. 불일치는 start 가 막지 않고(재로그인 사용자일 수 있다) 새 계정을 만드는 콜백이 `error=invite_required` 로 돌려보낸다. 이메일 중복(`email_exists`)보다 먼저 판정해 초대받지 않은 요청에 이메일 존재 여부를 알리지 않는다. 비교는 바이트 상수 시간(`secrets.compare_digest`). 미설정·빈 값이면 무시된다(로컬·E2E·pytest 는 OFF 고정). 기존 계정의 로그인·연결은 무관하다. 운영 값은 VM `.env` 에만 두고 `deploy-backend` 전에 넣는다.
 
-**제한 베타 게이트 (Phase 3 F, 2026-09-19):** 서버 env `HOONDOK_INVITE_CODE`(SecretStr) 가 설정돼 있으면 `invite_code`(선택 필드, 1~64자, 앞뒤 공백 무시) 가 그 값과 일치해야 한다. 누락·불일치는 **403** `{ error_code: "INVITE_REQUIRED", message, request_id }` 이며 **중복 이메일 검사(409)보다 먼저** 판정해 초대받지 않은 요청에 이메일 존재 여부를 알리지 않는다. 비교는 바이트 상수 시간(`secrets.compare_digest`). 미설정·빈 값(`HOONDOK_INVITE_CODE=`)이면 `invite_code` 는 무시되고 기존 동작이다(로컬·E2E·pytest 는 autouse 픽스처로 OFF 고정). 로그인·로그아웃·me·기존 계정은 무관하다. 운영 값은 VM `.env` 에만 두고 `deploy-backend` 전에 넣는다.
+상태 변경 요청(login·logout·start·수단 해제)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST·DELETE 에 자동 부착한다. 예외로 GET 콜백은 이 헤더를 요구하지 않고 `state` 로 CSRF 를 막는다([API-HD-066](#api-hd-066-구글-로그인-시작과-콜백-post-get-hoondokauthoauthprovider)).
 
 ## API-HD-003 `POST /hoondok/auth/login` · `logout` · `GET /hoondok/auth/me` (Phase 2)
 
-- login: `{ email, password }` → 200 `{ user }` + 쿠키. 401 자격 불일치(이메일 존재 여부·소프트 삭제 여부를 구분하지 않는다).
+- login — **deprecated**: 구글 로그인 도입 전에 이메일·비밀번호로 가입한 기존 계정이 구글을 연결하기 위한 임시 경로다. `{ email, password }` → 200 `{ user }` + 쿠키. 401 자격 불일치(이메일 존재 여부·소프트 삭제 여부·비밀번호 없는 계정을 구분하지 않는다). 비밀번호가 없는 계정(구글 전용·연결 후 비밀번호가 지워진 계정)은 항상 401 이다. 제거는 카카오 로그인 도입 뒤 별도 변경이다.
 - logout: 204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.
-- me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 웹 화면 `/onboarding?returnTo=` 로 보낸다(웹 루트 = 훈독, `DEC-PWA-026`).
-- 토큰: JWT `aud="hoondok"`, 서명 키는 `ADMIN_JWT_SECRET` 공유. `admin_token`(aud 없음)은 훈독 디코더가 aud 를 명시 검사해 거부하고, 훈독 토큰은 admin 디코더가 `Invalid audience` 로 거부한다.
+- me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·`sv` 불일치·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 웹 화면 `/onboarding?returnTo=` 로 보낸다(웹 루트 = 훈독, `DEC-PWA-026`).
+- `user` 는 `{ id, email, display_name, login_methods }` 다(login·me 공통). `login_methods` 는 `[{ provider, identity_id, email, linked_at }]` 이며 비밀번호가 있으면 `provider="password"`(`identity_id`·`linked_at` 은 null)가 맨 앞에 오고, 이어서 연결된 제공자 계정이 온다.
+- 토큰: JWT `aud="hoondok"`, 서명 키는 `ADMIN_JWT_SECRET` 공유. 클레임 `sv` 는 `users.session_version` 이며 DB 값과 다르면 401 이다(없으면 0 — 이 변경 이전 발급 토큰 호환). 로그인 수단을 연결·해제하면 값이 올라 다른 기기·옛 토큰이 끊기고, 그 응답이 새 `hoondok_token` 쿠키를 재발급해 현재 브라우저만 로그인이 유지된다. `admin_token`(aud 없음)은 훈독 디코더가 aud 를 명시 검사해 거부하고, 훈독 토큰은 admin 디코더가 `Invalid audience` 로 거부한다.
 
 ## API-HD-004 `GET /hoondok/me/summary` (Phase 2)
 
@@ -320,11 +323,57 @@ DELETE /hoondok/auth/me
 204 + `Set-Cookie: hoondok_token=; Max-Age=0`. 서버는 한 트랜잭션으로:
 
 1. 본인 `mission_logs` · `jeongseong_periods` **하드 삭제**
-2. `users.deleted_at = now`, `users.email = "deleted:{id}"` 로 익명화 — 같은 주소로 다시 가입할 수 있다(unique 인덱스 충돌 없음). `password_hash`·`display_name` 은 그대로 둔다
+2. `users.deleted_at = now`, `users.email = "deleted:{id}"` 로 익명화 — 같은 주소로 다시 가입할 수 있다(unique 인덱스 충돌 없음). `display_name` 은 그대로 둔다
+3. 본인 `user_identities` **하드 삭제**, `users.password_hash = NULL` — 같은 구글 계정으로 다시 가입할 수 있고 비밀번호 해시가 남지 않는다
 
 이후 `GET /hoondok/auth/me` 는 401(`get_optional_user` 가 `deleted_at` 사용자를 거른다), 이미 발급된 토큰도 같은 이유로 무효다. 로그인은 익명화된 이메일로 찾을 수 없어 401. 401 미인증 · 403 CSRF. 물리 삭제 주기(`[가정: 30일]`)는 비범위.
 
 레이어: identity **service** 는 hoondok 을 import 하지 않는다(의존 주입은 `identity/dependencies.py` 의 `get_user_data_purgers` 한 곳). `IdentityService.delete_account(user, purgers)` 가 `UserDataPurger` Protocol(`delete_for_user`) 목록을 받고, `identity/dependencies.py get_user_data_purgers` 가 `MissionLogRepository`·`JeongseongRepository` 를 같은 세션으로 주입한다. purger 는 커밋하지 않고 `UserRepository.save` 의 커밋에 묶인다.
+
+## API-HD-066 구글 로그인 시작과 콜백 — `POST · GET /hoondok/auth/oauth/{provider}/…` (구글 로그인)
+
+현재 `provider` 는 `google` 뿐이다(OIDC Authorization Code + PKCE S256, 범위 `openid email profile`). 제공자 client id·secret(`HOONDOK_GOOGLE_CLIENT_ID`·`HOONDOK_GOOGLE_CLIENT_SECRET`)이 **둘 다** 설정돼야 켜지고, 아니면 start 는 404 `OAUTH_PROVIDER_UNAVAILABLE`, callback 은 302 `error=failed` 이다. 운영(`ENVIRONMENT=production`)에서 구글이 켜져 있으면 `WEB_FRONTEND_URL` 은 `https://` 여야 기동한다. `redirect_uri` 는 `{WEB_FRONTEND_URL}/api/backend/hoondok/auth/oauth/{provider}/callback` 로 고정이다.
+
+### `POST /hoondok/auth/oauth/{provider}/start`
+
+요청 `{ intent: "login" | "link", return_to?, invite_code?, password? }` + `X-Requested-With`. 응답 200 `{ authorization_url }` + `Set-Cookie: hoondok_oauth`(아래) + `Cache-Control: no-store`. 브라우저는 `authorization_url` 로 이동한다.
+
+- `intent=login`: 세션이 없어도 된다. `intent=link`: 로그인 세션이 필요하며 흐름이 그 사용자에 묶인다.
+- `return_to`: 서버가 검증한다. 같은 origin 의 절대 경로만 허용하고(512자 초과·제어 문자·`//`·`\` 시작·`/onboarding*` 는 `/`), 옛 `/hoondok` 접두는 뗀다.
+- `invite_code`: 틀려도 start 는 막지 않고 흐름에 결과만 기록한다. 새 계정을 만드는 콜백만 확인한다([API-HD-002](#api-hd-002-post-hoondokauthsignup-phase-2--종료)).
+- `password`: `intent=link` 이고 계정에 비밀번호가 있을 때만 쓴다(재확인). 구글 전용 계정은 보내지 않는다.
+- 오류: 404 `OAUTH_PROVIDER_UNAVAILABLE` · 401 `{ detail }`(`intent=link` 인데 세션 없음) · 401 `REAUTH_REQUIRED`(비밀번호 계정의 link 에서 `password` 없음·불일치) · 403 CSRF · 429(로그인과 같은 요율 제한, 재확인 실패도 센다). `OAUTH_PROVIDER_UNAVAILABLE`·`REAUTH_REQUIRED` 는 `ErrorResponse{ error_code, message, request_id }` 이고 세션 없는 401 은 기존 `{ detail }` 이다.
+
+### `GET /hoondok/auth/oauth/{provider}/callback`
+
+제공자가 브라우저를 돌려보내는 곳이다. **항상 302** 이며 본문·JSON 오류를 내지 않는다. 위치는 `{WEB_FRONTEND_URL}/onboarding/done?status=<값>[&returnTo=<경로>]` 또는 `…/onboarding/done?error=<값>` 이다. 응답은 흐름 쿠키를 지우고 `Cache-Control: no-store`·`Referrer-Policy: no-referrer` 를 싣는다. 접근 로그에는 `code`·`state` 쿼리를 남기지 않는다(API·web 모두).
+
+| 결과 | 값 | 뜻 |
+|---|---|---|
+| `status` | `signed_in` | 이미 연결된 구글 계정으로 로그인. 세션 쿠키 발급 |
+| `status` | `created` | 새 계정 생성. 세션 쿠키 발급 |
+| `status` | `linked` | 로그인 계정에 구글 연결. 새로 연결했을 때 `session_version` 을 올리고 세션 쿠키를 재발급한다. 이미 같은 계정에 연결된 구글이면 변경 없이 `linked` |
+| `error` | `failed` | 흐름 쿠키 없음·위조·만료, 제공자 불일치, `state` 불일치, `code` 없음, 코드 교환·ID token 검증 실패, 요율 제한 등 그 밖의 모든 실패. 흐름 검증에서 걸러지면 제공자를 호출하지 않는다 |
+| `error` | `cancelled` | 제공자가 `error` 를 돌려줌(사용자가 동의 화면에서 취소) |
+| `error` | `email_unverified` | 구글이 이메일을 인증됨으로 보증하지 않음 |
+| `error` | `invite_required` | 초대 코드 게이트가 켜져 있고 start 때 올바른 `invite_code` 가 없었음(새 계정을 만들 때만) |
+| `error` | `email_exists` | 같은 이메일의 기존 계정이 있어 새 계정을 만들지 않음. 이메일로 병합하지 않는다 |
+| `error` | `already_linked` | 그 구글 계정이 다른 훈독 계정에 연결돼 있음. 수단을 옮기지 않는다 |
+| `error` | `provider_linked` | 이 계정에 이미 다른 구글 계정이 연결돼 있음 |
+| `error` | `session_mismatch` | link 흐름에서 지금 세션이 start 때의 사용자와 다르거나 세션이 없음 |
+
+판정 순서: 이미 연결된 신원이면 로그인(link 흐름이면 같은 계정인지 확인) → 아니면 link 흐름은 현재 계정에 연결, login 흐름은 새 계정(초대 게이트 → 이메일 중복 순). 연결하면 `users.password_hash` 를 NULL 로 지우고 `session_version` 을 올린다. 구글이 확인한 이메일이 계정 `email` 과 같고 권위 있는 주소(`gmail.com` 또는 이메일 도메인과 같은 Workspace `hd`)일 때만 `users.email_verified_at`·`email_verified_by` 를 기록한다.
+
+### 쿠키·CSRF 규칙
+
+- 흐름 쿠키 `hoondok_oauth`: HttpOnly, `SameSite=Lax`(구글에서 돌아오는 최상위 GET 에 실려야 한다), `Path=/`, `Secure` 는 `COOKIE_SECURE`, 수명 10분. 값은 `ADMIN_JWT_SECRET` 로 서명한 JWT(`aud="hoondok-oauth"`)이며 `state`·`nonce`·PKCE verifier·제공자·`intent`·`return_to`·link 대상 사용자·초대 통과 여부를 담는다. `hoondok_token`·`admin_token` 과 서로 통용되지 않는다.
+- GET 콜백은 `X-Requested-With` 헤더를 보낼 수 없으므로 헤더 대신 **`state` 쿼리와 흐름 쿠키의 `state` 를 상수 시간 비교**해 CSRF 를 막는다. link 는 start 때의 세션 사용자와 콜백 때의 세션 사용자가 같아야 한다(`session_mismatch`).
+- 세션 쿠키 `hoondok_token` 은 `sv` 클레임으로 `users.session_version` 과 대조한다([API-HD-003](#api-hd-003-post-hoondokauthlogin--logout--get-hoondokauthme-phase-2)). 연결·해제는 값을 올려 다른 기기·옛 토큰을 끊고, 같은 응답에서 쿠키를 재발급한다.
+- 비밀번호 계정이 구글을 연결하려면 start 에서 비밀번호를 다시 확인한다(`REAUTH_REQUIRED`). 탈취된 세션으로 구글을 붙여 계정을 가로채지 못하게 하는 장치다.
+
+## API-HD-067 `DELETE /hoondok/auth/identities/{identity_id}` (구글 로그인)
+
+로그인 수단 해제. 인증 `hoondok_token` + `X-Requested-With`. 204 + 새 `hoondok_token` 쿠키(`session_version` 이 올라가므로 다른 기기·옛 토큰은 끊기고 현재 브라우저만 유지). 404 `IDENTITY_NOT_FOUND`(없거나 남의 로그인 수단 — 구분하지 않는다) · 409 `LAST_LOGIN_METHOD`(해제하면 남는 수단이 없음. 비밀번호도 수단으로 센다) · 401 미인증 · 403 CSRF. 사용자 행을 잠근 뒤 판정해 동시 해제로 계정이 잠기지 않는다. 비밀번호 수단(`provider="password"`)은 이 API 로 해제할 수 없다.
 
 ---
 
@@ -379,6 +428,7 @@ AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독
 | 2026-11-02 | 호출처가 없는 API-HD-026(단락 표시)·API-HD-046(오늘 훈독 단락 낭독)을 제거. `passage_marks` 테이블·행은 삭제 결정 전까지 보존 | 확정 |
 | 2026-11-04 | 모임 API-HD-030~043(공식 정성 042 포함)과 가입의 모임 코드 대체 통과를 제거하고 모임 테이블 5개를 drop(`DEC-PWA-027`). 익명 함께 읽기 숫자 API-HD-029 는 유지 | 확정(사용자 요청) |
 | 2026-11-04 | 원문 뷰 "AI 설명"도 `POST /hoondok/ask/stream` 으로 옮겨 로그인·하루 횟수에 넣는다. 익명 `POST /chat`·`/chat/stream` 은 그 비용 상한을 우회하므로 관리자 게이트(`require_admin_gate`) 뒤로 닫았다(보안 점검) | 확정 |
+| 2026-11-13 | 구글 로그인 도입(DEC-PWA-028): API-HD-002 가입은 410 `PASSWORD_SIGNUP_CLOSED`, API-HD-003 비밀번호 로그인은 기존 가입자의 구글 연결용 deprecated 임시 경로, `login_methods`·세션 버전 `sv` 추가, API-HD-066(start·callback)·067(수단 해제) 신설. 콜백은 항상 302·GET 은 `state` 로 CSRF 방어, 비밀번호 계정의 연결은 비밀번호 재확인. 초대 코드 게이트는 구글 신규 가입에 적용 | 확정 |
 
 ---
 

@@ -22,18 +22,52 @@
 | 필드 | 타입 | 제약 | 설명 |
 |---|---|---|---|
 | `id` | uuid | PK | |
-| `email` | varchar(255) | unique, not null | 로그인 ID. 소문자 정규화 후 저장 |
-| `password_hash` | varchar(255) | not null | bcrypt (`admin/auth.py` 유틸 재사용) |
+| `email` | varchar(255) | unique, not null | 연락·표시용 주소. 소문자 정규화 후 저장. **계정 키가 아니다**(ENT-HD-022) |
+| `password_hash` | varchar(255) | null | bcrypt (`admin/auth.py` 유틸 재사용). NULL = 비밀번호 로그인 수단 없음(구글 전용 계정, 구글을 연결해 비밀번호를 지운 계정, 탈퇴 계정) |
 | `display_name` | varchar(64) | not null | 홈 인사에 쓰는 이름. 실명 강제 없음 |
 | `timezone` | varchar(64) | not null, default `Asia/Seoul` | **예약 컬럼.** 베타는 KST 고정이며 읽지 않는다 |
 | `consented_at` | datetime | null | 약관·처리방침 동의 시각. 문구 확정 전(`DEC-PWA-001` `[확인 필요]`)에는 NULL |
 | `consent_version` | varchar(32) | null | 동의한 문구 버전. 예약 컬럼 — 문구 확정 전에는 API 가 받지 않는다 |
 | `created_at` | datetime | not null | |
 | `deleted_at` | datetime | null | 소프트 삭제. 값이 있으면 로그인·`me` 모두 401. [API-HD-011](../api/hoondok-api.md) `DELETE /hoondok/auth/me` 가 기록하며 `email` 을 `deleted:{id}` 로 익명화해 같은 주소로 재가입할 수 있다(2026-09-19 W0-B). 물리 삭제 주기는 비범위 `[가정: 30일]` |
+| `email_verified_at` | datetime | null | 권위 있는 제공자(구글)가 이 `email` 의 소유를 확인한 시각. 제공자가 확인한 이메일이 계정 `email` 과 같을 때만 기록한다. 이메일·비밀번호로 가입한 기존 계정은 NULL(미검증) |
+| `email_verified_by` | varchar(255) | null | 확인한 제공자의 issuer |
+| `session_version` | integer | not null, default 0 | 로그인 수단이 바뀔 때(연결·해제) 올린다. 세션 토큰의 `sv` 와 다르면 미인증 — 다른 기기·옛 토큰을 끊는다 |
 
 - 인증: 별도 HttpOnly 쿠키 `hoondok_token`, JWT `aud="hoondok"`, 만료 7일(`HOONDOK_JWT_EXPIRE_MINUTES`). `admin_token` 을 읽지 않는다.
 - 이메일은 `strip().lower()` 후 저장·조회한다. 비밀번호는 bcrypt(`admin/auth.py hash_password`).
 - 비밀번호 재설정은 베타 기간 운영자 수동(결정 4). 메일 인프라는 없다.
+- 새 계정은 구글 로그인으로만 만들어진다(이메일·비밀번호 가입 종료, [API-HD-002](../api/hoondok-api.md)). 비밀번호 계정이 구글을 연결하면 `password_hash` 는 NULL 이 되고 `session_version` 이 오른다.
+- 탈퇴([API-HD-011](../api/hoondok-api.md))는 `user_identities` 행을 하드 삭제하고 `password_hash` 를 NULL 로 바꾼다. 같은 구글 계정으로 다시 가입할 수 있다.
+
+---
+
+## ENT-HD-022 `user_identities` — 로그인 수단
+
+계정(`users`)과 로그인 수단을 분리한다. 한 계정이 여러 수단을 가질 수 있도록 제공자 계정을 이 테이블에 둔다. 비밀번호는 행이 아니라 `users.password_hash` 로 표현한다.
+
+| 필드 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `user_id` | uuid | FK `users.id` ON DELETE CASCADE, not null | |
+| `provider` | varchar(32) | not null | `google` 등. ENUM 이 아니라 varchar + 앱 검증 |
+| `issuer` | varchar(255) | not null | 저장용으로 정규화한 OIDC issuer |
+| `subject_scope` | varchar(255) | not null, default `''` | `sub` 가 앱 단위로 발급되는 제공자(카카오 등)만 앱 식별자를 채운다. 구글은 `''` |
+| `subject` | varchar(255) | not null | 제공자가 준 `sub` |
+| `client_id` | varchar(255) | not null | 로그인 때 쓴 OAuth client id |
+| `email` | varchar(255) | null | 제공자가 준 이메일(소문자). 표시·참고용 힌트 |
+| `email_verified` | boolean | null | 제공자가 준 값 |
+| `created_at` | datetime | not null | 연결 시각 |
+| `last_login_at` | datetime | null | |
+
+| 제약 | 의미 |
+|---|---|
+| unique `uq_user_identities_subject` (`issuer`, `subject_scope`, `subject`) | 같은 제공자 계정은 한 훈독 계정에만 연결된다 |
+| unique `uq_user_identities_user_issuer` (`user_id`, `issuer`, `subject_scope`) | 한 계정에 같은 제공자(같은 앱 범위)는 하나만 연결된다 |
+
+- **불변식: 계정 키는 `(issuer, subject_scope, subject)` 이고 이메일은 키가 아니다.** 이메일이 같다는 이유로 계정을 찾아 로그인시키거나 연결·병합하지 않는다. 같은 이메일의 기존 계정이 있으면 새 계정을 만들지 않는다(사전 가입으로 남의 계정을 가로채는 것을 막는다). 연결은 로그인된 세션에서 시작한 흐름에서만 한다.
+- `subject_scope` 는 `sub` 가 앱 단위인 제공자를 위해 키에 넣은 열이다. 같은 사람이 다른 앱에서는 다른 `sub` 를 받는다.
+- 삭제된 계정을 가리키는 낡은 행은 같은 신원의 다음 로그인 때 지우고 새 신원으로 처리한다.
 
 ---
 
@@ -123,6 +157,7 @@
 | 2026-09-23 | 모임 5테이블 신설(ENT-HD-013~017, alembic `r3c4d5e6f7a8`). 공동 정성은 개인 정성을 확장하지 않고 `shared_jeongseongs`(group_id NULL = 공식)로 분리 | 확정 · PLAN-HD-010 트랙 A |
 | 2026-09-29 | 형광펜을 단락 단위에서 구절(글자 범위) 단위로 옮긴다 — `passage_highlights` 신설(ENT-HD-021, alembic `v7a8b9c0d1e2`). `passage_marks` 는 북마크만 쓰고 예전 `highlight` 행은 옮기거나 지우지 않는다 | 확정 · API-HD-053 |
 | 2026-11-04 | 모임 5테이블 drop(ENT-HD-013~017, alembic `zb2c3d4e5f6a`). 공식 정성도 모임 상세에만 보였으므로 함께 지운다 | 확정 · DEC-PWA-027 |
+| 2026-11-13 | 로그인 수단 분리 — `user_identities`(ENT-HD-022) 신설, `users.password_hash` nullable, `email_verified_at`·`email_verified_by`·`session_version` 추가(alembic `f7a8b9c0d1e2`). 계정 키는 `(issuer, subject_scope, subject)`, 이메일은 키가 아니다 | 확정 · DEC-PWA-028 |
 
 ---
 
