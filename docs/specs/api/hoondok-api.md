@@ -140,11 +140,11 @@ GET /hoondok/today
 
 ## API-HD-002 `POST /hoondok/auth/signup` (Phase 2) — 종료
 
-**2026-11-13 이메일·비밀번호 가입을 닫았다.** 요청 본문과 무관하게 항상 **410** `{ error_code: "PASSWORD_SIGNUP_CLOSED", message, request_id }`(`ErrorResponse`)이며 계정·쿠키를 만들지 않는다. 계약 호환을 위해 기존 요청 스키마(`{ email, password, display_name, invite_code? }`)와 201 응답 선언은 OpenAPI 에 `deprecated` 로 남는다. 새 계정은 구글 로그인([API-HD-066](#api-hd-066-구글-로그인-시작과-콜백-post-get-hoondokauthoauthprovider))으로만 만든다.
+**2026-11-13 이메일·비밀번호 가입을 닫았다.** 요청 본문과 무관하게 항상 **410** `{ error_code: "PASSWORD_SIGNUP_CLOSED", message, request_id }`(`ErrorResponse`)이며 계정·쿠키를 만들지 않는다. 계약 호환을 위해 기존 요청 스키마(`{ email, password, display_name, invite_code? }`)와 201 응답 선언은 OpenAPI 에 `deprecated` 로 남는다. 새 계정은 구글 로그인(API-HD-066)으로만 만든다.
 
 **제한 베타 게이트 (Phase 3 F, 2026-09-19):** 서버 env `HOONDOK_INVITE_CODE`(SecretStr) 의 판정은 그대로이며 이제 구글 신규 가입에 적용된다. 게이트가 켜져 있으면 start 요청의 `invite_code`(1~64자, 앞뒤 공백 무시)가 그 값과 일치해야 새 계정이 만들어진다. 불일치는 start 가 막지 않고(재로그인 사용자일 수 있다) 새 계정을 만드는 콜백이 `error=invite_required` 로 돌려보낸다. 이메일 중복(`email_exists`)보다 먼저 판정해 초대받지 않은 요청에 이메일 존재 여부를 알리지 않는다. 비교는 바이트 상수 시간(`secrets.compare_digest`). 미설정·빈 값이면 무시된다(로컬·E2E·pytest 는 OFF 고정). 기존 계정의 로그인·연결은 무관하다. 운영 값은 VM `.env` 에만 두고 `deploy-backend` 전에 넣는다.
 
-상태 변경 요청(login·logout·start·수단 해제)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST·DELETE 에 자동 부착한다. 예외로 GET 콜백은 이 헤더를 요구하지 않고 `state` 로 CSRF 를 막는다([API-HD-066](#api-hd-066-구글-로그인-시작과-콜백-post-get-hoondokauthoauthprovider)).
+상태 변경 요청(login·logout·start·수단 해제)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST·DELETE 에 자동 부착한다. 예외로 GET 콜백은 이 헤더를 요구하지 않고 `state` 로 CSRF 를 막는다(API-HD-066).
 
 ## API-HD-003 `POST /hoondok/auth/login` · `logout` · `GET /hoondok/auth/me` (Phase 2)
 
