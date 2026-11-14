@@ -4,6 +4,7 @@ export type {
   LoginRequest,
   OAuthStartRequest,
   OAuthStartResponse,
+  ProfileUpdateRequest,
   UserEnvelope,
   UserPublic as HoondokUser,
 } from "@truewords/api-client-ts/types";

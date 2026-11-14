@@ -100,6 +100,11 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   });
   await page.getByRole("button", { name: "Google로 계속하기" }).click();
 
+  // 신규 가입은 이름 확인 화면을 거친다 — 구글 이름이 채워져 있고 그대로 시작한다
+  await expect(page).toHaveURL(/\/onboarding\/name\?returnTo=%2Fread$/);
+  await expect(page.getByLabel("이름", { exact: true })).toHaveValue("이투이");
+  await page.getByRole("button", { name: "이 이름으로 시작" }).click();
+
   // returnTo 로 복귀 → 로컬 체크가 당일분으로 소급 기록되고 로그인 링크는 사라진다
   await expect(page).toHaveURL(/\/read$/);
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");

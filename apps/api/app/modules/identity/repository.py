@@ -32,6 +32,15 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
+    async def update_display_name(self, user_id: uuid.UUID, display_name: str) -> User | None:
+        """표시 이름만 바꾸고 커밋한다. 잠근 뒤 삭제된 계정이면 변경 없이 None — session_version 은 건드리지 않는다."""
+        user = await self.get_for_update(user_id)
+        if user is None or user.deleted_at is not None:
+            await self.session.rollback()  # 잠금을 푼다
+            return None
+        user.display_name = display_name
+        return await self.save(user)
+
     async def create(self, user: User) -> User:
         user.email = normalize_email(user.email)
         self.session.add(user)

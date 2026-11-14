@@ -65,20 +65,29 @@ export async function setFakeGoogleIdentity(page: Page, identity: ResolvedGoogle
   ]);
 }
 
+const NAME_CONFIRM_PATH = "/onboarding/name";
+
 /**
  * 실제 화면의 `Google로 계속하기` 로 가입·로그인한다 — start → (가짜 제공자) → 콜백 → /onboarding/done → 최종 화면.
- * 신규 계정이면 맞춤 첫 말씀 질문(/start)으로, 기존 계정이면 returnTo(기본 홈)로 도착한다. 도착한 뒤 돌아온다.
+ * 신규 계정은 이름 확인 화면(/onboarding/name)을 거친다 — 이름을 그대로 두고 `이 이름으로 시작` 을 눌러 맞춤 첫 말씀 질문(/start)
+ * 또는 returnTo 로 간다. 기존 계정이면 바로 returnTo(기본 홈)로 도착한다. 도착한 뒤 돌아온다.
+ * stopAtNameConfirm 이면 신규 가입의 이름 확인 화면에서 멈춘다(호출자가 이름을 고치거나 시작을 누른다).
  */
 export async function signInWithGoogle(
   page: Page,
-  identity: GoogleIdentity & { returnTo?: string } = {},
+  identity: GoogleIdentity & { returnTo?: string; stopAtNameConfirm?: boolean } = {},
 ): Promise<ResolvedGoogleIdentity> {
   const resolved = resolveIdentity(identity);
   await setFakeGoogleIdentity(page, resolved);
   await page.goto(identity.returnTo ? `/onboarding?returnTo=${encodeURIComponent(identity.returnTo)}` : "/onboarding");
   await page.getByRole("button", { name: "Google로 계속하기" }).click();
-  // /onboarding/done 은 /me 를 부른 뒤 곧 이동한다 — 온보딩 밖(최종 화면)에 도착할 때까지 기다린다
-  await page.waitForURL((url) => !url.pathname.startsWith("/onboarding"));
+  // /onboarding/done 은 /me 를 부른 뒤 곧 이동한다 — 이름 확인 화면이나 온보딩 밖(최종 화면)에 도착할 때까지 기다린다
+  await page.waitForURL((url) => url.pathname === NAME_CONFIRM_PATH || !url.pathname.startsWith("/onboarding"));
+  if (new URL(page.url()).pathname === NAME_CONFIRM_PATH) {
+    if (identity.stopAtNameConfirm) return resolved;
+    await page.getByRole("button", { name: "이 이름으로 시작" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/onboarding"));
+  }
   return resolved;
 }
 

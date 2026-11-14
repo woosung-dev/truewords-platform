@@ -5008,6 +5008,22 @@
         "title": "PathStepSummary",
         "type": "object"
       },
+      "ProfileUpdateRequest": {
+        "description": "표시 이름 변경. 앞뒤 공백을 지운 뒤 1~64자(SignupRequest.display_name 과 같은 길이) — 공백만이면 422.",
+        "properties": {
+          "display_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "ProfileUpdateRequest",
+        "type": "object"
+      },
       "PublicQuestionAdminItem": {
         "description": "검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.",
         "properties": {
@@ -13753,6 +13769,46 @@
           }
         },
         "summary": "Me",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "patch": {
+        "description": "표시 이름 변경 → 200 UserEnvelope. 앞뒤 공백 제거 후 1~64자가 아니면 422. 세션은 그대로 유지된다(쿠키 재발급 없음).",
+        "operationId": "update_me_hoondok_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Me",
         "tags": [
           "hoondok"
         ]

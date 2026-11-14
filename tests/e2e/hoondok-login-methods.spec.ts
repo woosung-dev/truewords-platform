@@ -47,6 +47,42 @@ test("구글로 가입한 뒤 다시 로그인하면 같은 계정이다", async
   expect((await me(page)).id).not.toBe(first.id);
 });
 
+test("가입 직후 이름 확인: 구글 이름을 고쳐 시작하면 계정에 저장되고 설정에서 다시 바꿀 수 있다", async ({ page }) => {
+  await signInWithGoogle(page, { name: "  Google Name  ", returnTo: "/read", stopAtNameConfirm: true });
+  await expect(page).toHaveURL(/\/onboarding\/name\?returnTo=%2Fread$/);
+  await expect(page.getByRole("heading", { name: "이렇게 불러 드릴까요?" })).toBeVisible();
+  const input = page.getByLabel("이름", { exact: true });
+  await expect(input).toHaveValue("Google Name");
+
+  // 공백만이면 서버에 보내지 않고 머문다
+  await input.fill("   ");
+  await page.getByRole("button", { name: "이 이름으로 시작" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "이름을 입력해 주세요" })).toBeVisible();
+  await expect(page).toHaveURL(/\/onboarding\/name/);
+  expect((await me(page)).display_name).toBe("Google Name");
+
+  await input.fill("  새벽이  ");
+  await page.getByRole("button", { name: "이 이름으로 시작" }).click();
+  // returnTo 가 있으면 그쪽으로 간다
+  await page.waitForURL((url) => url.pathname === "/read");
+  expect((await me(page)).display_name).toBe("새벽이");
+
+  // 설정의 이름 항목에서 다시 바꾼다
+  await page.goto("/settings");
+  await expect(page.getByText("새벽이", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "이름 바꾸기" }).click();
+  await page.getByRole("form", { name: "이름 바꾸기" }).getByLabel("이름", { exact: true }).fill("아침이");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByText("이름을 바꿨어요")).toBeVisible();
+  await expect(page.getByText("아침이", { exact: true })).toBeVisible();
+  expect((await me(page)).display_name).toBe("아침이");
+
+  // CSRF 헤더 없는 변경은 서버가 거절한다
+  const noCsrf = await page.request.patch("/api/backend/hoondok/auth/me", { data: { display_name: "몰래" } });
+  expect(noCsrf.status()).toBe(403);
+  expect((await me(page)).display_name).toBe("아침이");
+});
+
 test("구글 로그인을 취소하면 온보딩에 안내가 뜨고 로그인되지 않는다", async ({ page }) => {
   // 신원 쿠키가 없으면 가짜 제공자는 사용자가 동의 화면에서 취소한 것처럼 error 로 돌려보낸다
   await page.context().clearCookies();

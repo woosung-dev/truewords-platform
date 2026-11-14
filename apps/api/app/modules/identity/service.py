@@ -118,6 +118,16 @@ class IdentityService:
         user.password_hash = None
         await self.repo.save(user)  # 한 번의 커밋 — purger 의 DELETE 도 같은 세션에서 함께 반영된다
 
+    async def update_display_name(self, user: User, display_name: str) -> User:
+        """표시 이름 변경. 로그인 수단이 아니므로 session_version 을 올리지 않는다(다른 기기 세션 유지).
+
+        인증 뒤 계정이 삭제됐으면 401 — 삭제 이후의 me 와 같은 응답이다.
+        """
+        updated = await self.repo.update_display_name(user.id, display_name)
+        if updated is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다")
+        return updated
+
     async def remove_identity(self, user: User, identity_id: uuid.UUID, token_version: int) -> int:
         """로그인 수단 해제. 사용자 행을 잠근 뒤 남는 수단이 있는지 판정해 동시 해제로 계정이 잠기지 않게 한다.
 

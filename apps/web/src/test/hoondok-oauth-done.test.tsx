@@ -10,10 +10,6 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/identity/device-owner", () => ({ claimDeviceForUser: vi.fn() }));
-// 카드 기능 플래그와 무관하게 가입 직후 이동 규칙만 본다
-vi.mock("@/features/hoondok/personal/start", () => ({
-  afterSignupHref: (next: string) => (next === "/" ? "/start" : next),
-}));
 
 import OnboardingDonePage from "@/app/(hoondok)/onboarding/done/page";
 import { identityAPI } from "@/features/identity/api";
@@ -50,15 +46,20 @@ describe("구글 로그인 도착 페이지 (/onboarding/done)", () => {
     expect(client.getQueryData(CURRENT_USER_KEY)).toEqual(USER);
   });
 
-  it("created 는 새 계정으로 기기 기록을 이어받고 가입 직후 규칙으로 이동한다", async () => {
+  it("created 는 새 계정으로 기기 기록을 이어받고 이름 확인 화면으로 간다", async () => {
     await renderDone({ status: "created" });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/start"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/onboarding/name?returnTo=%2F"));
     expect(claimDeviceForUser).toHaveBeenCalledWith("u1", true);
+    expect(client.getQueryData(CURRENT_USER_KEY)).toEqual(USER);
   });
 
-  it("created 에 returnTo 가 있으면 그쪽이 먼저다", async () => {
-    await renderDone({ status: "created", returnTo: "/ask" });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/ask"));
+  it("created 는 검증된 returnTo 를 이름 확인 화면에 넘긴다", async () => {
+    const first = await renderDone({ status: "created", returnTo: "/ask?x=1" });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/onboarding/name?returnTo=%2Fask%3Fx%3D1"));
+    first.unmount();
+    mockReplace.mockClear();
+    await renderDone({ status: "created", returnTo: "https://evil.example/x" });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/onboarding/name?returnTo=%2F"));
   });
 
   it("외부·잘못된 returnTo 는 홈(/)으로 처리한다", async () => {

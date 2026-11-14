@@ -170,6 +170,22 @@ async def test_hoondok_token_cannot_authenticate_admin():
     assert exc.value.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_repository_update_display_name_changes_only_that_user(repo: UserRepository):
+    me = await repo.create(_user("me@example.com", display_name="구글 이름"))
+    other = await repo.create(_user("other@example.com", display_name="다른 사람"))
+    version = me.session_version
+
+    updated = await repo.update_display_name(me.id, "새 이름")
+    assert updated is not None and updated.display_name == "새 이름"
+    assert updated.session_version == version  # 이름 변경은 세션을 끊지 않는다
+    assert (await repo.get_by_id(other.id)).display_name == "다른 사람"  # type: ignore[union-attr]
+
+    other.deleted_at = datetime.now(timezone.utc)
+    await repo.save(other)
+    assert await repo.update_display_name(other.id, "되살림") is None
+
+
 # --- 의존성 ---------------------------------------------------------------
 
 
@@ -190,6 +206,13 @@ class _MemoryRepo:
     async def create(self, user: User) -> User:
         user.email = user.email.strip().lower()
         self.users[user.id] = user
+        return user
+
+    async def update_display_name(self, user_id: uuid.UUID, display_name: str) -> User | None:
+        user = self.users.get(user_id)
+        if user is None or user.deleted_at is not None:
+            return None
+        user.display_name = display_name
         return user
 
 
@@ -326,3 +349,50 @@ def test_signup_is_closed_with_410(client: TestClient, monkeypatch, gate):
     assert client.repo.users == {}  # type: ignore[attr-defined]
     # 요청 스키마는 유지된다 — 형식이 틀리면 410 이전에 422
     assert client.post("/hoondok/auth/signup", json={**body, "password": "short"}, headers=XHR).status_code == 422
+
+
+def _login_as(client: TestClient, user: User) -> None:
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
+
+
+def test_update_display_name_trims_and_keeps_session(client: TestClient):
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="Google Name")))  # type: ignore[attr-defined]
+    other = asyncio.run(client.repo.create(_user("other@example.com", password=None, display_name="다른 사람")))  # type: ignore[attr-defined]
+    version = me.session_version
+    _login_as(client, me)
+
+    res = client.patch("/hoondok/auth/me", json={"display_name": "  효진  "}, headers=XHR)
+    assert res.status_code == 200, res.text
+    assert res.json()["user"]["display_name"] == "효진"
+    assert set(res.json()["user"]) == {"id", "email", "display_name", "login_methods"}
+    assert "set-cookie" not in res.headers  # 세션을 다시 발급하지 않는다
+    assert me.session_version == version
+    assert client.get("/hoondok/auth/me").json()["user"]["display_name"] == "효진"  # 같은 쿠키가 계속 유효하다
+    assert other.display_name == "다른 사람"
+
+    # 64자는 허용된다(앞뒤 공백은 길이에 세지 않는다)
+    assert client.patch("/hoondok/auth/me", json={"display_name": " " + "가" * 64 + " "}, headers=XHR).status_code == 200
+
+
+@pytest.mark.parametrize("name", ["", "   ", "\t\n", "가" * 65])
+def test_update_display_name_rejects_blank_and_too_long(client: TestClient, name: str):
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="원래")))  # type: ignore[attr-defined]
+    _login_as(client, me)
+    res = client.patch("/hoondok/auth/me", json={"display_name": name}, headers=XHR)
+    assert res.status_code == 422
+    assert me.display_name == "원래"
+
+
+def test_update_display_name_requires_login_and_csrf_header(client: TestClient):
+    assert client.patch("/hoondok/auth/me", json={"display_name": "새 이름"}, headers=XHR).status_code == 401
+
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="원래")))  # type: ignore[attr-defined]
+    _login_as(client, me)
+    res = client.patch("/hoondok/auth/me", json={"display_name": "새 이름"})
+    assert res.status_code == 403
+    assert me.display_name == "원래"
+
+    # 옛 세션(sv 불일치)도 미로그인과 같다
+    me.session_version += 1
+    assert client.patch("/hoondok/auth/me", json={"display_name": "새 이름"}, headers=XHR).status_code == 401
+    assert me.display_name == "원래"

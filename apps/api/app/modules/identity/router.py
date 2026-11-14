@@ -29,6 +29,7 @@ from app.modules.identity.schemas import (
     LoginRequest,
     OAuthStartRequest,
     OAuthStartResponse,
+    ProfileUpdateRequest,
     SignupRequest,
     UserEnvelope,
 )
@@ -90,6 +91,17 @@ async def me(
 ) -> UserEnvelope:
     """API-HD-003 현재 사용자 + 로그인 수단. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다."""
     return UserEnvelope(user=await service.public_user(user))
+
+
+@router.patch("/me", response_model=UserEnvelope, dependencies=[Depends(verify_csrf)])
+async def update_me(
+    data: ProfileUpdateRequest,
+    user: User = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> UserEnvelope:
+    """표시 이름 변경 → 200 UserEnvelope. 앞뒤 공백 제거 후 1~64자가 아니면 422. 세션은 그대로 유지된다(쿠키 재발급 없음)."""
+    updated = await service.update_display_name(user, data.display_name)
+    return UserEnvelope(user=await service.public_user(updated))
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_csrf)])

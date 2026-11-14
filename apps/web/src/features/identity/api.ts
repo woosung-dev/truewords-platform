@@ -1,5 +1,11 @@
 import { hoondokRequest as request } from "@/features/hoondok/api-client";
-import type { LoginRequest, OAuthStartRequest, OAuthStartResponse, UserEnvelope } from "./types";
+import type {
+  LoginRequest,
+  OAuthStartRequest,
+  OAuthStartResponse,
+  ProfileUpdateRequest,
+  UserEnvelope,
+} from "./types";
 
 // 훈독 계정 API (쿠키 hoondok_token). 401 처리는 features/identity/gate.ts 가 /onboarding 으로 한다.
 // 비밀번호 가입(POST /signup)은 서버가 410 으로 닫았으므로 호출하지 않는다.
@@ -9,6 +15,12 @@ export const identityAPI = {
     request<UserEnvelope>("/hoondok/auth/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => request<Record<string, never>>("/hoondok/auth/logout", { method: "POST" }),
   me: () => request<UserEnvelope>("/hoondok/auth/me"),
+  /** 표시 이름 변경. 서버가 앞뒤 공백을 지우고 1~64자를 검사한다(아니면 422). 세션은 그대로다. */
+  updateProfile: (displayName: string) =>
+    request<UserEnvelope>("/hoondok/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({ display_name: displayName } satisfies ProfileUpdateRequest),
+    }),
   /** 소셜 로그인·연결 시작 — 공급자 인증 주소를 받는다. 콜백은 서버가 처리하고 /onboarding/done 으로 보낸다. */
   oauthStart: (provider: string, body: OAuthStartRequest) =>
     request<OAuthStartResponse>(`/hoondok/auth/oauth/${encodeURIComponent(provider)}/start`, {

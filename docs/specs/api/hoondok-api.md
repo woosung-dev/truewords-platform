@@ -71,6 +71,7 @@
 | `API-HD-065` | POST | `/hoondok/me/path-runs/current/finish` | `hoondok_token` + `X-Requested-With` · 플래그 | 7일 정성 1a |
 | `API-HD-066` | POST · GET | `/hoondok/auth/oauth/{provider}/start` · `/hoondok/auth/oauth/{provider}/callback` | start 는 없음(연결은 `hoondok_token`) + `X-Requested-With` / callback 은 흐름 쿠키 `hoondok_oauth` + `state` | 구글 로그인 |
 | `API-HD-067` | DELETE | `/hoondok/auth/identities/{identity_id}` | `hoondok_token` + `X-Requested-With` | 구글 로그인 |
+| `API-HD-068` | PATCH | `/hoondok/auth/me` | `hoondok_token` + `X-Requested-With` | 구글 로그인 |
 
 공통 규칙:
 
@@ -377,6 +378,17 @@ DELETE /hoondok/auth/me
 
 ---
 
+## API-HD-068 `PATCH /hoondok/auth/me` (구글 로그인)
+
+표시 이름 변경. 구글 가입은 구글 계정 이름을 `display_name` 에 넣으므로, 웹은 가입 직후 `/onboarding/name` 에서 이 이름을 확인·수정하게 하고 설정에서도 바꿀 수 있게 한다. 인증 `hoondok_token` + `X-Requested-With`.
+
+```
+PATCH /hoondok/auth/me
+{ "display_name": "..." }
+```
+
+200 `{ user }`(API-HD-003 과 같은 `UserEnvelope`). `display_name` 은 앞뒤 공백을 지운 뒤 1~64자이며 아니면 422. 로그인 수단 변경이 아니므로 `session_version` 을 올리지 않고 쿠키도 다시 발급하지 않는다. 401 미인증(인증 뒤 삭제된 계정 포함) · 403 CSRF.
+
 ## 훈독 AI 질문 — `POST /hoondok/ask/stream` · `/hoondok/me/asks*` (API-HD-059~061, DEC-PWA-025)
 
 AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
@@ -429,6 +441,7 @@ AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독
 | 2026-11-04 | 모임 API-HD-030~043(공식 정성 042 포함)과 가입의 모임 코드 대체 통과를 제거하고 모임 테이블 5개를 drop(`DEC-PWA-027`). 익명 함께 읽기 숫자 API-HD-029 는 유지 | 확정(사용자 요청) |
 | 2026-11-04 | 원문 뷰 "AI 설명"도 `POST /hoondok/ask/stream` 으로 옮겨 로그인·하루 횟수에 넣는다. 익명 `POST /chat`·`/chat/stream` 은 그 비용 상한을 우회하므로 관리자 게이트(`require_admin_gate`) 뒤로 닫았다(보안 점검) | 확정 |
 | 2026-11-13 | 구글 로그인 도입(DEC-PWA-028): API-HD-002 가입은 410 `PASSWORD_SIGNUP_CLOSED`, API-HD-003 비밀번호 로그인은 기존 가입자의 구글 연결용 deprecated 임시 경로, `login_methods`·세션 버전 `sv` 추가, API-HD-066(start·callback)·067(수단 해제) 신설. 콜백은 항상 302·GET 은 `state` 로 CSRF 방어, 비밀번호 계정의 연결은 비밀번호 재확인. 초대 코드 게이트는 구글 신규 가입에 적용 | 확정 |
+| 2026-11-14 | API-HD-068 표시 이름 변경 신설. 구글 가입 직후 이름 확인 화면과 설정의 이름 항목이 쓴다. 계약은 추가만(하위 호환) | 확정 |
 
 ---
 

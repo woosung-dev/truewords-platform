@@ -8,6 +8,7 @@ import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
 import { usePushNotifications } from "@/features/hoondok/notifications/use-push-notifications";
 import { DeleteAccountCard } from "./delete-account-card";
+import { DisplayNameCard } from "./display-name-card";
 import { LoginMethodsCard } from "./login-methods-card";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S · PLAN-HD-006 알림).
@@ -85,6 +86,7 @@ export function SettingsScreen() {
             <span className="st-row__soon">{SOON}</span>
           </div>
         </div>
+        <DisplayNameCard />
         <LoginMethodsCard />
         <DeleteAccountCard />
       </div>

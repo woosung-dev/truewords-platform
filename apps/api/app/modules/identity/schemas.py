@@ -3,9 +3,9 @@
 import re
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 # email-validator 의존성 없이 형태만 검사한다(로컬@도메인.tld). 소문자 정규화는 repository 가 한다.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -37,6 +37,12 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
     _email = field_validator("email")(_validate_email)
+
+
+class ProfileUpdateRequest(BaseModel):
+    """표시 이름 변경. 앞뒤 공백을 지운 뒤 1~64자(SignupRequest.display_name 과 같은 길이) — 공백만이면 422."""
+
+    display_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
 
 
 class LoginMethod(BaseModel):

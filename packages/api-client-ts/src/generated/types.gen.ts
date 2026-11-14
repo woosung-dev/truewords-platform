@@ -2923,6 +2923,18 @@ export type PathStepSummary = {
 };
 
 /**
+ * ProfileUpdateRequest
+ *
+ * 표시 이름 변경. 앞뒤 공백을 지운 뒤 1~64자(SignupRequest.display_name 과 같은 길이) — 공백만이면 422.
+ */
+export type ProfileUpdateRequest = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+};
+
+/**
  * PublicQuestionAdminItem
  *
  * 검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.
@@ -8309,6 +8321,31 @@ export type MeHoondokAuthMeGetResponses = {
 };
 
 export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
+
+export type UpdateMeHoondokAuthMePatchData = {
+    body: ProfileUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type UpdateMeHoondokAuthMePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMeHoondokAuthMePatchError = UpdateMeHoondokAuthMePatchErrors[keyof UpdateMeHoondokAuthMePatchErrors];
+
+export type UpdateMeHoondokAuthMePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type UpdateMeHoondokAuthMePatchResponse = UpdateMeHoondokAuthMePatchResponses[keyof UpdateMeHoondokAuthMePatchResponses];
 
 export type OauthCallbackHoondokAuthOauthProviderCallbackGetData = {
     body?: never;

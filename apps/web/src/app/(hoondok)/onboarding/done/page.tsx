@@ -5,7 +5,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Suspense, use, useEffect, useRef } from "react";
-import { afterSignupHref } from "@/features/hoondok/personal/start";
 import { completeSignIn } from "@/features/identity/after-sign-in";
 import { safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, fetchCurrentUser } from "@/features/identity/use-current-user";
@@ -20,6 +19,10 @@ function first(value: string | string[] | undefined): string | null {
 
 function onboardingErrorHref(error: string, returnTo: string): string {
   return `/onboarding?error=${encodeURIComponent(error)}&returnTo=${encodeURIComponent(returnTo)}`;
+}
+
+function nameConfirmHref(returnTo: string): string {
+  return `/onboarding/name?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
 function DoneNotice() {
@@ -70,8 +73,8 @@ function DoneRunner({ searchParams }: { searchParams: Promise<SearchParams> }) {
         }
         // 기기에 남은 앞 사람의 기록 정리까지 비밀번호 로그인과 같은 함수가 맡는다
         completeSignIn(queryClient, user, status === "created");
-        // 가입 직후 돌아갈 곳이 기본값(홈)이면 맞춤 첫 말씀 질문으로 보낸다. returnTo 가 따로 있으면 그쪽이 먼저다
-        router.replace(status === "created" ? afterSignupHref(returnTo) : returnTo);
+        // 새 계정은 구글 이름을 그대로 쓰므로 먼저 이름 확인 화면을 거친다. 가입 직후 이동 규칙(afterSignupHref)은 그 화면이 맡는다
+        router.replace(status === "created" ? nameConfirmHref(returnTo) : returnTo);
       } catch {
         router.replace(onboardingErrorHref("failed", returnTo));
       }
