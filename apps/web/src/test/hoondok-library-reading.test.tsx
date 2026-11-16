@@ -708,8 +708,11 @@ describe("구절 형광펜", () => {
   it("Esc 로 고른 구절 도구를 닫는다", async () => {
     await showWords();
     await selectText("첫째 단락의 본문", 0, 2);
-    fireEvent.keyDown(document, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "고른 구절" })).toBeNull());
+    // 도구가 화면에 뜬 직후에는 Esc 를 듣는 effect 가 아직 안 붙었을 수 있다. 닫힐 때까지 다시 누른다.
+    await waitFor(() => {
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.queryByRole("toolbar", { name: "고른 구절" })).toBeNull();
+    });
     expect(window.getSelection()?.isCollapsed).toBe(true);
   });
   it("형광펜이 하나도 없으면 첫 사용 안내를 보이고, 닫으면 이 기기에서 다시 보이지 않는다", async () => {
