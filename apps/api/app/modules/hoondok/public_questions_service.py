@@ -12,9 +12,9 @@ import re
 import secrets
 import uuid
 
-from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.core.errors import ConflictError, InvalidError, NotFoundError
 from app.core.common.clock import utcnow
 from app.modules.admin.service import AdminService
 from app.modules.chat.models import MessageRole
@@ -90,16 +90,16 @@ class PublicQuestionService:
     async def submit(self, user_id: uuid.UUID, message_id: uuid.UUID) -> MyPublicQuestionItem:
         answer = await self.repo.get_message(message_id)
         if answer is None or answer.role != MessageRole.ASSISTANT:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, ANSWER_NOT_FOUND)
+            raise NotFoundError(ANSWER_NOT_FOUND)
         if await self.repo.get_session_owner(answer.session_id) != user_id:
             # 남의 답·익명 세션·시연 챗 답 — 존재 여부를 드러내지 않도록 없는 답과 같은 404.
-            raise HTTPException(status.HTTP_404_NOT_FOUND, ANSWER_NOT_FOUND)
+            raise NotFoundError(ANSWER_NOT_FOUND)
         existing = await self.repo.get_by_message(message_id)
         if existing is not None:
             # 본인 재신청(응답 유실 뒤 다시 신청)은 기존 신청을 돌려줘 기기가 publicId 를 되찾게 한다.
             if existing.user_id == user_id:
                 return _mine(existing)
-            raise HTTPException(status.HTTP_409_CONFLICT, DUPLICATE)
+            raise ConflictError(DUPLICATE)
         # 모드가 없는 답(메타 안내·캐시 적중·옛 기록)은 위기 판정 근거가 없어 공개하지 않는다.
         if (
             answer.resolved_answer_mode is None
@@ -107,16 +107,16 @@ class PublicQuestionService:
             or answer.persona_overridden
             or answer.crisis_trigger
         ):
-            raise HTTPException(status.HTTP_409_CONFLICT, NOT_SHAREABLE)
+            raise ConflictError(NOT_SHAREABLE)
         # 위기 판정은 턴마다 그 질문만 본다. 앞 턴의 사연을 이어받은 답이 새지 않게 세션 첫 답만 받는다.
         if await self.repo.has_answer_before(answer):
-            raise HTTPException(status.HTTP_409_CONFLICT, NOT_FIRST_ANSWER)
+            raise ConflictError(NOT_FIRST_ANSWER)
         question = await self.repo.get_question_before(answer)
         if question is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "질문을 찾을 수 없어요")
+            raise NotFoundError("질문을 찾을 수 없어요")
         citations = await self.repo.list_citations(message_id, SOURCE_LIMIT)
         if not citations:
-            raise HTTPException(status.HTTP_409_CONFLICT, NO_EVIDENCE)
+            raise ConflictError(NO_EVIDENCE)
         row = PublicQuestion(
             id=new_slug(),
             user_id=user_id,
@@ -138,7 +138,7 @@ class PublicQuestionService:
             winner = await self.repo.get_by_message(message_id)
             if winner is not None and winner.user_id == user_id:
                 return _mine(winner)
-            raise HTTPException(status.HTTP_409_CONFLICT, DUPLICATE) from None
+            raise ConflictError(DUPLICATE) from None
         return _mine(saved)
 
     async def list_mine(self, user_id: uuid.UUID) -> MyPublicQuestionListResponse:
@@ -148,7 +148,7 @@ class PublicQuestionService:
         """본인 것만 지운다. 남의 것·없는 것은 구분 없이 404."""
         row = await self.repo.get(question_id)
         if row is None or row.user_id != user_id:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
+            raise NotFoundError(NOT_FOUND)
         await self.repo.delete(row)
 
     # --- 공개 -----------------------------------------------------------------------
@@ -156,7 +156,7 @@ class PublicQuestionService:
     async def _published(self, question_id: str) -> PublicQuestion:
         row = await self.repo.get(question_id)
         if row is None or row.status != PUBLIC_STATUS:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
+            raise NotFoundError(NOT_FOUND)
         return row
 
     async def list_public(self, q: str | None, cursor: str | None, limit: int) -> PublicQuestionListResponse:
@@ -164,7 +164,7 @@ class PublicQuestionService:
         if cursor:
             after = await self.repo.get(cursor)
             if after is None or after.status != PUBLIC_STATUS:
-                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "목록 위치(cursor)가 올바르지 않아요")
+                raise InvalidError("목록 위치(cursor)가 올바르지 않아요")
         keyword = (q or "").strip() or None
         rows = await self.repo.list_published(keyword, after, limit + 1)
         has_more = len(rows) > limit
@@ -212,7 +212,7 @@ class PublicQuestionAdminService:
     ) -> PublicQuestionAdminItem:
         row = await self.repo.get(question_id)
         if row is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
+            raise NotFoundError(NOT_FOUND)
         row.status = data.status
         row.reviewed_at = utcnow()
         saved = await self.repo.save(row, commit=False)

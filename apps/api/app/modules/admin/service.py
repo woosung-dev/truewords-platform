@@ -3,8 +3,9 @@
 import asyncio
 import uuid
 
-from fastapi import HTTPException, status
+from fastapi import status
 
+from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.modules.admin.auth import create_access_token, hash_password, verify_login_password
 from app.modules.admin.models import AdminAuditLog, AdminRole, AdminUser
 from app.modules.admin.repository import AdminRepository
@@ -21,12 +22,12 @@ class AdminService:
         # bcrypt 는 CPU 를 오래 쓰므로 스레드에서 돌려 단일 워커 이벤트 루프를 막지 않는다.
         ok = await asyncio.to_thread(verify_login_password, data.password, user.hashed_password if user else None)
         if not user or not ok:
-            raise HTTPException(
+            raise DomainError(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="이메일 또는 비밀번호가 올바르지 않습니다",
             )
         if not user.is_active:
-            raise HTTPException(
+            raise DomainError(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="비활성화된 계정입니다",
             )
@@ -38,8 +39,7 @@ class AdminService:
     async def create_admin(self, data: CreateAdminRequest) -> AdminUser:
         existing = await self.repo.get_user_by_email(data.email)
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+            raise ConflictError(
                 detail="이미 등록된 이메일입니다",
             )
         user = AdminUser(
@@ -67,14 +67,13 @@ class AdminService:
         잠그면 UI 로 되돌릴 수 없고 DB 직접 수정이 필요해진다.
         """
         if not is_active and user_id == actor_id:
-            raise HTTPException(
+            raise DomainError(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="본인 계정은 비활성화할 수 없습니다",
             )
         user = await self.repo.get_user_by_id(user_id)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail="계정을 찾을 수 없습니다",
             )
         # 멱등 — 중복 클릭이나 stale 화면에서 온 같은 값 요청이 감사 로그를 오염시키지 않도록.

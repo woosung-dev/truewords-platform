@@ -1,10 +1,10 @@
 """요약 영속화와 단위별 행 잠금."""
 
 import uuid
-from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
+from app.core.errors import ConflictError
 from app.modules.hoondok.models import ContentRight, VolumeSection
 from app.modules.hoondok.summary_models import (
     SummaryUnit,
@@ -71,5 +71,5 @@ class SummaryRepository:
             await self.session.flush()
         except IntegrityError:
             await self.session.rollback()
-            raise HTTPException(409, "이미 등록된 고유 주소입니다") from None
+            raise ConflictError("이미 등록된 고유 주소입니다") from None
         return row

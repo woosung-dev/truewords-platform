@@ -5,6 +5,7 @@ import uuid
 
 from fastapi import HTTPException
 
+from app.core.errors import NotFoundError
 from app.core.config import settings
 from app.modules.datasource.chunk_merge import merge_with_dedup
 from app.modules.hoondok.display_text import PAGE_SIZE, to_display_text
@@ -56,7 +57,7 @@ class ReaderContent:
         section: int | None = None,
     ) -> WordsResponse:
         if volume not in await self.allowed():
-            raise HTTPException(404, "원문을 찾을 수 없습니다")
+            raise NotFoundError("원문을 찾을 수 없습니다")
         # 목차로 들어온 장은 그대로 현재 장이다 — 장 시작이 페이지 경계와 어긋나도 앞 장을 보이지 않는다.
         requested: WordSection | None = None
         try:
@@ -64,7 +65,7 @@ class ReaderContent:
                 # chunk_id 가 우선이다 — 검색 결과 진입이 목차 선택보다 구체적이다.
                 found = await self._section_by_position(volume, section)
                 if found is None:
-                    raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
+                    raise NotFoundError("원문 구간을 찾을 수 없습니다")
                 page = found.start_chunk_index // PAGE_SIZE + 1
                 requested = WordSection(
                     position=found.position, level=found.level, title=found.title
@@ -73,22 +74,22 @@ class ReaderContent:
                 # Qdrant ID는 UUID 또는 unsigned integer뿐이다. 잘못된 ID도 404로 통일한다.
                 point_id = _point_id(chunk_id)
                 if point_id is None:
-                    raise HTTPException(404, "원문을 찾을 수 없습니다")
+                    raise NotFoundError("원문을 찾을 수 없습니다")
                 records = await self.client.retrieve(
                     settings.collection_name, ids=[point_id]
                 )
                 if not records or (records[0].payload or {}).get("volume") != volume:
-                    raise HTTPException(404, "원문을 찾을 수 없습니다")
+                    raise NotFoundError("원문을 찾을 수 없습니다")
                 index = (records[0].payload or {}).get("chunk_index")
                 if not isinstance(index, int) or index < 0:
-                    raise HTTPException(404, "원문을 찾을 수 없습니다")
+                    raise NotFoundError("원문을 찾을 수 없습니다")
                 page = index // PAGE_SIZE + 1
             volume_filter = build_filter(must=[field_match("volume", volume)])
             total = await self.client.count(
                 settings.collection_name, count_filter=volume_filter, exact=True
             )
             if total == 0 or page > math.ceil(total / PAGE_SIZE):
-                raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
+                raise NotFoundError("원문 구간을 찾을 수 없습니다")
             points, _ = await self.client.scroll(
                 settings.collection_name,
                 scroll_filter=build_filter(
@@ -110,12 +111,12 @@ class ReaderContent:
             raise SearchFailedError("훈독 원문 조회 실패") from None
         current_right = (await self.allowed()).get(volume)
         if current_right is None:
-            raise HTTPException(404, "원문을 찾을 수 없습니다")
+            raise NotFoundError("원문을 찾을 수 없습니다")
         ordered = sorted(
             (point_to_search_result(p) for p in points), key=lambda r: r.chunk_index
         )
         if not ordered:
-            raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
+            raise NotFoundError("원문 구간을 찾을 수 없습니다")
         # 표시 텍스트는 바로 앞 청크와의 겹침을 잘라낸다. 페이지 첫 청크는 앞이 없다.
         chunks = [
             WordChunk(
