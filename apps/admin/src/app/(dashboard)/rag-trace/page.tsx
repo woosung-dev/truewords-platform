@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { chatbotAPI } from "@/features/chatbot/api";
+import { chatbotAPI, chatbotListKey } from "@/features/chatbot/api";
 import { ragTraceAPI } from "@/features/rag-trace/api";
 import { CandidateTable } from "@/features/rag-trace/components/candidate-table";
 import { GenerationPanel } from "@/features/rag-trace/components/generation-panel";
@@ -49,8 +49,8 @@ export default function RagTracePage() {
     isError: botsError,
     refetch: refetchBots,
   } = useQuery({
-    queryKey: ["chatbots", "rag-trace", CHATBOT_LIMIT],
-    queryFn: () => chatbotAPI.list(CHATBOT_LIMIT),
+    queryKey: chatbotListKey(CHATBOT_LIMIT, 0),
+    queryFn: () => chatbotAPI.list(CHATBOT_LIMIT, 0),
   });
 
   // 실행마다 새로 돌리므로 결과를 캐시하지 않는다(mutation 상태에만 둔다).

@@ -26,10 +26,12 @@ vi.mock("@/features/analytics/api", () => ({
     getFeedbackList: mocks.feedbackList,
   },
 }));
-vi.mock("@/features/chatbot/api", () => ({
+vi.mock("@/features/chatbot/api", async () => ({
+  ...(await vi.importActual<typeof import("@/features/chatbot/api")>("@/features/chatbot/api")),
   chatbotAPI: { list: vi.fn().mockResolvedValue({ total: 0, items: [] }) },
 }));
-vi.mock("@/features/data-source/api", () => ({
+vi.mock("@/features/data-source/api", async () => ({
+  ...(await vi.importActual<typeof import("@/features/data-source/api")>("@/features/data-source/api")),
   dataAPI: { getStatus: vi.fn().mockResolvedValue({ summary: { total_chunks: 0, failed_count: 0 } }) },
 }));
 vi.mock("@/features/auth/api", () => ({

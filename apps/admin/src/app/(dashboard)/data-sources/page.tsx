@@ -26,7 +26,7 @@ import DuplicateConfirmDialog, {
   type DuplicateDecision,
 } from "@/features/data-source/components/duplicate-confirm-dialog";
 import { JobsManager } from "@/features/data-source/components/jobs-manager";
-import { useActiveCategories } from "@/features/data-source/hooks";
+import { ingestStatusQuery, useActiveCategories } from "@/features/data-source/hooks";
 import type {
   DuplicateCheckResponse,
   IngestionJobInfo,
@@ -97,8 +97,7 @@ export default function DataSourcesPage() {
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
   const { data: status } = useQuery({
-    queryKey: ["ingest-status"],
-    queryFn: dataAPI.getStatus,
+    ...ingestStatusQuery,
     // 처리 중 파일이 있을 때만 5초 폴링. 없으면 OFF (페이지 진입 시 1회만)
     refetchInterval: hasProcessing ? 5000 : false,
   });
