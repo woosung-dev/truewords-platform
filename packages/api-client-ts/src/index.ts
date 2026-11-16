@@ -1,5 +1,3 @@
-import { createClient } from "./generated/client";
-
 export interface ApiErrorPayload {
   error_code?: string;
   message?: string;
@@ -63,7 +61,8 @@ export interface ApiClientOptions {
   onUnauthorized?: () => void;
 }
 
-export function createApiClient(options: ApiClientOptions = {}) {
+// request와 SDK client(sdk-client.ts)가 같은 transport를 쓰도록 공유한다.
+export function createTransport(options: ApiClientOptions = {}) {
   const baseUrl = (options.baseUrl ?? "/api/backend").replace(/\/$/, "");
   // 사용자 상태/토큰은 모듈 전역에 저장하지 않는다. SSR은 요청별 인스턴스를 만든다.
   const transport: typeof globalThis.fetch = async (input, init) => {
@@ -78,7 +77,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
     if (!response.ok) await throwApiError(response);
     return response;
   };
-  const client = createClient({ baseUrl, credentials: "include", fetch: transport, throwOnError: true });
+  return { baseUrl, transport };
+}
+
+export function createApiClient(options: ApiClientOptions = {}) {
+  const { baseUrl, transport } = createTransport(options);
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (!path.startsWith("/") || path.startsWith("//")) {
@@ -96,5 +99,5 @@ export function createApiClient(options: ApiClientOptions = {}) {
     return (await response.json()) as T;
   }
 
-  return { request, client };
+  return { request };
 }

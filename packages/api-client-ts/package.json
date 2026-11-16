@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./sdk-client": "./src/sdk-client.ts",
     "./types": "./src/generated/types.gen.ts",
     "./sdk": "./src/generated/sdk.gen.ts"
   },
