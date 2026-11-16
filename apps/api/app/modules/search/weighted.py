@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from time import perf_counter
 
 from app.core.common.gemini import embed_dense_query
-from app.modules.chat.trace import TierRecord, current_trace
+from app.core.common.trace import TierRecord, current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.hybrid import SearchResult, hybrid_search

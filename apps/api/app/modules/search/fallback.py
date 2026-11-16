@@ -24,7 +24,7 @@ import httpx
 from app.core.common.gemini import generate_text, MODEL_GENERATE
 from app.core.common.log_helpers import query_fingerprint
 from app.core.config import settings
-from app.modules.chat.trace import current_trace
+from app.core.common.trace import current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.qdrant.filters import (
