@@ -452,7 +452,7 @@ async def delete_volume(
         result["chunks_deleted"],
         result["ingestion_row_deleted"],
         result["batch_rows_deleted"],
-        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+        current_admin.get("email") if isinstance(current_admin, dict) else current_admin,
     )
 
     return VolumeDeleteResponse(
@@ -499,7 +499,7 @@ async def delete_volumes_bulk(
         len(deleted_volumes),
         total_chunks,
         len(skipped),
-        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+        current_admin.get("email") if isinstance(current_admin, dict) else current_admin,
     )
 
     return VolumeDeleteResponse(
