@@ -107,7 +107,6 @@ async def test_process_chat_without_rerank():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client") as mock_qdrant,
         patch("app.modules.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
@@ -140,7 +139,6 @@ async def test_process_chat_with_rerank():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
@@ -168,7 +166,6 @@ async def test_process_chat_records_rerank_in_search_event():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
@@ -190,7 +187,6 @@ async def test_process_chat_single_commit():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
@@ -208,7 +204,6 @@ async def test_process_chat_empty_results():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=[]),
         patch("app.modules.chat.pipeline.stages.search.fallback_search", new_callable=AsyncMock, return_value=([], "suggestions")),
@@ -230,7 +225,6 @@ async def test_process_chat_with_session_id():
 
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
@@ -258,7 +252,6 @@ async def test_process_chat_default_intent_uses_conceptual_slice():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch(
             "app.modules.chat.pipeline.stages.intent_classifier.classify_intent",
             new_callable=AsyncMock,
@@ -284,7 +277,6 @@ async def test_process_chat_wraps_embedding_failure_as_embedding_failed_error():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock),
         patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock),
         patch(_EMBED_PATCH, new_callable=AsyncMock, side_effect=RuntimeError("Gemini API quota exceeded")),

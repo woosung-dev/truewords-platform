@@ -3,8 +3,8 @@
 audit P0-8 fix (2026-05-15): 기존 866 줄 파일을 router (본 모듈) + ingest_service
 (파일 처리 로직) + ingest_worker (queue/thread state) 로 3분할. router 는 HTTP
 endpoint + delete_volume_artifacts 만. backward compat 을 위해 test 가 사용하던
-내부 helper (`_compute_content_hash`, `_predict_outcome`, `_process_file_standard`,
-`set_main_loop`) 는 re-export.
+내부 helper (`_compute_content_hash`, `_predict_outcome`, `_process_file_standard`) 는
+re-export.
 """
 
 import logging
@@ -27,7 +27,6 @@ from app.modules.admin.ingest_service import (
 )
 from app.modules.admin.ingest_worker import (
     enqueue_file_ingestion as _process_file,
-    set_main_loop,
 )
 from app.core.config import settings
 from app.modules.datasource.dependencies import get_datasource_service, get_qdrant_service
@@ -66,7 +65,6 @@ router = APIRouter(
 
 __all__ = [
     "router",
-    "set_main_loop",
     # backward-compat for tests
     "_compute_content_hash",
     "_predict_outcome",

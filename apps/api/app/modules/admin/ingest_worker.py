@@ -9,7 +9,7 @@ worker thread + DI 우회 helper 들이 모두 raw HTTP endpoint 파일에 섞�
 FastAPI BackgroundTasks 는 병렬 실행되어 Semaphore 로 직렬화하면 대기 태스크가
 스레드 풀을 점유해 HTTP 응답이 느려진다. 대신 Queue + 전용 워커 1개로 처리한다.
 AsyncEngine connection pool 은 단일 loop 바인딩이므로 워커 스레드가 메인 loop
-참조를 통해 DB 호출을 위임한다 (`get_main_loop()` 노출).
+참조(`core.common.event_loop`)를 통해 DB 호출을 위임한다.
 """
 
 from __future__ import annotations
@@ -18,11 +18,6 @@ import logging
 import queue
 import threading
 from pathlib import Path
-
-# audit 2차 B-3 (2026-05-15): main loop 참조는 ``common/event_loop`` 으로 이관.
-# 본 모듈은 back-compat re-export 만 유지. data_router 와 main.py 의 import chain
-# 호환성 보존 (set_ingest_main_loop alias 등).
-from app.core.common.event_loop import get_main_loop, set_main_loop  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

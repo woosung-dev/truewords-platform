@@ -221,7 +221,7 @@ curl -fsS -X PUT \
   "http://127.0.0.1:6333/collections/semantic_cache/snapshots/recover"
 ```
 
-`<malssum_poc_v5-snapshot-name>`과 `<semantic_cache-snapshot-name>`에는 앞 단계에서 받은 파일명을 넣는다. snapshot이 컬렉션 config까지 복구하므로 수동 컬렉션 생성이나 `ensure_main_collection()` 호출은 필요하지 않다.
+`<malssum_poc_v5-snapshot-name>`과 `<semantic_cache-snapshot-name>`에는 앞 단계에서 받은 파일명을 넣는다. snapshot이 컬렉션 config까지 복구하므로 수동 컬렉션 생성은 필요하지 않다.
 
 ### 6.3 검증
 
