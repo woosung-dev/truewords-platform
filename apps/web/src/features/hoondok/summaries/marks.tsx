@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
 
 /** 원문 뷰 머리 표지 — 지금 장에 공개된 절 요약이 있으면 링크로 보인다. */
@@ -13,5 +14,5 @@ export function SummaryMarks({ items }: { items: { id: string; title: string }[]
 
 /** 이 권의 공개 요약 목록. 원문 뷰가 장별 표지를 붙이는 데 쓴다. */
 export function usePublishedSummaries(volume: string) {
-  return useQuery({ queryKey: ["hoondok", "summaries", { volume }], queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 5 * 60_000 });
+  return useQuery({ queryKey: aiSummaryListKey(volume), queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 5 * 60_000 });
 }

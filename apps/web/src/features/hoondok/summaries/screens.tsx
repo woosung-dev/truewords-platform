@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, BookOpenText, ChevronRight, Info, Sparkles } fro
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { wordsHref, wordsSectionHref } from "../library/api";
+import { aiSummaryKey, aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
 import { SummaryFigures } from "./figures";
 import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
@@ -47,7 +48,7 @@ function parentGroup(groupTitle: string): string {
 }
 
 export function SummaryListScreen({ volume }: { volume?: string }) {
-  const query = useQuery({ queryKey: ["hoondok", "summaries", { volume }], queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 0 });
+  const query = useQuery({ queryKey: aiSummaryListKey(volume), queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 0 });
   const items = query.data ?? [];
   const groups = new Map<string, typeof items>();
   for (const item of items) {
@@ -88,7 +89,7 @@ function SummaryToc({ entries }: { entries: TocEntry[] }) {
 }
 
 export function SummaryDetailScreen({ id }: { id: string }) {
-  const query = useQuery({ queryKey: ["hoondok", "summaries", id], queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
+  const query = useQuery({ queryKey: aiSummaryKey(id), queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
   const item = query.data;
   if (!item || query.isError) return <section className="sum-page"><Status pending={query.isPending} missing={query.error instanceof ApiError && query.error.status === 404} retry={() => void query.refetch()} /></section>;
   const toSource = sourceHref(item);
