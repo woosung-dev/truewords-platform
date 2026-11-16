@@ -82,7 +82,6 @@ _ALLOWED_CORE_TO_MODULES = {
     ("core", "modules.datasource"),
     ("core", "modules.hoondok"),
     ("core", "modules.identity"),
-    ("core", "modules.pipeline"),
     ("core", "modules.safety"),
     ("core", "modules.search"),
 }
@@ -119,7 +118,6 @@ _ALLOWED_MODULES_TO_MODULES = {
     ("modules.identity", "modules.admin"),
     ("modules.identity", "modules.hoondok"),
     ("modules.identity", "modules.safety"),
-    ("modules.search", "modules.chat"),
     ("modules.search", "modules.pipeline"),
     ("modules.search", "modules.qdrant"),
 }
