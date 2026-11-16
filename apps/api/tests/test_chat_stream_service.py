@@ -58,8 +58,7 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
-    async def test_event_sequence(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
+    async def test_event_sequence(self, mock_stream, mock_search, mock_embed) -> None:
         """chunk → sources → done 순서 확인."""
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(5)
@@ -95,8 +94,7 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
-    async def test_chunk_events_contain_text(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
+    async def test_chunk_events_contain_text(self, mock_stream, mock_search, mock_embed) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
 
@@ -124,8 +122,7 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
-    async def test_done_event_contains_disclaimer(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
+    async def test_done_event_contains_disclaimer(self, mock_stream, mock_search, mock_embed) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
 
@@ -148,8 +145,7 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
-    async def test_db_recording_after_stream(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
+    async def test_db_recording_after_stream(self, mock_stream, mock_search, mock_embed) -> None:
         """DB commit은 스트림 완료 후 호출."""
         service, chat_repo, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
@@ -182,9 +178,8 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_sources_event_has_session_and_message_ids(
-        self, mock_qdrant, mock_stream, mock_search, mock_embed,
+        self, mock_stream, mock_search, mock_embed,
     ) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
@@ -211,9 +206,8 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_sources_event_includes_closing_and_followups_keys(
-        self, mock_qdrant, mock_stream, mock_search, mock_embed,
+        self, mock_stream, mock_search, mock_embed,
     ) -> None:
         """#12 streaming UI: sources 이벤트에 closing/suggested_followups 키 포함 회귀."""
         service, _, _ = _make_chat_service()
@@ -241,9 +235,8 @@ class TestProcessChatStream:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_sources_event_includes_chunk_id(
-        self, mock_qdrant, mock_stream, mock_search, mock_embed,
+        self, mock_stream, mock_search, mock_embed,
     ) -> None:
         """SSE 출처 카드 클릭 → 원문보기 모달 trigger 회귀: chunk_id 가 sources 에 들어가야 한다."""
         service, _, _ = _make_chat_service()
@@ -291,9 +284,8 @@ class TestSourcesAnswerMode:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.service.generate_answer_stream")
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_normal_path_reports_resolved_mode(
-        self, mock_qdrant, mock_stream, mock_search, mock_embed, query, requested, expected,
+        self, mock_stream, mock_search, mock_embed, query, requested, expected,
     ) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
