@@ -13,7 +13,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.modules.admin.dependencies import get_admin_service, get_current_admin, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_admin_service, get_current_admin, verify_csrf
 from app.modules.admin.service import AdminService
 from app.modules.hoondok.dependencies import (
     get_daily_reading_admin_service,
@@ -47,7 +47,7 @@ async def list_daily_readings(
     from_: date | None = Query(default=None, alias="from", description="시작일(KST). 기본 오늘"),
     to: date | None = Query(default=None, description="종료일(포함). 기본 시작일 +14일"),
     service: DailyReadingAdminService = Depends(get_daily_reading_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[DailyReadingAdminResponse]:
     """API-HD-006 편성 목록. 날짜 오름차순, 편성 없는 날은 행이 없다. 422 종료일 < 시작일 또는 366일 초과."""
     readings = await service.list(from_, to)
@@ -62,7 +62,7 @@ async def search_daily_reading_candidates(
     max_len: int = Query(default=DEFAULT_CANDIDATE_MAX_LEN, ge=1, le=2000, description="본문 최대 글자 수"),
     limit: int = Query(default=DEFAULT_CANDIDATE_LIMIT, ge=1, le=MAX_CANDIDATE_LIMIT),
     service: DailyReadingCandidateService = Depends(get_daily_reading_candidate_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> DailyReadingCandidateResponse:
     """API-HD-012 편성 후보 검색(추출형).
 
@@ -77,7 +77,7 @@ async def search_daily_reading_candidates(
 async def get_daily_reading(
     reading_id: uuid.UUID,
     service: DailyReadingAdminService = Depends(get_daily_reading_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> DailyReadingAdminResponse:
     """API-HD-006 편성 단건. 404 없음."""
     return DailyReadingAdminResponse.model_validate(await service.get(reading_id), from_attributes=True)
@@ -88,7 +88,7 @@ async def create_daily_reading(
     data: DailyReadingAdminCreate,
     service: DailyReadingAdminService = Depends(get_daily_reading_admin_service),
     admin_service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> DailyReadingAdminResponse:
     """API-HD-007 편성 등록. 201 · 409 같은 날짜 · 422 검증."""
     reading = await service.create_with_audit(data, admin_service, current_admin["user_id"])
@@ -101,7 +101,7 @@ async def update_daily_reading(
     data: DailyReadingAdminUpdate,
     service: DailyReadingAdminService = Depends(get_daily_reading_admin_service),
     admin_service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> DailyReadingAdminResponse:
     """API-HD-008 편성 수정(보낸 필드만). `review_status=withdrawn` 이 철회. 404 없음 · 409 날짜 충돌."""
     reading = await service.update_with_audit(reading_id, data, admin_service, current_admin["user_id"])

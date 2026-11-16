@@ -6,7 +6,7 @@ main.py 관리자 블록에 `_ADMIN_GATE` 로 등록한다. 상태 변경은 라
 
 from fastapi import APIRouter, Depends, Query
 
-from app.modules.admin.dependencies import get_admin_service, get_current_admin, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_admin_service, get_current_admin, verify_csrf
 from app.modules.admin.service import AdminService
 from app.modules.hoondok.dependencies import get_public_question_admin_service
 from app.modules.hoondok.public_questions_schemas import (
@@ -30,7 +30,7 @@ async def list_public_questions_admin(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     service: PublicQuestionAdminService = Depends(get_public_question_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> PublicQuestionAdminListResponse:
     """검수 목록(신청 오래된 순). `status=pending` 이 검수 대기열이다."""
     return await service.list(status_filter, page, page_size)
@@ -42,7 +42,7 @@ async def review_public_question(
     data: PublicQuestionReview,
     service: PublicQuestionAdminService = Depends(get_public_question_admin_service),
     admin_service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> PublicQuestionAdminItem:
     """공개(published)·숨김(hidden). 404 없음, 422 그 밖의 값."""
     return await service.review_with_audit(question_id, data, admin_service, current_admin["user_id"])

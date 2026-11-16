@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.modules.admin.dependencies import (
+    AdminPrincipal,
     get_current_admin,
     get_admin_service,
     verify_csrf,
@@ -106,7 +107,7 @@ async def create_summary(
     data: SummaryInput,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.create(data, audit, admin["user_id"])
 
@@ -117,7 +118,7 @@ async def update_summary(
     data: SummaryUpdate,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.update(unit_id, data, audit, admin["user_id"])
 
@@ -128,7 +129,7 @@ async def summary_action(
     data: SummaryActionInput,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.action(unit_id, data, audit, admin["user_id"])
 
@@ -141,7 +142,7 @@ async def upload_summary_image(
     file: UploadFile = File(...),
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     blob = await file.read(10 * 1024 * 1024 + 1)
     return await svc.upload(unit_id, blob, audit, admin["user_id"])

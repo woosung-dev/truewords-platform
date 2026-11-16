@@ -1,6 +1,7 @@
 """관리자 DI 조립. Depends() 조립의 유일한 위치."""
 
 import uuid
+from typing import TypedDict
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,14 @@ from app.core.common.database import get_async_session
 from app.core.config import settings
 
 COOKIE_NAME = "admin_token"
+
+
+class AdminPrincipal(TypedDict):
+    """get_current_admin 이 돌려주는 인증 주체 (런타임 값은 평범한 dict)."""
+
+    user_id: uuid.UUID
+    role: str
+    email: str | None
 
 
 async def get_admin_repository(
@@ -40,7 +49,7 @@ async def get_analytics_service(
     return AnalyticsService(repo)
 
 
-async def get_current_admin(request: Request) -> dict:
+async def get_current_admin(request: Request) -> AdminPrincipal:
     """HttpOnly Cookie에서 JWT 토큰을 추출. 인증 실패 시 401."""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
@@ -69,8 +78,8 @@ def demo_admin_email() -> str:
 
 
 async def require_admin_gate(
-    current_admin: dict = Depends(get_current_admin),
-) -> dict:
+    current_admin: AdminPrincipal = Depends(get_current_admin),
+) -> AdminPrincipal:
     """시연 기간: 게이트 계정만 admin API 허용. 그 외/구 토큰(email 無)/게이트 미설정은 403."""
     gate = demo_admin_email()
     # 빈 게이트와 빈 이메일이 "일치" 로 새지 않도록 미설정을 먼저 거른다.

@@ -8,7 +8,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.modules.admin.dependencies import get_admin_service, get_current_admin, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_admin_service, get_current_admin, verify_csrf
 from app.modules.admin.service import AdminService
 from app.modules.hoondok.cards_schemas import (
     CardAdminCreate,
@@ -34,7 +34,7 @@ async def list_cards(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     service: CardAdminService = Depends(get_card_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> CardAdminListResponse:
     """API-HD-052 카드 풀 목록(최신 등록순). `status` 로 거른다."""
     return await service.list(status_filter, page, page_size)
@@ -45,7 +45,7 @@ async def create_card(
     data: CardAdminCreate,
     service: CardAdminService = Depends(get_card_admin_service),
     admin_service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> CardAdminItem:
     """API-HD-052 카드 등록 → 201. 409 같은 날짜 고정, 422 검증."""
     created = await service.create_with_audit(data, admin_service, current_admin["user_id"])
@@ -58,7 +58,7 @@ async def update_card(
     data: CardAdminUpdate,
     service: CardAdminService = Depends(get_card_admin_service),
     admin_service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> CardAdminItem:
     """API-HD-052 활성화·중지(status)·날짜 고정(pinned_on, null 이면 해제). 404 없음, 409 날짜 충돌, 422 그 밖의 필드(text 포함)."""
     updated = await service.update_with_audit(card_id, data, admin_service, current_admin["user_id"])
