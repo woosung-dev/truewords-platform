@@ -9,9 +9,9 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from datetime import date
 
-from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.core.errors import ConflictError, InvalidError, NotFoundError
 from app.modules.admin.service import AdminService
 from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.cards_repository import CardRepository
@@ -83,7 +83,7 @@ class CardService:
         """active 가 아니면(draft·retired·없음) 존재를 알리지 않는 404."""
         card = await self.repo.get(card_id)
         if card is None or card.status != PUBLIC_STATUS:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "카드를 찾을 수 없어요")
+            raise NotFoundError("카드를 찾을 수 없어요")
         return card
 
     async def get_card(self, card_id: uuid.UUID) -> CardPublic:
@@ -146,13 +146,13 @@ class CardAdminService:
             return
         other = await self.repo.get_pinned(pinned_on)
         if other is not None and other.id != card_id:
-            raise HTTPException(status.HTTP_409_CONFLICT, PIN_CONFLICT)
+            raise ConflictError(PIN_CONFLICT)
 
     async def _save(self, card: WordCard, *, commit: bool = True) -> CardAdminItem:
         try:
             saved = await self.repo.save_card(card, commit=commit)
         except IntegrityError:
-            raise HTTPException(status.HTTP_409_CONFLICT, PIN_CONFLICT) from None
+            raise ConflictError(PIN_CONFLICT) from None
         return CardAdminItem.model_validate(saved, from_attributes=True)
 
     async def create(self, data: CardAdminCreate, *, commit: bool = True) -> CardAdminItem:
@@ -162,10 +162,10 @@ class CardAdminService:
     async def update(self, card_id: uuid.UUID, data: CardAdminUpdate, *, commit: bool = True) -> CardAdminItem:
         card = await self.repo.get(card_id)
         if card is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "카드를 찾을 수 없어요")
+            raise NotFoundError("카드를 찾을 수 없어요")
         changes = data.model_dump(exclude_unset=True)
         if changes.get("status", card.status) is None:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "status 는 비울 수 없어요")
+            raise InvalidError("status 는 비울 수 없어요")
         await self._check_pin(changes.get("pinned_on"), card.id)
         for key, value in changes.items():
             setattr(card, key, value)
