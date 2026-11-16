@@ -48,7 +48,7 @@ from app.modules.chatbot.runtime_config import (
     TierConfig,
 )
 from app.modules.chatbot.service import ChatbotService
-from app.core.common.ingestion_facade import build_display_name_lookup, get_corpus_updated_at
+from app.modules.pipeline.facade import build_display_name_lookup, get_corpus_updated_at
 from app.modules.pipeline.ingestion_repository import IngestionJobRepository
 from app.modules.safety.output_filter import DISCLAIMER
 

@@ -22,7 +22,7 @@ from time import perf_counter
 from typing import Any
 
 from app.core.common.gemini import MODEL_EMBEDDING, MODEL_GENERATE
-from app.core.common.ingestion_facade import IngestionJobRepository, get_corpus_updated_at
+from app.modules.pipeline.facade import IngestionJobRepository, get_corpus_updated_at
 from app.modules.cache.service import SemanticCacheService
 from app.modules.chat.history import estimate_tokens, select_history_window
 from app.modules.chat.models import MessageRole, SessionMessage

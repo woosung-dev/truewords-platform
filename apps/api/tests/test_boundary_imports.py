@@ -26,7 +26,7 @@ def _read_module(rel_path: str) -> str:
 def test_chat_dependencies_uses_facade_for_ingestion_repo() -> None:
     """audit 2차 B-1: chat/dependencies 가 facade 만 import — pipeline 직접 X."""
     src = _read_module("chat/dependencies.py")
-    assert "from app.core.common.ingestion_facade import" in src, (
+    assert "from app.modules.pipeline.facade import" in src, (
         "audit 2차 B-1 — chat/dependencies 는 facade 경유해야 함"
     )
     assert "from app.modules.pipeline.ingestion_repository import" not in src, (
@@ -36,7 +36,7 @@ def test_chat_dependencies_uses_facade_for_ingestion_repo() -> None:
 
 def test_facade_re_exports_repo_and_factory() -> None:
     """audit 2차 B-1: facade 가 IngestionJobRepository + make_ingestion_repo 노출."""
-    from app.core.common.ingestion_facade import (  # noqa: F401
+    from app.modules.pipeline.facade import (  # noqa: F401
         IngestionJobRepository,
         make_ingestion_repo,
     )
