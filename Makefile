@@ -51,6 +51,8 @@ infra-down: ## postgres + qdrant 컨테이너 정지 (볼륨은 보존)
 ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사). E2E 는 `make e2e`
 	@cd apps/api && uv sync --frozen
 	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest -q
+	@cd apps/api && uv run --frozen ruff check .
+	@cd apps/api && uv run --frozen basedpyright -p pyproject.toml
 	@pnpm install --frozen-lockfile
 	@pnpm contracts:check
 	@pnpm tooling:test

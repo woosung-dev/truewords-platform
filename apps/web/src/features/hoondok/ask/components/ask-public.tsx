@@ -7,6 +7,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import { MessageCircleQuestion, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { publicQuestionKey } from "../../query-keys";
 import { askFullDate, sourceLabel } from "../format";
 import { answerModeInfo } from "../modes";
 import { publicQuestionsAPI } from "../public-api";
@@ -15,7 +16,7 @@ const AnswerMarkdown = dynamic(() => import("./answer-markdown").then((module) =
 
 export function AskPublic({ id }: { id: string }) {
   const detail = useQuery({
-    queryKey: ["hoondok", "public-question", id],
+    queryKey: publicQuestionKey(id),
     queryFn: ({ signal }) => publicQuestionsAPI.detail(id, signal),
     retry: false,
   });

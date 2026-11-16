@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
-from app.modules.admin.dependencies import require_admin_gate
+from app.modules.admin.dependencies import AdminPrincipal, require_admin_gate
 from app.modules.chat.anon_session import get_or_issue_session_id
 from app.modules.chat.dependencies import (
     get_chat_service,
@@ -67,7 +67,7 @@ async def chat_stream(
 async def list_my_sessions(
     limit: int = 100,
     offset: int = 0,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     service: ChatService = Depends(get_chat_service),
 ) -> SessionListResponse:
     """내 대화 세션 목록 (최근 활동순). 로그인 필수 — 본인 세션만."""
@@ -80,7 +80,7 @@ async def list_my_sessions(
 @router.get("/chat/sessions/{session_id}", response_model=SessionHistoryResponse)
 async def get_session_history(
     session_id: uuid.UUID,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     service: ChatService = Depends(get_chat_service),
 ) -> SessionHistoryResponse:
     """단일 세션 대화 이력. 로그인 필수 + 소유권 검증 (본인 세션만)."""

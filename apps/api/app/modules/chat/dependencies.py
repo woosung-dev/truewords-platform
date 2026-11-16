@@ -19,7 +19,7 @@ from app.modules.chat.trace_service import RagTraceService
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.service import ChatbotService
 from app.core.common.database import get_async_session
-from app.core.common.ingestion_facade import IngestionJobRepository, make_ingestion_repo  # audit 2차 B-1 — pipeline.ingestion_repository 직접 import 제거
+from app.modules.pipeline.facade import IngestionJobRepository, make_ingestion_repo  # audit 2차 B-1 — pipeline.ingestion_repository 직접 import 제거
 logger = logging.getLogger(__name__)
 
 # Lazy init 동시성 가드: 첫 요청 다발 시 ensure를 1회만 실행.

@@ -8,7 +8,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.modules.admin.dependencies import get_current_admin, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_current_admin, verify_csrf
 from app.modules.chat.dependencies import get_rag_trace_service
 from app.modules.chat.trace_schemas import RagTraceRequest, RagTraceResponse
 from app.modules.chat.trace_service import RagTraceService
@@ -23,7 +23,7 @@ _slots = asyncio.Semaphore(2)
 async def run_rag_trace(
     data: RagTraceRequest,
     service: RagTraceService = Depends(get_rag_trace_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> RagTraceResponse:
     if _slots.locked():
         raise HTTPException(

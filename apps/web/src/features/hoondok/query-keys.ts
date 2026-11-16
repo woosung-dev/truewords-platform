@@ -37,3 +37,13 @@ export const CARDS_LIST_KEY = ["hoondok", "cards", "list"] as const;
 export const PATH_RUN_KEY = ["hoondok", "path-run", "current"] as const;
 export const PATHS_KEY = ["hoondok", "paths"] as const;
 export const pathStepKey = (runId: string, day: number) => ["hoondok", "path-step", runId, day] as const;
+
+// --- AI 요약 목록·상세. 목록 키의 { volume } 은 volume 이 없을 때도 객체로 남는다.
+export const AI_SUMMARIES_KEY = ["hoondok", "summaries"] as const;
+export const aiSummaryListKey = (volume?: string) => [...AI_SUMMARIES_KEY, { volume }] as const;
+export const aiSummaryKey = (id: string) => [...AI_SUMMARIES_KEY, id] as const;
+
+// --- 공개 질문. 목록(검색어별)만 PUBLIC_QUESTIONS_KEY 접두 무효화에 잡힌다. 상세 키는 접두가 다르다.
+export const PUBLIC_QUESTIONS_KEY = ["hoondok", "public-questions"] as const;
+export const publicQuestionsKey = (query: string) => [...PUBLIC_QUESTIONS_KEY, query] as const;
+export const publicQuestionKey = (id: string) => ["hoondok", "public-question", id] as const;

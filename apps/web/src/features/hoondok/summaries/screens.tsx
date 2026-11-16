@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, BookOpenText, ChevronRight, Info, Sparkles } fro
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { wordsHref, wordsSectionHref } from "../library/api";
+import { aiSummaryKey, aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
 import { SummaryFigures } from "./figures";
 import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
@@ -47,7 +48,7 @@ function parentGroup(groupTitle: string): string {
 }
 
 export function SummaryListScreen({ volume }: { volume?: string }) {
-  const query = useQuery({ queryKey: ["hoondok", "summaries", { volume }], queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 0 });
+  const query = useQuery({ queryKey: aiSummaryListKey(volume), queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 0 });
   const items = query.data ?? [];
   const groups = new Map<string, typeof items>();
   for (const item of items) {
@@ -88,7 +89,7 @@ function SummaryToc({ entries }: { entries: TocEntry[] }) {
 }
 
 export function SummaryDetailScreen({ id }: { id: string }) {
-  const query = useQuery({ queryKey: ["hoondok", "summaries", id], queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
+  const query = useQuery({ queryKey: aiSummaryKey(id), queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
   const item = query.data;
   if (!item || query.isError) return <section className="sum-page"><Status pending={query.isPending} missing={query.error instanceof ApiError && query.error.status === 404} retry={() => void query.refetch()} /></section>;
   const toSource = sourceHref(item);
@@ -135,15 +136,4 @@ export function SummaryDetailScreen({ id }: { id: string }) {
       <aside className="sum-aside"><SummaryToc entries={toc} /></aside>
     </div>
   </article>;
-}
-
-/** 원문 뷰 머리 표지 — 지금 장에 공개된 절 요약이 있으면 링크로 보인다. */
-export function SummaryMarks({ items }: { items: { id: string; title: string }[] }) {
-  if (!items.length) return null;
-  return <nav className="sum-marks" aria-label="이 장의 AI 요약"><p className="sum-marks__lab"><Sparkles size={15} aria-hidden="true" />이 장의 AI 요약 {items.length}개</p><ul>{items.map((item) => <li key={item.id}><Link className="sum-mark" href={`/summaries/${item.id}`}><span className="sum-sr">AI 요약 </span><span className="sum-mark__t">{item.title}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>)}</ul></nav>;
-}
-
-/** 이 권의 공개 요약 목록. 원문 뷰가 장별 표지를 붙이는 데 쓴다. */
-export function usePublishedSummaries(volume: string) {
-  return useQuery({ queryKey: ["hoondok", "summaries", { volume }], queryFn: ({ signal }) => summariesAPI.list(signal, volume), retry: false, staleTime: 5 * 60_000 });
 }

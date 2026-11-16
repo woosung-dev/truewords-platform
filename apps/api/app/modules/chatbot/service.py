@@ -2,8 +2,8 @@
 
 import uuid
 
-from fastapi import HTTPException, status
 
+from app.core.errors import ConflictError, NotFoundError
 from app.modules.admin.service import AdminService
 from app.modules.chat.prompt import BASE_SYSTEM_PROMPT
 from app.modules.chatbot.models import ChatbotConfig
@@ -49,8 +49,7 @@ class ChatbotService:
         """단건 조회. 없으면 404."""
         config = await self.repo.get_by_id(config_id)
         if config is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail="챗봇 설정을 찾을 수 없습니다",
             )
         return config
@@ -81,8 +80,7 @@ class ChatbotService:
             return None
         record = await self.repo.get_by_chatbot_id(chatbot_id)
         if record is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
             )
 
@@ -150,8 +148,7 @@ class ChatbotService:
     async def create(self, data: ChatbotConfigCreate, *, commit: bool = True) -> ChatbotConfig:
         existing = await self.repo.get_by_chatbot_id(data.chatbot_id)
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+            raise ConflictError(
                 detail=f"chatbot_id '{data.chatbot_id}' 이미 존재합니다",
             )
         # SearchTiersConfig → dict 변환 (JSONB 저장)
@@ -168,8 +165,7 @@ class ChatbotService:
     ) -> ChatbotConfig:
         config = await self.repo.get_by_id(config_id)
         if config is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail="챗봇 설정을 찾을 수 없습니다",
             )
         updates = data.model_dump(exclude_unset=True)

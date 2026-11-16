@@ -4,7 +4,7 @@
   `ChatService.process_chat_stream` 과 같은 순서·인자로 부른다.
 - SessionStage·PersistStage 는 실행하지 않는다. 메시지·SearchEvent·인용·캐시를 저장하지
   않는다(이 서비스는 ChatRepository 를 받지 않는다).
-- 단계 내부 정보는 `chat.trace` 의 ContextVar 수집기로 모은다. 운영 경로는 수집기를
+- 단계 내부 정보는 `core.common.trace` 의 ContextVar 수집기로 모은다. 운영 경로는 수집기를
   설정하지 않으므로 영향이 없다.
 - 전체 예산은 25초다(admin rewrite 프록시 기본 timeout 30초). 봇 설정 조회부터 잰다.
   넘으면 그때까지의 trace 를 partial=True 로 돌려준다. 디버그 조회·sparse modifier
@@ -22,7 +22,7 @@ from time import perf_counter
 from typing import Any
 
 from app.core.common.gemini import MODEL_EMBEDDING, MODEL_GENERATE
-from app.core.common.ingestion_facade import IngestionJobRepository, get_corpus_updated_at
+from app.modules.pipeline.facade import IngestionJobRepository, get_corpus_updated_at
 from app.modules.cache.service import SemanticCacheService
 from app.modules.chat.history import estimate_tokens, select_history_window
 from app.modules.chat.models import MessageRole, SessionMessage
@@ -47,7 +47,7 @@ from app.modules.chat.prompt import build_context_prompt
 from app.modules.chat.schemas import ChatRequest
 from app.modules.chat.service import DEFAULT_RUNTIME_CONFIG
 from app.modules.chat.stream_generator import generate_answer_stream, sanitize_answer_stream
-from app.modules.chat.trace import (
+from app.core.common.trace import (
     HybridCall,
     SpanRecord,
     TierRecord,

@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, Request, Response
 
 from app.modules.admin.dependencies import (
+    AdminPrincipal,
     COOKIE_NAME,
     get_admin_service,
     get_current_admin,
@@ -53,7 +54,7 @@ async def login(
 @router.post("/auth/logout", response_model=MessageResponse)
 async def logout(
     response: Response,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> MessageResponse:
     """로그아웃 → Cookie 삭제."""
     response.delete_cookie(
@@ -68,7 +69,7 @@ async def logout(
 
 @router.get("/auth/me", response_model=AdminMeResponse)
 async def get_me(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> AdminMeResponse:
     """현재 인증된 관리자 정보 반환 (세션 유효성 확인)."""
     return AdminMeResponse(
@@ -87,7 +88,7 @@ async def get_me(
 async def create_admin_user(
     data: CreateAdminRequest,
     service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> AdminUserResponse:
     user = await service.create_admin(data)
     return AdminUserResponse(
@@ -106,7 +107,7 @@ async def create_admin_user(
 )
 async def list_admin_users(
     service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[AdminUserResponse]:
     """관리자 계정 목록 조회 (읽기 전용)."""
     users = await service.list_admins()
@@ -132,7 +133,7 @@ async def update_admin_user_status(
     data: UpdateAdminStatusRequest,
     request: Request,
     service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> AdminUserResponse:
     """관리자 계정 활성/비활성 전환.
 
@@ -172,7 +173,7 @@ async def get_audit_logs(
     limit: int = 50,
     offset: int = 0,
     service: AdminService = Depends(get_admin_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[AuditLogResponse]:
     logs = await service.get_audit_logs(limit=limit, offset=offset)
     return [
@@ -195,7 +196,7 @@ async def get_audit_logs(
     dependencies=[Depends(require_admin_gate)],
 )
 async def get_settings_config(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> SettingsConfigResponse:
     """프론트엔드에 필요한 시스템 설정 조회.
 

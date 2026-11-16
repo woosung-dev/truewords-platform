@@ -18,7 +18,6 @@ import json
 import logging
 from typing import Any
 
-from app.modules.chatbot.models import ChatbotConfig
 from app.modules.chatbot.repository import ChatbotRepository
 from app.core.common.gemini import generate_text
 from app.core.config import settings
@@ -230,13 +229,3 @@ class SuggestedQuestionsService:
             "succeeded": succeeded,
             "failed": failed,
         }
-
-
-def _config_to_dict(config: ChatbotConfig) -> dict[str, Any]:
-    """디버그 출력용. cron 결과 로그에 활용."""
-    return {
-        "chatbot_id": config.chatbot_id,
-        "display_name": config.display_name,
-        "suggested_at": config.suggested_at.isoformat() if config.suggested_at else None,
-        "suggested_questions": list(config.suggested_questions or []),
-    }

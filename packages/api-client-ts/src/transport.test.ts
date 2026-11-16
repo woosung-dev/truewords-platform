@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { getMeAdminAuthMeGet, loginAdminAuthLoginPost } from "./generated/sdk.gen";
 import { ApiError, createApiClient } from "./index";
+import { createSdkClient } from "./sdk-client";
 
 function setup(response: Response) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response);
   return { fetch, api: createApiClient({ baseUrl: "https://api.test", fetch }) };
+}
+
+function setupSdk(response: Response) {
+  const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response);
+  return { fetch, sdk: createSdkClient({ baseUrl: "https://api.test", fetch }) };
 }
 
 describe("공유 REST transport", () => {
@@ -61,18 +67,18 @@ describe("공유 REST transport", () => {
     expect(fetch.mock.calls[0][1]?.signal).toBe(signal);
   });
   it("SDK GET도 동일한 transport와 생성 응답 타입을 사용한다", async () => {
-    const { api, fetch } = setup(Response.json({ id: "user-1", email: "user@example.test", name: "사용자" }));
-    const result = await getMeAdminAuthMeGet({ client: api.client, throwOnError: true });
+    const { sdk, fetch } = setupSdk(Response.json({ id: "user-1", email: "user@example.test", name: "사용자" }));
+    const result = await getMeAdminAuthMeGet({ client: sdk, throwOnError: true });
     expect(result.data.email).toBe("user@example.test");
     expect(fetch.mock.calls[0][1]?.credentials).toBe("include");
   });
   it("SDK mutation도 CSRF 헤더와 구조화된 ApiError를 보존한다", async () => {
-    const { api, fetch } = setup(
+    const { sdk, fetch } = setupSdk(
       Response.json({ message: "로그인 실패", error_code: "UNAUTHORIZED" }, { status: 401 }),
     );
     await expect(
       loginAdminAuthLoginPost({
-        client: api.client,
+        client: sdk,
         body: { email: "user@example.test", password: "invalid" },
         throwOnError: true,
       }),

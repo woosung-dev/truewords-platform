@@ -3,8 +3,8 @@
 import uuid
 from collections import Counter
 
-from fastapi import HTTPException
 
+from app.core.errors import NotFoundError
 from app.modules.admin.service import AdminService
 from app.core.common.clock import utcnow
 from app.modules.hoondok.library_repository import LibraryRepository
@@ -73,7 +73,7 @@ class LibraryService:
         for right in await self._rights():
             if right.volume == volume and right.status == "allowed" and right.scope_full_text:
                 return right
-        raise HTTPException(404, "원문을 찾을 수 없습니다")
+        raise NotFoundError("원문을 찾을 수 없습니다")
 
     # --- API-HD-023 시리즈 상세 ---------------------------------------------
 
@@ -82,7 +82,7 @@ class LibraryService:
             r for r in await self._rights() if r.book_series == series and self._is_visible(r)
         ]
         if not rights:
-            raise HTTPException(404, "저작물을 찾을 수 없습니다")
+            raise NotFoundError("저작물을 찾을 수 없습니다")
         counts = await self.repo.section_counts([r.volume for r in rights])
         volumes = [
             SeriesVolume(
@@ -248,7 +248,7 @@ class LibraryService:
         """보낸 필드만 바꾼다. 권리가 닫힌 권의 형광펜도 색·메모는 고칠 수 있다(목록과 같은 기준)."""
         row = await self.repo.get_own_highlight(user_id, highlight_id)
         if row is None:
-            raise HTTPException(404, "형광펜을 찾을 수 없습니다")
+            raise NotFoundError("형광펜을 찾을 수 없습니다")
         if "color" in data.model_fields_set and data.color is not None:
             row.color = data.color
         if "note" in data.model_fields_set:
@@ -270,7 +270,7 @@ class LibraryService:
         """시리즈 전 행 갱신 후 (응답, 대표 행 id) — 감사 로그의 target_id 로 쓴다."""
         rows = [r for r in await self._rights() if r.book_series == data.book_series]
         if not rows:
-            raise HTTPException(404, "저작물을 찾을 수 없습니다")
+            raise NotFoundError("저작물을 찾을 수 없습니다")
         values: dict = {
             "status": data.status,
             "scope_search": data.scope_search,

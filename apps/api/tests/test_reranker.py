@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from unittest.mock import AsyncMock, patch
-from app.modules.chat.trace import TraceCollector, current_trace
+from app.core.common.trace import TraceCollector, current_trace
 from app.modules.search.reranker import rerank
 from app.modules.search.hybrid import SearchResult
 

@@ -5,9 +5,9 @@ from collections.abc import Awaitable, Callable
 from datetime import date, timedelta
 from typing import Literal
 
-from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
+from app.core.errors import ConflictError, InvalidError, NotFoundError
 from app.modules.admin.service import AdminService
 from app.core.common.clock import utcnow
 from app.modules.hoondok.candidates import filter_results
@@ -72,14 +72,14 @@ class JourneyService:
     ) -> ContentRight:
         right = await self.repo.get_right(right_id) if right_id else ContentRight()
         if right is None:
-            raise HTTPException(404, "권리 기록을 찾을 수 없습니다")
+            raise NotFoundError("권리 기록을 찾을 수 없습니다")
         for key, value in data.model_dump().items():
             setattr(right, key, value)
         right.updated_at = utcnow()
         try:
             return await self.repo.save_right(right, commit=commit)
         except IntegrityError:
-            raise HTTPException(409, "이미 등록된 저작물입니다") from None
+            raise ConflictError("이미 등록된 저작물입니다") from None
 
     async def library(self) -> LibraryResponse:
         all_rights = await self.repo.list_rights()
@@ -119,7 +119,7 @@ class JourneyService:
 
     async def search(self, query: str, limit: int) -> WordSearchResponse:
         if not query.strip():
-            raise HTTPException(422, "검색어를 입력해 주세요")
+            raise InvalidError("검색어를 입력해 주세요")
         results = await self._search(
             query.strip(), list(await self.allowed("scope_search")), limit
         )

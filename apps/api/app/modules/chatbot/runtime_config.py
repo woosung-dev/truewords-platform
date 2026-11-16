@@ -9,11 +9,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# P0-E — 모드별 system prompt 라우팅. 5개 모드.
-# Single source of truth: ``app.modules.chat.types.AnswerMode`` (W2-③). 본 모듈은
-# ChatRequest 스키마와의 일관성을 위해 alias 만 재노출한다 (Sonnet review #4).
-from app.modules.chat.types import AnswerMode  # noqa: E402,F401  (re-export)
-
 # P1-J — 대화 마무리 템플릿 종류.
 ClosingKind = Literal["prayer", "resolution", "off"]
 

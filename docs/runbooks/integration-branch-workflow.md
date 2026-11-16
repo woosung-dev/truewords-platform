@@ -72,10 +72,10 @@ gh pr merge <PR#> --auto --squash --delete-branch
 - `.github/workflows/ci.yml` 의 트리거에 `dev/**` 포함 (한 번만 설정)
 - CI 통과 시 자동 squash merge → 통합 브랜치 누적 + sub-task 브랜치 자동 삭제
 
-CI 가 fail 하면 머지 안 됨 — **단, `CI Required` 가 required status check 로 등록된 보호 규칙이 있을 때만이다.** 2026-09-05 점검에서 main 에 보호 규칙이 없었고(Free private 레포는 설정 불가) `--auto` 는 충돌만 없으면 즉시 머지했다. 보호 규칙(public 전환 후 ruleset)이 생기기 전까지는 사람이 결과를 보고 머지한다:
+CI 가 fail 하면 머지 안 됨 — **단, `CI Required` 가 required status check 로 등록된 보호 규칙이 있을 때만이다.** ruleset `main-protection` 은 main 에만 걸려 있고 `dev/**` 에는 없다. 그래서 통합 브랜치로 가는 sub-task PR 의 `--auto` 는 충돌만 없으면 CI 를 기다리지 않고 머지한다. `dev/**` 에 ruleset 을 걸기 전까지는 결과를 보고 머지한다. `--delete-branch` 는 그 브랜치를 체크아웃한 worktree 까지 지우므로 worktree 에서 작업한 브랜치에는 쓰지 않는다:
 
 ```bash
-gh pr checks <PR#> --watch --fail-fast && gh pr merge <PR#> --squash --delete-branch
+gh pr checks <PR#> --watch --fail-fast && gh pr merge <PR#> --squash
 ```
 
 사용자가 수정 push 하면 CI 재실행 → 통과 시 (보호 규칙이 있으면) 자동 머지.
@@ -96,7 +96,7 @@ make e2e
 # (선택) 골든셋 평가
 ```
 
-staging 은 2026-04-25 결정으로 영구 폐기했다([ADR 39](../adr/39-staging-decision-reverse.md)). main 머지가 곧 운영 반영이 아니므로 머지 후 `make deploy-*` 를 별도 승인으로 실행한다.
+staging 은 2026-04-25 결정으로 영구 폐기했다([ADR 39](../adr/39-staging-decision-reverse.md)). main 머지가 이미지나 VM 파일을 바꾸면 `release.yml` 이 이미지를 만들고 `production` 환경 승인을 요청한다. 승인 전에는 운영이 바뀌지 않는다([CI/CD](ci-cd-pipeline.md)).
 
 검증 통과 시 main PR 생성:
 
@@ -110,12 +110,11 @@ gh pr create --base main --head dev/<phase> \
 ## Test plan
 - [x] 전체 backend pytest
 - [x] admin pnpm test + E2E
-- [ ] staging deploy 검증 (선택)
 EOF
 )"
 ```
 
-**main PR은 auto-merge 등록 금지** — 사람 review + 수동 머지. Oracle 운영은 push 자동 배포가 없으며, 검증·머지 뒤에도 별도 승인을 받아 `make deploy-*`를 실행한다.
+**main PR은 auto-merge 등록 금지** — 사람 review + 수동 머지. 머지하면 운영 배포 승인 요청이 따라오므로, 승인할 준비가 된 시점에 머지한다.
 
 ### 2.5 마무리 정리
 
@@ -157,7 +156,7 @@ git push origin --delete dev/<phase>
 
 1. **`ci.yml` 트리거 확장** — `pull_request: branches: [main, "dev/**"]`
 2. **repo `allow_auto_merge` 활성** — `gh api -X PATCH repos/<owner>/<repo> -f allow_auto_merge=true`
-3. **branch protection / ruleset** — main 과 `dev/**` 에 `CI Required` 를 required status check 로 강제. 이것이 없으면 2.3 의 auto-merge 는 CI 를 기다리지 않는다. Free private 레포에서는 설정할 수 없어(API 403) 2026-09-05 에 public 전환을 결정했다 — [ADR](../adr/2026-09-05-cicd-audit-decisions.md).
+3. **branch protection / ruleset** — `CI Required` 를 required status check 로 강제. main 은 ruleset `main-protection` 으로 되어 있고 `dev/**` 는 아직 없다. 없는 브랜치에서는 2.3 의 auto-merge 가 CI 를 기다리지 않는다 — [ADR](../adr/2026-09-05-cicd-audit-decisions.md).
 
 PR `chore(ci): integration-branch-auto-merge-setup` 으로 1+2 한 번에 셋업.
 
