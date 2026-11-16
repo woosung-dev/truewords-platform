@@ -2352,40 +2352,6 @@
                 }
             }
         ],
-        "./tests/test_admin_auth.py": [
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 38,
-                    "endColumn": 45,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 33,
-                    "endColumn": 40,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 33,
-                    "endColumn": 40,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 37,
-                    "endColumn": 44,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./tests/test_admin_write_atomicity.py": [
             {
                 "code": "reportArgumentType",
