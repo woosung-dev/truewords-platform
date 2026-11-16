@@ -65,7 +65,7 @@ import { ReaderToast, useReaderToast } from "./reader-toast";
 import { READER_TOOLS, type ReaderAction } from "./reader-tools";
 import { ReadingEnd } from "./reading-end";
 import { tocLabel, WordsToc } from "./words-toc";
-import { SummaryMarks, usePublishedSummaries } from "../../summaries/screens";
+import { SummaryMarks, usePublishedSummaries } from "../../summaries/marks";
 
 const SEGMENTS = [
   { id: "text", label: "본문" },
