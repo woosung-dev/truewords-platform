@@ -14,6 +14,7 @@ from app.modules.admin.auth import (
     decode_access_token,
 )
 from app.modules.admin.dependencies import (
+    AdminPrincipal,
     COOKIE_NAME,
     demo_admin_email,
     get_current_admin,
@@ -204,7 +205,7 @@ async def test_verify_csrf_patch_with_header_passes():
 @pytest.mark.asyncio
 async def test_require_admin_gate_passes_for_demo_admin_case_insensitive():
     """게이트 이메일(conftest 가 env 로 고정)은 대소문자 무관 통과."""
-    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "Demo-Admin@Example.com"}
+    current: AdminPrincipal = {"user_id": uuid.uuid4(), "role": "admin", "email": "Demo-Admin@Example.com"}
     result = await require_admin_gate(current)
     assert result is current
 
@@ -213,7 +214,7 @@ async def test_require_admin_gate_passes_for_demo_admin_case_insensitive():
 async def test_require_admin_gate_rejects_other_email_403():
     from fastapi import HTTPException
 
-    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "admin@test.com"}
+    current: AdminPrincipal = {"user_id": uuid.uuid4(), "role": "admin", "email": "admin@test.com"}
     with pytest.raises(HTTPException) as exc_info:
         await require_admin_gate(current)
     assert exc_info.value.status_code == 403
@@ -224,7 +225,7 @@ async def test_require_admin_gate_rejects_missing_email_403():
     """email claim 없는 구 토큰(None)도 403 — 재로그인 유도."""
     from fastapi import HTTPException
 
-    current = {"user_id": uuid.uuid4(), "role": "admin", "email": None}
+    current: AdminPrincipal = {"user_id": uuid.uuid4(), "role": "admin", "email": None}
     with pytest.raises(HTTPException) as exc_info:
         await require_admin_gate(current)
     assert exc_info.value.status_code == 403
@@ -332,7 +333,7 @@ async def test_require_admin_gate_denies_everyone_when_unset(monkeypatch):
 
     monkeypatch.setattr(settings, "demo_admin_email", "")
     for email in ("", None, "demo-admin@example.com"):
-        current = {"user_id": uuid.uuid4(), "role": "admin", "email": email}
+        current: AdminPrincipal = {"user_id": uuid.uuid4(), "role": "admin", "email": email}
         with pytest.raises(HTTPException) as exc_info:
             await require_admin_gate(current)
         assert exc_info.value.status_code == 403, email

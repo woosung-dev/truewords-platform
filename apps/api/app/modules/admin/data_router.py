@@ -17,7 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 
 logger = logging.getLogger(__name__)
 
-from app.modules.admin.dependencies import get_current_admin, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_current_admin, verify_csrf
 from app.modules.admin.ingest_service import (
     _compute_content_hash,
     _get_existing_snapshot,
@@ -87,7 +87,7 @@ async def upload_document(
             "replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략."
         ),
     ),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
     ingestion_service: IngestionJobService = Depends(get_ingestion_service),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
@@ -166,7 +166,7 @@ async def upload_document(
 
 @router.get("/status", response_model=IngestionStatusResponse)
 async def get_ingest_status(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     service: IngestionJobService = Depends(get_ingestion_service),
 ):
     """현재까지 처리된 적재 작업 상태를 반환합니다.
@@ -201,7 +201,7 @@ async def get_ingest_status(
 @router.get("/check-duplicate", response_model=DuplicateCheckResponse)
 async def check_duplicate(
     filename: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     service: IngestionJobService = Depends(get_ingestion_service),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
@@ -247,7 +247,7 @@ async def check_duplicate(
 
 @router.get("/category-stats", response_model=list[CategoryDocumentStats])
 async def get_category_stats(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
@@ -261,7 +261,7 @@ async def get_category_stats(
 
 @router.get("/volumes", response_model=list[VolumeInfo])
 async def get_all_volumes(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """전체 volume 목록 조회 — Transfer UI용."""
@@ -270,7 +270,7 @@ async def get_all_volumes(
 
 @router.get("/jobs", response_model=list[IngestionJobInfo])
 async def list_ingestion_jobs(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     ingestion_service: IngestionJobService = Depends(get_ingestion_service),
 ) -> list[IngestionJobInfo]:
     """파일별 IngestionJob 목록 — admin display_name 인라인 편집 화면용.
@@ -295,7 +295,7 @@ async def list_ingestion_jobs(
 @router.patch("/display-name", response_model=IngestionJobInfo)
 async def update_display_name(
     request: UpdateDisplayNameRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     ingestion_service: IngestionJobService = Depends(get_ingestion_service),
 ) -> IngestionJobInfo:
     """파일별 사용자 친화적 표시명 갱신.
@@ -324,7 +324,7 @@ async def update_display_name(
 @router.put("/volume-tags", response_model=VolumeTagResponse)
 async def add_volume_tag(
     request: VolumeTagRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
@@ -338,7 +338,7 @@ async def add_volume_tag(
 @router.delete("/volume-tags", response_model=VolumeTagResponse)
 async def remove_volume_tag(
     request: VolumeTagRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """문서에서 카테고리 태그를 제거합니다."""
@@ -351,7 +351,7 @@ async def remove_volume_tag(
 @router.put("/volume-tags/bulk", response_model=VolumeTagsBulkResponse)
 async def add_volume_tags_bulk(
     request: VolumeTagsBulkRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
@@ -365,7 +365,7 @@ async def add_volume_tags_bulk(
 @router.post("/volume-tags/bulk-remove", response_model=VolumeTagsBulkResponse)
 async def remove_volume_tags_bulk(
     request: VolumeTagsBulkRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """여러 문서에서 카테고리 태그를 한 번에 제거합니다.
@@ -421,7 +421,7 @@ async def _delete_volume_artifacts(
 )
 async def delete_volume(
     volume_key: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """volume(파일) 한 건을 영구 삭제합니다.
@@ -450,7 +450,7 @@ async def delete_volume(
         result["chunks_deleted"],
         result["ingestion_row_deleted"],
         result["batch_rows_deleted"],
-        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+        current_admin.get("email") if isinstance(current_admin, dict) else current_admin,
     )
 
     return VolumeDeleteResponse(
@@ -467,7 +467,7 @@ async def delete_volume(
 )
 async def delete_volumes_bulk(
     request: VolumeDeleteRequest,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """다수 volume을 한 번에 영구 삭제합니다.
@@ -497,7 +497,7 @@ async def delete_volumes_bulk(
         len(deleted_volumes),
         total_chunks,
         len(skipped),
-        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+        current_admin.get("email") if isinstance(current_admin, dict) else current_admin,
     )
 
     return VolumeDeleteResponse(

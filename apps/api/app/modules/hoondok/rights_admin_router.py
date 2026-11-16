@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from app.modules.admin.dependencies import (
+    AdminPrincipal,
     get_admin_service,
     get_current_admin,
     verify_csrf,
@@ -30,7 +31,7 @@ router = APIRouter(
 @router.get("", response_model=list[ContentRightResponse])
 async def list_content_rights(
     service: JourneyService = Depends(get_journey_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[ContentRightResponse]:
     return [
         ContentRightResponse.model_validate(r) for r in await service.list_rights()
@@ -42,7 +43,7 @@ async def create_content_right(
     data: ContentRightInput,
     service: JourneyService = Depends(get_journey_service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ) -> ContentRightResponse:
     right = await service.save_right_with_audit(data, audit, admin["user_id"])
     return ContentRightResponse.model_validate(right)
@@ -53,7 +54,7 @@ async def bulk_update_content_rights(
     data: BulkRightsInput,
     service: LibraryService = Depends(get_library_service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ) -> BulkRightsResponse:
     """API-HD-027 시리즈 일괄 승인·철회. 등급은 준 경우에만 바꾸고 감사 로그는 1건만 남긴다."""
     result = await service.bulk_update_with_audit(data, audit, admin["user_id"])
@@ -63,7 +64,7 @@ async def bulk_update_content_rights(
 @router.get("/series", response_model=SeriesSummaryResponse)
 async def get_series_summary(
     service: LibraryService = Depends(get_library_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ) -> SeriesSummaryResponse:
     """API-HD-028 시리즈별 등록·허용·대기·철회 수와 청크 합. 조회라 감사 로그를 남기지 않는다."""
     return await service.series_summary()
@@ -75,7 +76,7 @@ async def update_content_right(
     data: ContentRightInput,
     service: JourneyService = Depends(get_journey_service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ) -> ContentRightResponse:
     right = await service.save_right_with_audit(data, audit, admin["user_id"], right_id)
     return ContentRightResponse.model_validate(right)
