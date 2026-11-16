@@ -29,10 +29,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
+    "basedpyright>=1.40.2",
     "openpyxl>=3.1.5",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1",
     "pytest-mock>=3.17.0",
+    "ruff>=0.17.5",
     "testcontainers[postgres]>=4.15.0",
 ]
 
@@ -40,3 +42,40 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# 기존 위반 스냅숏. 새 코드는 여기에 추가하지 않고 고친다.
+"app/modules/admin/ingest_service.py" = ["F821", "F841"]
+"app/modules/admin/models.py" = ["F401"]
+"app/modules/admin/schemas.py" = ["F401"]
+"app/modules/chatbot/router.py" = ["F401"]
+"app/modules/identity/models.py" = ["F401"]
+"app/modules/pipeline/ingestor.py" = ["F841"]
+"scripts/ingest.py" = ["F541"]
+"tests/conftest.py" = ["F401"]
+"tests/test_admin_write_atomicity.py" = ["F401"]
+"tests/test_answer_citation_volume_raw.py" = ["F401"]
+"tests/test_chat_service.py" = ["F401", "F841"]
+"tests/test_crisis_overrides.py" = ["F401"]
+"tests/test_hoondok_journey_concurrency.py" = ["F401", "F841"]
+"tests/test_hoondok_library.py" = ["F401"]
+"tests/test_identity_auth.py" = ["F401"]
+"tests/test_models.py" = ["F401"]
+"tests/test_safety_middleware.py" = ["F401"]
+"tests/test_summary_persistence.py" = ["F401"]
+
+[tool.basedpyright]
+include = ["app", "tests", "scripts", "alembic"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+reportMissingImports = "error"
+reportMissingTypeStubs = "none"
