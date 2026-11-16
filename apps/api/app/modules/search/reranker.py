@@ -4,7 +4,7 @@ import json
 import logging
 
 from app.core.common.gemini import generate_text
-from app.modules.chat.trace import RerankRecord, current_trace
+from app.core.common.trace import RerankRecord, current_trace
 from app.modules.search.hybrid import SearchResult
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.modules.chat.trace import HybridCall, RerankRecord, TierRecord, TraceCollector
+from app.core.common.trace import HybridCall, RerankRecord, TierRecord, TraceCollector
 from app.modules.chat.trace_service import (
     DebugLookup,
     _tier_views,
