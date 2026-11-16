@@ -71,8 +71,24 @@ export function SourcePicker({
     setBlocks([]);
     const info = await fetchAPI<SourceSnapshotInfo>(`/admin/hoondok/source-books/${id}/snapshots`, { method: "POST" });
     setSnapshot(info);
-    await passages(info);
-    setRanges(await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`));
+    // snapshot 생성 뒤의 두 조회는 서로 기다릴 필요가 없다.
+    const [, savedRanges] = await Promise.all([
+      passages(info),
+      fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`),
+    ]);
+    setRanges(savedRanges);
+  }
+  // 저장한 구간의 첫·끝 블록을 함께 조회한다.
+  async function rangeEdges(snapshotId: string, range: SourceRangeResult) {
+    const [first, last] = await Promise.all([
+      fetchAPI<SourcePassages>(
+        `/admin/hoondok/source-snapshots/${snapshotId}/passages?start_block_id=${range.start_block_id}&limit=1`,
+      ),
+      fetchAPI<SourcePassages>(
+        `/admin/hoondok/source-snapshots/${snapshotId}/passages?start_block_id=${range.end_block_id}&limit=1`,
+      ),
+    ]);
+    return { first, last };
   }
   function select(block: SourceBlock) {
     const selection = window.getSelection();
@@ -127,12 +143,7 @@ export function SourcePicker({
   async function restoreRange(range: SourceRangeResult) {
     if (!snapshot || snapshot.id !== range.snapshot_id)
       throw new Error("원문이 갱신됐어요. 범위를 다시 선택해 주세요.");
-    const first = await fetchAPI<SourcePassages>(
-      `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${range.start_block_id}&limit=1`,
-    );
-    const last = await fetchAPI<SourcePassages>(
-      `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${range.end_block_id}&limit=1`,
-    );
+    const { first, last } = await rangeEdges(snapshot.id, range);
     setStart(first.blocks[0]);
     setEnd(last.blocks[0]);
     setStartOffset(range.start_offset ?? 0);
@@ -343,12 +354,7 @@ export function SourcePicker({
                     void task(async () => {
                       if (!snapshot || snapshot.id !== r.snapshot_id)
                         throw new Error("원문이 갱신됐어요. 현재 원문에서 범위를 다시 선택해 주세요.");
-                      const first = await fetchAPI<SourcePassages>(
-                        `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${r.start_block_id}&limit=1`,
-                      );
-                      const last = await fetchAPI<SourcePassages>(
-                        `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${r.end_block_id}&limit=1`,
-                      );
+                      const { first, last } = await rangeEdges(snapshot.id, r);
                       setStart(first.blocks[0]);
                       setEnd(last.blocks[0]);
                       setStartOffset(r.start_offset ?? 0);
