@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { chatbotAPI } from "@/features/chatbot/api";
+import { chatbotAPI, chatbotListKey } from "@/features/chatbot/api";
 
 const PAGE_SIZE = 20;
 
@@ -18,7 +18,7 @@ export default function ChatbotsPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["chatbots", page],
+    queryKey: chatbotListKey(PAGE_SIZE, page * PAGE_SIZE),
     queryFn: () => chatbotAPI.list(PAGE_SIZE, page * PAGE_SIZE),
   });
 

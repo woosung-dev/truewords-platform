@@ -25,7 +25,8 @@ vi.mock("@/features/rag-trace/api", () => ({
 }));
 
 const mockList = vi.fn();
-vi.mock("@/features/chatbot/api", () => ({
+vi.mock("@/features/chatbot/api", async () => ({
+  ...(await vi.importActual<typeof import("@/features/chatbot/api")>("@/features/chatbot/api")),
   chatbotAPI: { list: (...args: unknown[]) => mockList(...args) },
 }));
 
@@ -113,7 +114,7 @@ describe("RagTracePage", () => {
       overrides: { rerank_enabled: null, query_rewrite_enabled: null },
       stop_after: "full",
     });
-    expect(mockList).toHaveBeenCalledWith(100);
+    expect(mockList).toHaveBeenCalledWith(100, 0);
   });
 
   it("rerank 강제와 실행 범위를 요청에 싣는다", async () => {

@@ -7,8 +7,8 @@ import { QueryErrorNotice } from "@/components/query-error-notice";
 import { StatCard } from "@/components/stat-card";
 import { Card } from "@/components/ui/card";
 import { analyticsAPI } from "@/features/analytics/api";
-import { chatbotAPI } from "@/features/chatbot/api";
-import { dataAPI } from "@/features/data-source/api";
+import { chatbotAPI, chatbotListKey } from "@/features/chatbot/api";
+import { ingestStatusQuery } from "@/features/data-source/hooks";
 
 export default function DashboardPage() {
   const {
@@ -18,7 +18,7 @@ export default function DashboardPage() {
     isFetching: chatbotsFetching,
     refetch: refetchChatbots,
   } = useQuery({
-    queryKey: ["chatbots", 0],
+    queryKey: chatbotListKey(100, 0),
     queryFn: () => chatbotAPI.list(100, 0),
   });
 
@@ -29,8 +29,7 @@ export default function DashboardPage() {
     isFetching: statusFetching,
     refetch: refetchStatus,
   } = useQuery({
-    queryKey: ["ingest-status"],
-    queryFn: dataAPI.getStatus,
+    ...ingestStatusQuery,
     staleTime: 30000,
   });
 
