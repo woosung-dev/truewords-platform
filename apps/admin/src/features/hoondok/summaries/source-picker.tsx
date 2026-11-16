@@ -71,12 +71,8 @@ export function SourcePicker({
     setBlocks([]);
     const info = await fetchAPI<SourceSnapshotInfo>(`/admin/hoondok/source-books/${id}/snapshots`, { method: "POST" });
     setSnapshot(info);
-    // snapshot 생성 뒤의 두 조회는 서로 기다릴 필요가 없다.
-    const [, savedRanges] = await Promise.all([
-      passages(info),
-      fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`),
-    ]);
-    setRanges(savedRanges);
+    await passages(info);
+    setRanges(await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`));
   }
   // 저장한 구간의 첫·끝 블록을 함께 조회한다.
   async function rangeEdges(snapshotId: string, range: SourceRangeResult) {
