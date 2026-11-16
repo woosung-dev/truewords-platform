@@ -4,7 +4,8 @@ import type { SummaryDetail } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { summariesAPI } from "./api";
-import { AI_NOTICE, readingMinutes, SummaryDetailScreen, SummaryListScreen, SummaryMarks } from "./screens";
+import { SummaryMarks } from "./marks";
+import { AI_NOTICE, readingMinutes, SummaryDetailScreen, SummaryListScreen } from "./screens";
 
 vi.mock("./api", () => ({ summariesAPI: { list: vi.fn(), detail: vi.fn() } }));
 

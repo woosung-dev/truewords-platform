@@ -8,6 +8,7 @@ import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type RefObject, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { isHoondokCardsEnabled } from "../../flag";
+import { CARDS_TODAY_KEY } from "../../query-keys";
 import { type CardPublic, cardsAPI } from "../api";
 import { findCardSentence } from "../match";
 import {
@@ -31,7 +32,7 @@ export function useWordsCard(cardId: string | undefined, chunkId: string | undef
     staleTime: 5 * 60_000,
   });
   const today = useQuery({
-    queryKey: ["hoondok", "cards", "today"],
+    queryKey: CARDS_TODAY_KEY,
     queryFn: cardsAPI.today,
     enabled: isEnabled,
     retry: false,
