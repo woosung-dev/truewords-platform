@@ -16,6 +16,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --frozen
+      - name: Ruff lint
+        run: uv run --frozen ruff check .
+      # 레포 루트 pyrightconfig.json 대신 apps/api/pyproject.toml 설정·baseline 을 쓰도록 -p 로 고정한다
+      - name: Basedpyright type check
+        run: uv run --frozen basedpyright -p pyproject.toml
       - name: Full API regression suite
         env:
           GEMINI_API_KEY: test-key-for-ci
