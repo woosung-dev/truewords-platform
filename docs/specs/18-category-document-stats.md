@@ -45,7 +45,7 @@ class CategoryDocumentStats(BaseModel):
      - `client.scroll(filter=source, with_payload=["volume"], with_vectors=False)` → 고유 volume 수집
   3. 결과 집계 후 반환
 
-- **사용할 클라이언트:** `get_async_client()` (비동기, `qdrant_client.py:15`)
+- **사용할 클라이언트:** `get_raw_client()` (`RawQdrantClient`, 비동기 raw httpx — `app/modules/qdrant/factory.py`)
 - **성능:** `source`, `volume` 필드에 이미 payload index 존재 (`qdrant_client.py:44-55`)
 
 ### Step 3: 프론트엔드 — API 타입 & 클라이언트 추가

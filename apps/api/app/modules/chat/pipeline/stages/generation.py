@@ -117,18 +117,6 @@ def _matches_pastoral_keyword(query: str) -> bool:
     return False
 
 
-def _matches_high_signal_crisis(query: str) -> bool:
-    """B5 + M3 — 사용자 명시 페르소나를 override 할 수준의 강한 위기 신호.
-
-    DIRECT 키워드만 매칭 (M4 로 좁혀진 — 명백한 자해/죽음 의도). EMOTIONAL 은
-    일반 표현일 가능성 → override 대상 아님. NFC 정규화 + 소문자 적용 (M3).
-    """
-    if not query:
-        return False
-    normalized = _normalize_for_keyword_match(query)
-    return any(kw.lower() in normalized for kw in _PASTORAL_KEYWORDS_DIRECT)
-
-
 def _find_first_direct_keyword(query: str) -> str | None:
     """M1 — 매칭된 DIRECT 키워드 식별 (영속화용 crisis_trigger 값)."""
     if not query:
