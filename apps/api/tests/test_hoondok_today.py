@@ -16,8 +16,8 @@ from app.core.common.clock import today_kst
 from app.main import app
 from app.modules.hoondok.dependencies import get_hoondok_service
 from app.modules.hoondok.models import DailyReading
-from app.modules.hoondok.repository import DailyReadingRepository
-from app.modules.hoondok.service import HoondokService
+from app.modules.hoondok.practice.repository import DailyReadingRepository
+from app.modules.hoondok.practice.service import HoondokService
 
 TODAY = date(2026, 9, 17)
 
@@ -117,7 +117,7 @@ async def test_service_withdrawn_hides_body(repo: DailyReadingRepository):
 def test_router_returns_200_with_status():
     class FixtureService:
         async def get_today(self):
-            from app.modules.hoondok.schemas import TodayReadingResponse
+            from app.modules.hoondok.practice.schemas import TodayReadingResponse
 
             return TodayReadingResponse(date=TODAY, status="none", reading=None)
 
@@ -133,7 +133,7 @@ def test_router_returns_200_with_status():
 
 def test_router_is_public_without_cookie():
     """admin 게이트·쿠키 없이도 401/403 이 아니다 (공개 라우터 블록)."""
-    from app.modules.hoondok.schemas import DailyReadingPublic, TodayReadingResponse
+    from app.modules.hoondok.practice.schemas import DailyReadingPublic, TodayReadingResponse
 
     class FixtureService:
         async def get_today(self):

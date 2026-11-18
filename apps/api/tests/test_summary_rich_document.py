@@ -9,12 +9,12 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryRevision
-from app.modules.hoondok.summary_schemas import (
+from app.modules.hoondok.content_admin.summary_schemas import (
     SummaryInput,
     SummaryImage,
     document_asset_ids,
 )
-from app.modules.hoondok.summary_service import SummaryService
+from app.modules.hoondok.content_admin.summary_service import SummaryService
 
 
 def payload(body):

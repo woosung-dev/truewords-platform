@@ -21,14 +21,14 @@ from app.core.common.database import async_session_factory
 from app.core.config import settings
 from app.modules.hoondok.models import ContentRight
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryAsset
-from app.modules.hoondok.summary_schemas import SummaryInput
-from app.modules.hoondok.summary_service import (
+from app.modules.hoondok.content_admin.summary_schemas import SummaryInput
+from app.modules.hoondok.content_admin.summary_service import (
     WORKS,
     SummaryService,
     chunk_point_id,
     toc_index,
 )
-from app.modules.hoondok.summary_repository import SummaryRepository
+from app.modules.hoondok.content_admin.summary_repository import SummaryRepository
 
 
 async def run(args):

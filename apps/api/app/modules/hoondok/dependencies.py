@@ -15,31 +15,31 @@ from app.modules.chat.repository import ChatRepository
 from app.modules.chat.service import ChatService
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.service import ChatbotService
-from app.modules.hoondok.asks_repository import AskRepository
-from app.modules.hoondok.asks_service import AskService
-from app.modules.hoondok.cards_repository import CardRepository
-from app.modules.hoondok.cards_service import CardAdminService, CardService
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok.journey_service import JourneyService
-from app.modules.hoondok.library_repository import LibraryRepository
-from app.modules.hoondok.library_service import LibraryService
-from app.modules.hoondok.notifications_repository import NotificationRepository
-from app.modules.hoondok.notifications_service import NotificationService
-from app.modules.hoondok.paths_repository import PathRepository
-from app.modules.hoondok.paths_service import PathService
-from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
-from app.modules.hoondok.public_questions_service import PublicQuestionAdminService, PublicQuestionService
-from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
-from app.modules.hoondok.service import (
+from app.modules.hoondok.ask.asks_repository import AskRepository
+from app.modules.hoondok.ask.asks_service import AskService
+from app.modules.hoondok.cards.cards_repository import CardRepository
+from app.modules.hoondok.cards.cards_service import CardAdminService, CardService
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading.journey_service import JourneyService
+from app.modules.hoondok.reading.library_repository import LibraryRepository
+from app.modules.hoondok.reading.library_service import LibraryService
+from app.modules.hoondok.notify.notifications_repository import NotificationRepository
+from app.modules.hoondok.notify.notifications_service import NotificationService
+from app.modules.hoondok.practice.paths_repository import PathRepository
+from app.modules.hoondok.practice.paths_service import PathService
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.ask.public_questions_service import PublicQuestionAdminService, PublicQuestionService
+from app.modules.hoondok.practice.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
+from app.modules.hoondok.practice.service import (
     DailyReadingAdminService,
     DailyReadingCandidateService,
     HoondokService,
     JeongseongService,
     MissionService,
 )
-from app.modules.hoondok.together_service import TogetherService
-from app.modules.hoondok.tts_repository import TtsRepository
-from app.modules.hoondok.tts_service import TtsService
+from app.modules.hoondok.practice.together_service import TogetherService
+from app.modules.hoondok.reading.tts_repository import TtsRepository
+from app.modules.hoondok.reading.tts_service import TtsService
 from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang 회피 (docs/dev-log/47)
 
 

@@ -15,8 +15,8 @@ from app.modules.admin.dependencies import get_admin_service, get_current_admin
 from app.modules.admin.models import AdminAuditLog
 from app.modules.admin.repository import AdminRepository
 from app.modules.admin.service import AdminService
-from app.modules.hoondok.cards_repository import CardRepository
-from app.modules.hoondok.cards_service import CardAdminService, CardService, pick_today_card
+from app.modules.hoondok.cards.cards_repository import CardRepository
+from app.modules.hoondok.cards.cards_service import CardAdminService, CardService, pick_today_card
 from app.modules.hoondok.dependencies import get_card_admin_service, get_card_service
 from app.modules.hoondok.models import CardReceipt, WordCard
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
@@ -350,6 +350,6 @@ async def test_delete_for_user_removes_only_own_receipts(ctx: TestClient):
 def test_admin_card_routes_require_csrf():
     """관리자 쓰기는 라우터 레벨 verify_csrf — 헤더 없으면 403."""
     from app.modules.admin.dependencies import verify_csrf
-    from app.modules.hoondok.cards_admin_router import cards_admin_router
+    from app.modules.hoondok.cards.cards_admin_router import cards_admin_router
 
     assert any(d.dependency is verify_csrf for d in cards_admin_router.dependencies)

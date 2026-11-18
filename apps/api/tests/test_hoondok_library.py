@@ -15,12 +15,12 @@ from app.modules.admin.models import AdminAuditLog
 from app.modules.admin.repository import AdminRepository
 from app.modules.admin.service import AdminService
 from app.modules.hoondok.dependencies import get_journey_service, get_library_service
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok import journey_service, library_service
-from app.modules.hoondok.journey_service import JourneyService
-from app.modules.hoondok.library_repository import LibraryRepository
-from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
-from app.modules.hoondok.library_service import LibraryService, majority_grade
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading import journey_service, library_service
+from app.modules.hoondok.reading.journey_service import JourneyService
+from app.modules.hoondok.reading.library_repository import LibraryRepository
+from app.modules.hoondok.reading.library_series import label_sort_key, series_title, volume_label
+from app.modules.hoondok.reading.library_service import LibraryService, majority_grade
 from app.modules.hoondok.models import (
     ContentRight,
     PassageHighlight,
@@ -28,7 +28,7 @@ from app.modules.hoondok.models import (
     ReadingPosition,
     VolumeSection,
 )
-from app.modules.hoondok.repository import JeongseongRepository
+from app.modules.hoondok.practice.repository import JeongseongRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository

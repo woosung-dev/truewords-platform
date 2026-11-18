@@ -19,7 +19,7 @@ from sqlmodel import SQLModel, select
 
 from app.core.common.clock import KST
 from app.core.config import settings
-from app.modules.hoondok import push_sender
+from app.modules.hoondok.notify import push_sender
 from app.modules.hoondok.models import (
     ContentRight,
     DailyReading,
@@ -28,7 +28,7 @@ from app.modules.hoondok.models import (
     NotificationPreference,
     PushSubscription,
 )
-from app.modules.hoondok.push_sender import JeongseongDay, build_payload, is_in_window, run_push_sender
+from app.modules.hoondok.notify.push_sender import JeongseongDay, build_payload, is_in_window, run_push_sender
 from app.modules.identity.models import User
 
 TODAY = date(2026, 9, 22)
@@ -502,7 +502,7 @@ async def test_no_reading_and_no_jeongseong_source_is_skipped(factory, push_on, 
 
 async def test_reading_judgment_failure_does_not_abort_run(factory, push_on, sent_calls, monkeypatch):
     """`/hoondok/today` 판정이 터져도 run 은 끝까지 간다 — 편성 없음으로 보고 정성 사용자만 보낸다."""
-    from app.modules.hoondok.service import HoondokService
+    from app.modules.hoondok.practice.service import HoondokService
 
     async def _boom(self):
         raise RuntimeError("편성 조회 실패")

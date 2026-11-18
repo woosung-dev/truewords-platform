@@ -20,9 +20,9 @@ from route_helpers import dependency_callables, iter_api_routes
 from app.modules.admin.dependencies import get_admin_service, get_current_admin, require_admin_gate, verify_csrf
 from app.modules.hoondok.dependencies import get_daily_reading_admin_service, get_hoondok_service
 from app.modules.hoondok.models import DailyReading
-from app.modules.hoondok.repository import DailyReadingRepository
-from app.modules.hoondok.schemas import DailyReadingAdminCreate, DailyReadingAdminUpdate
-from app.modules.hoondok.service import DailyReadingAdminService, HoondokService
+from app.modules.hoondok.practice.repository import DailyReadingRepository
+from app.modules.hoondok.practice.schemas import DailyReadingAdminCreate, DailyReadingAdminUpdate
+from app.modules.hoondok.practice.service import DailyReadingAdminService, HoondokService
 
 TODAY = date(2026, 9, 19)
 XHR = {"X-Requested-With": "XMLHttpRequest"}

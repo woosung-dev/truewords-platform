@@ -666,7 +666,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/asks_repository.py": [
+        "./app/modules/hoondok/ask/asks_repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -892,7 +892,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/cards_repository.py": [
+        "./app/modules/hoondok/cards/cards_repository.py": [
             {
                 "code": "reportAttributeAccessIssue",
                 "range": {
@@ -958,7 +958,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/journey_service.py": [
+        "./app/modules/hoondok/reading/journey_service.py": [
             {
                 "code": "reportCallIssue",
                 "range": {
@@ -992,7 +992,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/library_repository.py": [
+        "./app/modules/hoondok/reading/library_repository.py": [
             {
                 "code": "reportCallIssue",
                 "range": {
@@ -1324,7 +1324,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/notifications_repository.py": [
+        "./app/modules/hoondok/notify/notifications_repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1358,7 +1358,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/paths_repository.py": [
+        "./app/modules/hoondok/practice/paths_repository.py": [
             {
                 "code": "reportAttributeAccessIssue",
                 "range": {
@@ -1464,7 +1464,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/public_questions_repository.py": [
+        "./app/modules/hoondok/ask/public_questions_repository.py": [
             {
                 "code": "reportAttributeAccessIssue",
                 "range": {
@@ -1570,7 +1570,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/push_sender.py": [
+        "./app/modules/hoondok/notify/push_sender.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1764,7 +1764,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/reading_content.py": [
+        "./app/modules/hoondok/reading/reading_content.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1774,7 +1774,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/repository.py": [
+        "./app/modules/hoondok/practice/repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1904,7 +1904,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/service.py": [
+        "./app/modules/hoondok/practice/service.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1932,7 +1932,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/source_repository.py": [
+        "./app/modules/hoondok/content_admin/source_repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1976,7 +1976,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/summary_repository.py": [
+        "./app/modules/hoondok/content_admin/summary_repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -1994,7 +1994,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/summary_service.py": [
+        "./app/modules/hoondok/content_admin/summary_service.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -2012,7 +2012,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/tts_repository.py": [
+        "./app/modules/hoondok/reading/tts_repository.py": [
             {
                 "code": "reportArgumentType",
                 "range": {
@@ -2030,7 +2030,7 @@
                 }
             }
         ],
-        "./app/modules/hoondok/tts_router.py": [
+        "./app/modules/hoondok/reading/tts_router.py": [
             {
                 "code": "reportArgumentType",
                 "range": {

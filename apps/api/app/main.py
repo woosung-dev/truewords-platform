@@ -27,22 +27,22 @@ from app.modules.admin.rag_trace_router import router as rag_trace_router
 from app.modules.admin.data_router import router as admin_data_router
 from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
-from app.modules.hoondok.router import router as hoondok_router
-from app.modules.hoondok.journey_router import router as journey_router
-from app.modules.hoondok.library_router import router as hoondok_library_router
-from app.modules.hoondok.rights_admin_router import router as rights_admin_router
-from app.modules.hoondok.client_errors import router as client_errors_router
-from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
-from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
-from app.modules.hoondok.source_router import router as source_admin_router
-from app.modules.hoondok.summary_router import router as summary_router, admin_router as summary_admin_router
-from app.modules.hoondok.tts_router import router as hoondok_tts_router
-from app.modules.hoondok.cards_router import router as hoondok_cards_router
-from app.modules.hoondok.cards_admin_router import cards_admin_router
-from app.modules.hoondok.public_questions_router import router as hoondok_public_questions_router
-from app.modules.hoondok.asks_router import router as hoondok_asks_router
-from app.modules.hoondok.paths_router import router as hoondok_paths_router
-from app.modules.hoondok.public_questions_admin_router import public_questions_admin_router
+from app.modules.hoondok.practice.router import router as hoondok_router
+from app.modules.hoondok.reading.journey_router import router as journey_router
+from app.modules.hoondok.reading.library_router import router as hoondok_library_router
+from app.modules.hoondok.content_admin.rights_admin_router import router as rights_admin_router
+from app.modules.hoondok.notify.client_errors import router as client_errors_router
+from app.modules.hoondok.notify.notifications_router import router as hoondok_notifications_router
+from app.modules.hoondok.content_admin.admin_router import admin_router as hoondok_admin_router
+from app.modules.hoondok.content_admin.source_router import router as source_admin_router
+from app.modules.hoondok.content_admin.summary_router import router as summary_router, admin_router as summary_admin_router
+from app.modules.hoondok.reading.tts_router import router as hoondok_tts_router
+from app.modules.hoondok.cards.cards_router import router as hoondok_cards_router
+from app.modules.hoondok.cards.cards_admin_router import cards_admin_router
+from app.modules.hoondok.ask.public_questions_router import router as hoondok_public_questions_router
+from app.modules.hoondok.ask.asks_router import router as hoondok_asks_router
+from app.modules.hoondok.practice.paths_router import router as hoondok_paths_router
+from app.modules.hoondok.ask.public_questions_admin_router import public_questions_admin_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     ask_daily_limit_handler,

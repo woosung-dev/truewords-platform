@@ -33,12 +33,12 @@ from app.modules.hoondok.models import (
     ReadingPathStep,
     VolumeSection,
 )
-from app.modules.hoondok.paths_repository import PathRepository
-from app.modules.hoondok.paths_schemas import PathRunFinishRequest, PathRunStart, PathStepCompleteRequest
-from app.modules.hoondok.paths_service import PathService, gap_days, week_read_dates
-from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
-from app.modules.hoondok.schemas import JeongseongCreate
-from app.modules.hoondok.service import JeongseongService
+from app.modules.hoondok.practice.paths_repository import PathRepository
+from app.modules.hoondok.practice.paths_schemas import PathRunFinishRequest, PathRunStart, PathStepCompleteRequest
+from app.modules.hoondok.practice.paths_service import PathService, gap_days, week_read_dates
+from app.modules.hoondok.practice.repository import JeongseongRepository, MissionLogRepository
+from app.modules.hoondok.practice.schemas import JeongseongCreate
+from app.modules.hoondok.practice.service import JeongseongService
 from app.modules.identity.dependencies import COOKIE_NAME
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository

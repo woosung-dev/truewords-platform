@@ -1,6 +1,6 @@
 """Qdrant 본문 → `volume_sections` 장 목차 추출 (PLAN-HD-007 §2-2 · ENT-HD-010).
 
-추출 규칙 자체는 `app/modules/hoondok/section_rules.py` (순수 함수) 에 있고 이 스크립트는
+추출 규칙 자체는 `app/modules/hoondok/reading/section_rules.py` (순수 함수) 에 있고 이 스크립트는
 Qdrant 읽기 · 커버리지 보고 · DB 쓰기만 한다. LLM 은 쓰지 않는다.
 
 대상 선택:
@@ -39,10 +39,10 @@ from sqlmodel import select  # noqa: E402
 
 from app.core.common.database import async_session_factory  # noqa: E402
 from app.core.config import settings  # noqa: E402
-from app.modules.hoondok.library_repository import LibraryRepository  # noqa: E402
-from app.modules.hoondok.library_series import BOOK_SERIES_TITLES  # noqa: E402
+from app.modules.hoondok.reading.library_repository import LibraryRepository  # noqa: E402
+from app.modules.hoondok.reading.library_series import BOOK_SERIES_TITLES  # noqa: E402
 from app.modules.hoondok.models import ContentRight, VolumeSection  # noqa: E402
-from app.modules.hoondok.section_rules import extract_sections  # noqa: E402
+from app.modules.hoondok.reading.section_rules import extract_sections  # noqa: E402
 from app.modules.qdrant.filters import build_filter, field_match  # noqa: E402
 from app.modules.qdrant.raw_client import RawQdrantClient  # noqa: E402
 from seed_content_rights_from_qdrant import (  # noqa: E402

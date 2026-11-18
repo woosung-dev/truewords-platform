@@ -18,8 +18,8 @@ from app.modules.admin.service import AdminService
 from app.modules.chat.models import AnswerCitation, MessageRole, ResearchSession, SessionMessage
 from app.modules.hoondok.dependencies import get_public_question_admin_service, get_public_question_service
 from app.modules.hoondok.models import PublicQuestion
-from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
-from app.modules.hoondok.public_questions_service import (
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.ask.public_questions_service import (
     PublicQuestionAdminService,
     PublicQuestionService,
     make_preview,

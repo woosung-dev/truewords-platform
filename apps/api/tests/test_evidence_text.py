@@ -1,6 +1,6 @@
 """근거 원문 범위 자르기 — 실데이터(천성경 PDF 청크)에서 본 경계 사례를 줄여 옮겼다."""
 
-from app.modules.hoondok.evidence_text import evidence_paragraphs, join_chunks
+from app.modules.hoondok.content_admin.evidence_text import evidence_paragraphs, join_chunks
 
 # 시작 청크는 앞 말씀 꼬리로 시작하고, 말씀 5 는 다음 청크로 넘어간다(겹침 있음). 페이지 머리줄도 섞인다.
 CHUNKS = [

@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 from app.modules.qdrant import QdrantPoint
-from app.modules.hoondok.source_service import SourceService
-from app.modules.hoondok.source_schemas import SourceRangeInput, SourceRangeUpdate, SourceRangeSplit, SourceRangeMerge
-from app.modules.hoondok.summary_service import SummaryService
+from app.modules.hoondok.content_admin.source_service import SourceService
+from app.modules.hoondok.content_admin.source_schemas import SourceRangeInput, SourceRangeUpdate, SourceRangeSplit, SourceRangeMerge
+from app.modules.hoondok.content_admin.summary_service import SummaryService
 
 
 class Repo:
@@ -157,10 +157,10 @@ async def test_http_persistence_and_summary_binding_require_explicit_unchanged_v
     from app.modules.admin.service import AdminService
     from app.modules.admin.repository import AdminRepository
     from app.modules.admin.dependencies import get_current_admin, get_admin_service, require_admin_gate
-    from app.modules.hoondok.source_router import service as source_provider
-    from app.modules.hoondok.summary_router import service as summary_provider
-    from app.modules.hoondok.source_repository import SourceRepository
-    from app.modules.hoondok.summary_repository import SummaryRepository
+    from app.modules.hoondok.content_admin.source_router import service as source_provider
+    from app.modules.hoondok.content_admin.summary_router import service as summary_provider
+    from app.modules.hoondok.content_admin.source_repository import SourceRepository
+    from app.modules.hoondok.content_admin.summary_repository import SummaryRepository
     _, fake, client, _ = setup
     engine=create_async_engine(f'sqlite+aiosqlite:///{tmp_path}/source.db')
     async with engine.begin() as conn:

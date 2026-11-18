@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 from route_helpers import dependency_callables, iter_api_routes
 
 from app.modules.admin.dependencies import get_current_admin, require_admin_gate, verify_csrf
-from app.modules.hoondok.candidates import (
+from app.modules.hoondok.content_admin.candidates import (
     clean_volume,
     filter_results,
     is_card_worthy,
@@ -25,7 +25,7 @@ from app.modules.hoondok.candidates import (
     suggest_title,
 )
 from app.modules.hoondok.dependencies import get_daily_reading_candidate_service
-from app.modules.hoondok.service import DailyReadingCandidateService
+from app.modules.hoondok.practice.service import DailyReadingCandidateService
 from app.modules.search.hybrid import SearchResult
 
 BASE = "/admin/hoondok/daily-readings"
