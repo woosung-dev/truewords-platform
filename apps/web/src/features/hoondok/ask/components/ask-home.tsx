@@ -371,7 +371,13 @@ function BookmarksPanel({ term, showToast }: { term: string; showToast: ShowToas
     setPlan({ kind: "removed", key, index });
     const target: BookmarkTarget = { kind: entry.kind, id: entry.item.id };
     void bookmarks
-      .toggle(target, false, { undo: { onRestore: () => setPlan({ kind: "restored", key }) } })
+      .toggle(target, false, {
+        undo: {
+          onRestore: () => setPlan({ kind: "restored", key }),
+          // 되돌리기가 실패해 카드가 다시 빠질 때도 포커스를 body 로 떨어뜨리지 않는다
+          onRestoreFailed: () => setPlan({ kind: "removed", key, index }),
+        },
+      })
       .then((isDone) => {
         if (!isDone) setPlan(null);
       });
@@ -538,12 +544,12 @@ function DeleteAskSheet({
     onSuccess: onDeleted,
   });
   return (
-    <ReaderSheet title="이 질문을 지울까요?" onClose={onClose}>
+    <ReaderSheet title="이 질문을 지울까요?" onClose={onClose} initialFocus="close">
       <p className="js-lede">질문과 답, 이어서 한 대화가 내 계정에서 모두 지워져요. 되돌릴 수 없어요.</p>
       {item.public_status && <p className="js-lede">{PUBLIC_COPY_NOTE[item.public_status]}</p>}
       {remove.isError && <p role="alert">지우지 못했어요. 잠시 뒤 다시 해 주세요.</p>}
-      <div className="ask-acts">
-        <HoondokButton variant="primary" isSmall isLoading={remove.isPending} onClick={() => remove.mutate()}>
+      <div className="ask-acts ask-del__acts">
+        <HoondokButton variant="primary" isLoading={remove.isPending} onClick={() => remove.mutate()}>
           지우기
         </HoondokButton>
       </div>

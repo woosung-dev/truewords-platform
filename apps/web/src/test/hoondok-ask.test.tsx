@@ -53,6 +53,7 @@ vi.mock("@/features/hoondok/library/api", () => ({
 
 import { ASK_QUESTION_MAX, requestHoondokAsk } from "@/features/hoondok/ask/ask-stream";
 import { asksAPI } from "@/features/hoondok/ask/asks-api";
+import { PUBLIC_BOOKMARKS_KEY } from "@/features/hoondok/query-keys";
 import { AskDetail } from "@/features/hoondok/ask/components/ask-detail";
 import { ASK_EXAMPLES, AskHome } from "@/features/hoondok/ask/components/ask-home";
 import { AskNew } from "@/features/hoondok/ask/components/ask-new";
@@ -66,7 +67,7 @@ function render(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrap = (node: ReactNode) => <QueryClientProvider client={client}>{node}</QueryClientProvider>;
   const view = renderView(wrap(children));
-  return { ...view, rerender: (node: ReactNode) => view.rerender(wrap(node)) };
+  return { ...view, client, rerender: (node: ReactNode) => view.rerender(wrap(node)) };
 }
 
 const SID = "11111111-1111-4111-8111-111111111111";
@@ -465,7 +466,7 @@ describe("AI 질문 홈 — 카드·북마크·삭제", () => {
     const toggle = await screen.findByRole("button", { name: "북마크" });
     fireEvent.click(toggle);
     fireEvent.click(toggle);
-    expect(publicQuestionsAPI.bookmark).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(publicQuestionsAPI.bookmark).toHaveBeenCalledTimes(1));
     expect(publicQuestionsAPI.unbookmark).not.toHaveBeenCalled();
     await act(async () => finish());
   });
@@ -539,6 +540,29 @@ describe("AI 질문 홈 — 카드·북마크·삭제", () => {
       .map((link) => link.getAttribute("href"));
     expect(hrefs).toEqual(["/ask/p/p1", "/ask/p/p2", "/ask/p/p3"]);
     expect(screen.getByRole("link", { name: /추천 p2/ })).toHaveFocus();
+  });
+
+  it("해제 전에 받기 시작한 목록 응답이 늦게 와도 북마크를 되살리지 않는다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [] });
+    vi.mocked(publicQuestionsAPI.bookmarks).mockResolvedValue({
+      items: [pub("p1", { bookmarked: true }), pub("p2", { bookmarked: true })],
+    });
+    const { client } = render(<AskHome />);
+    const card = (await screen.findByRole("link", { name: /추천 p1/ })).closest("li") as HTMLElement;
+    // 변경 전 상태를 받아 오는 다시 받기가 진행 중이다
+    let resolveStale: (value: { items: ReturnType<typeof pub>[] }) => void = () => {};
+    vi.mocked(publicQuestionsAPI.bookmarks).mockReturnValueOnce(new Promise((resolve) => (resolveStale = resolve)));
+    void client.refetchQueries({ queryKey: PUBLIC_BOOKMARKS_KEY });
+    // 해제가 서버에 반영된 뒤의 값 — 취소로 바로잡는 다시 받기는 이것을 받는다
+    vi.mocked(publicQuestionsAPI.bookmarks).mockResolvedValue({ items: [pub("p2", { bookmarked: true })] });
+    fireEvent.click(within(card).getByRole("button", { name: "북마크" }));
+    await waitFor(() => expect(screen.queryByRole("link", { name: /추천 p1/ })).toBeNull());
+    // 오래된 응답은 취소되어 낙관적 값을 덮지 못한다
+    await act(async () => resolveStale({ items: [pub("p1", { bookmarked: true }), pub("p2", { bookmarked: true })] }));
+    expect(screen.queryByRole("link", { name: /추천 p1/ })).toBeNull();
+    expect(publicQuestionsAPI.unbookmark).toHaveBeenCalledWith("p1");
   });
 
   it("북마크 탭에서 해제가 실패하면 카드를 제자리에 돌려놓고 알린다", async () => {
@@ -676,6 +700,17 @@ describe("새 질문하기", () => {
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
     await waitFor(() => expect(readLiveAsks()[0]?.status).toBe("answered"));
     expect(requestBodies()[0]).toEqual({ query: "참사랑이 뭔가요?", public_question_id: "pq1" });
+  });
+
+  it("미리 채운 질문을 고쳐 쓰면 공개 질문 id 를 싣지 않는다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { q: "참사랑이 뭔가요?", from: "pq1" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(sseBody([SOURCE]))));
+    render(<AskNew />);
+    fireEvent.change(screen.getByLabelText("무엇이 궁금하세요?"), { target: { value: "전혀 다른 질문이에요" } });
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+    await waitFor(() => expect(readLiveAsks()[0]?.status).toBe("answered"));
+    expect(requestBodies()[0]).toEqual({ query: "전혀 다른 질문이에요" });
   });
 
   it("모양이 맞지 않는 from 은 싣지 않고, 로그인 안내의 돌아올 주소에는 맞는 from 만 남긴다", async () => {

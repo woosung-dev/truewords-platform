@@ -4,7 +4,8 @@
 // 두 종류를 한 이름("북마크")으로 보인다: 내 질문은 계정 기록의 saved(PATCH /hoondok/me/asks/{id}),
 // 추천 질문은 공개 질문 북마크(PUT·DELETE /hoondok/questions/{id}/bookmark).
 //
-// 낙관적으로 목록·상세 캐시를 함께 고치고, 실패하면 반대로 되돌린다. 성공 뒤에는 관련 키를 stale 로만 표시한다
+// 낙관적으로 목록·상세 캐시를 함께 고치고(그 전에 진행 중인 요청은 취소한다), 실패하면 반대로 되돌린다.
+// 성공 뒤에는 관련 키를 stale 로만 표시한다(취소한 요청이 있었다면 바로 다시 받아 바로잡는다)
 // (refetchType "none") — 보고 있는 목록을 다시 받아 순서가 손가락 밑에서 바뀌지 않게, 다음에 열 때 서버 값으로 맞춘다.
 import { type InfiniteData, type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
@@ -42,9 +43,11 @@ export const BOOKMARK_TOAST = {
 
 type ToggleOptions = {
   /** 북마크 탭 — 해제하면 "되돌리기"를 5초 둔다. 되돌리면 onRestore 를 부른다(포커스를 돌려줄 자리). */
-  undo?: { onRestore?: () => void };
+  undo?: { onRestore?: () => void; onRestoreFailed?: () => void };
   /** 되돌리기처럼 결과가 화면에 바로 보이는 경우 성공 알림을 띄우지 않는다. */
   isQuiet?: boolean;
+  /** 요청이 실패해 캐시를 되돌리기 직전에 부른다(되돌리기 실패 때 카드가 다시 빠지는 포커스 자리를 정한다). */
+  onRollback?: () => void;
 };
 
 function patchPub(client: QueryClient, target: Extract<BookmarkTarget, { kind: "pub" }>, bookmarked: boolean) {
@@ -86,12 +89,28 @@ function withPosition(client: QueryClient, target: BookmarkTarget): BookmarkTarg
   return index < 0 ? target : { ...target, summary: target.summary ?? items[index], index };
 }
 
-function markStale(client: QueryClient, target: BookmarkTarget) {
-  const keys =
-    target.kind === "pub"
-      ? [PUBLIC_QUESTIONS_KEY, publicQuestionKey(target.id), PUBLIC_BOOKMARKS_KEY]
-      : [ASK_LIST_KEY, askDetailKey(target.id)];
-  for (const queryKey of keys) void client.invalidateQueries({ queryKey, refetchType: "none" });
+function affectedKeys(target: BookmarkTarget) {
+  return target.kind === "pub"
+    ? [PUBLIC_QUESTIONS_KEY, publicQuestionKey(target.id), PUBLIC_BOOKMARKS_KEY]
+    : [ASK_LIST_KEY, askDetailKey(target.id)];
+}
+
+/**
+ * 낙관적 패치 전에 진행 중인 요청을 취소한다 — 변경 전에 받기 시작한 응답이 늦게 와서 낙관적 값을 덮지 못하게.
+ * 취소한 요청이 있었으면 true(끝난 뒤 서버 값으로 바로잡아야 한다).
+ */
+async function cancelInflightFetches(client: QueryClient, target: BookmarkTarget): Promise<boolean> {
+  const keys = affectedKeys(target);
+  const wasFetching = keys.some((queryKey) => client.isFetching({ queryKey }) > 0);
+  await Promise.all(keys.map((queryKey) => client.cancelQueries({ queryKey })));
+  return wasFetching;
+}
+
+/** 취소한 요청이 있었으면 활성 쿼리를 다시 받아 바로잡고, 아니면 stale 로만 표시한다. */
+function settleCaches(client: QueryClient, target: BookmarkTarget, wasCancelled: boolean) {
+  for (const queryKey of affectedKeys(target)) {
+    void client.invalidateQueries(wasCancelled ? { queryKey } : { queryKey, refetchType: "none" });
+  }
 }
 
 /**
@@ -123,9 +142,13 @@ export function useBookmarkToggle({ showToast, returnTo }: { showToast: ShowToas
     const flightKey = `${rawTarget.kind}:${rawTarget.id}`;
     if (inflight.current.has(flightKey)) return false;
     inflight.current.add(flightKey);
-    const target = withPosition(client, rawTarget);
-    patch(target, next);
+    let target = rawTarget;
+    let wasCancelled = false;
+    let succeeded = false;
     try {
+      wasCancelled = await cancelInflightFetches(client, rawTarget);
+      target = withPosition(client, rawTarget);
+      patch(target, next);
       if (target.kind === "pub") {
         await (next ? publicQuestionsAPI.bookmark(target.id) : publicQuestionsAPI.unbookmark(target.id));
       } else {
@@ -133,24 +156,28 @@ export function useBookmarkToggle({ showToast, returnTo }: { showToast: ShowToas
         // 응답이 계정 기록 전체라 상세 캐시가 있으면 그 값으로 맞춘다
         client.setQueryData<MyAskDetail>(askDetailKey(target.id), (data) => (data ? detail : data));
       }
+      succeeded = true;
     } catch (error) {
+      options.onRollback?.();
       patch(target, !next);
       if (error instanceof ApiError && error.status === 401) promptLogin();
       else showToast(!next && options.undo ? BOOKMARK_TOAST.offFailed : BOOKMARK_TOAST.failed);
       return false;
     } finally {
       inflight.current.delete(flightKey);
+      // 실패했어도 취소한 요청이 있었다면 서버 값으로 바로잡는다
+      if (wasCancelled && !succeeded) settleCaches(client, target, true);
     }
-    markStale(client, target);
+    settleCaches(client, target, wasCancelled);
     if (options.isQuiet) return true;
     if (next) showToast(BOOKMARK_TOAST.on);
     else if (options.undo) {
-      const { onRestore } = options.undo;
+      const { onRestore, onRestoreFailed } = options.undo;
       showToast(BOOKMARK_TOAST.off, {
         label: "되돌리기",
         run: () => {
           onRestore?.();
-          void toggle(target, true, { isQuiet: true });
+          void toggle(target, true, { isQuiet: true, onRollback: onRestoreFailed });
         },
       });
     } else showToast(BOOKMARK_TOAST.off);

@@ -143,7 +143,8 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
         question: text,
         answerMode: choice === "auto" ? undefined : choice,
         wantsPublic: shownVisibility === "public",
-        publicQuestionId: initial.fromPublicId,
+        // 문장을 고쳐 썼으면 그 공개 질문을 이은 질문이 아니다 — 미리 채운 문장 그대로일 때만 싣는다
+        publicQuestionId: text === initial.question.trim() ? initial.fromPublicId : undefined,
       },
       () => void queryClient.invalidateQueries({ queryKey: ASKS_KEY }),
     );
