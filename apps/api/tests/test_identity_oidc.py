@@ -349,11 +349,11 @@ def test_display_name_prefers_given_name_then_name_then_none():
 
 
 def test_build_login_providers_only_when_google_configured():
-    assert build_login_providers(Settings(hoondok_google_client_id=None, hoondok_google_client_secret=None)) == {}
-    assert build_login_providers(Settings(hoondok_google_client_id=" ", hoondok_google_client_secret=SecretStr("s"))) == {}
-    assert build_login_providers(Settings(hoondok_google_client_id="cid", hoondok_google_client_secret=SecretStr(" "))) == {}
+    assert build_login_providers(Settings(gemini_api_key=SecretStr("k"), hoondok_google_client_id=None, hoondok_google_client_secret=None)) == {}
+    assert build_login_providers(Settings(gemini_api_key=SecretStr("k"), hoondok_google_client_id=" ", hoondok_google_client_secret=SecretStr("s"))) == {}
+    assert build_login_providers(Settings(gemini_api_key=SecretStr("k"), hoondok_google_client_id="cid", hoondok_google_client_secret=SecretStr(" "))) == {}
     providers = build_login_providers(
-        Settings(hoondok_google_client_id=" cid ", hoondok_google_client_secret=SecretStr(" sec "))
+        Settings(gemini_api_key=SecretStr("k"), hoondok_google_client_id=" cid ", hoondok_google_client_secret=SecretStr(" sec "))
     )
     assert set(providers) == {"google"}
     assert providers["google"].config.client_id == "cid"  # type: ignore[attr-defined]

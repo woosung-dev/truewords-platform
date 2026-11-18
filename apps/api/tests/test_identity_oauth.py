@@ -81,7 +81,9 @@ class Env:
 
     def user(self, user_id: uuid.UUID) -> User:
         with Session(self.engine) as s:
-            return s.get(User, user_id)
+            row = s.get(User, user_id)
+            assert row is not None
+            return row
 
     def counts(self) -> tuple[int, int]:
         return len(self.users()), len(self.identities())
@@ -831,6 +833,7 @@ def _bump_version_at_lock(env: Env, monkeypatch, user: User) -> None:
     async def get_for_update(self, user_id):
         with Session(env.engine) as s:
             row = s.get(User, user_id)
+            assert row is not None
             row.session_version += 1
             s.add(row)
             s.commit()

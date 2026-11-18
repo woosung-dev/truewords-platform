@@ -48,9 +48,10 @@ def _display_name(ext: ExternalIdentity) -> str:
     return (ext.display_name or "").strip()[:DISPLAY_NAME_MAX].strip() or DISPLAY_NAME_FALLBACK
 
 
-def _new_identity(ext: ExternalIdentity) -> UserIdentity:
+def _new_identity(ext: ExternalIdentity, user_id: uuid.UUID) -> UserIdentity:
     now = utcnow()
     return UserIdentity(
+        user_id=user_id,
         provider=ext.provider,
         issuer=ext.issuer,
         subject_scope=ext.subject_scope,
@@ -115,7 +116,7 @@ class OAuthService:
     async def _link_new(self, ext: ExternalIdentity, flow: OAuthFlow, session: AuthSession | None) -> OAuthOutcome:
         current_user = session.user if session is not None else None
         # login CSRF 방어: 시작 때의 세션 사용자와 지금 세션이 같아야 한다.
-        if current_user is None or flow.link_user_id is None or current_user.id != flow.link_user_id:
+        if session is None or current_user is None or flow.link_user_id is None or current_user.id != flow.link_user_id:
             return _fail("session_mismatch")
         # 롤백하면 current_user 가 만료돼 id 를 읽을 수 없다(MissingGreenlet) — 필요한 값은 먼저 지역 변수로 잡는다.
         current_user_id = current_user.id
@@ -135,7 +136,7 @@ class OAuthService:
         user.session_version = new_version
         _record_verified_email(user, ext)
         try:
-            await self.identities.link_to_user(user, _new_identity(ext))
+            await self.identities.link_to_user(user, _new_identity(ext, user.id))
         except IntegrityError:
             return await self._after_race(ext, flow, current_user_id, default_error="already_linked")
         return OAuthOutcome(status="linked", session_user=user, session_version=new_version)
@@ -150,7 +151,7 @@ class OAuthService:
         user = User(email=ext.email, password_hash=None, display_name=_display_name(ext))
         _record_verified_email(user, ext)
         try:
-            user = await self.identities.create_user_with_identity(user, _new_identity(ext))
+            user = await self.identities.create_user_with_identity(user, _new_identity(ext, user.id))
         except IntegrityError:
             return await self._after_race(ext, flow, None, default_error="email_exists")
         return OAuthOutcome(status="created", session_user=user)

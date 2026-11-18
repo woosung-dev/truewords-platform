@@ -62,7 +62,8 @@ def _user(email="Hoondok@Example.com", password: str | None = "password1", displ
 async def test_create_normalizes_email_and_keeps_defaults(repo: UserRepository):
     user = await repo.create(_user())
     assert user.email == "hoondok@example.com"
-    assert user.password_hash != "password1" and user.password_hash.startswith("$2b$")
+    assert user.password_hash is not None and user.password_hash != "password1"
+    assert user.password_hash.startswith("$2b$")
     assert user.consented_at is None and user.consent_version is None
     assert user.timezone == "Asia/Seoul"
     assert user.email_verified_at is None and user.email_verified_by is None
@@ -133,7 +134,8 @@ def test_hoondok_token_round_trips_with_aud():
 def test_issue_token_carries_session_version_and_decoder_reads_it():
     user = User(email="a@b.c", password_hash="x", display_name="n", session_version=3)
     assert decode_hoondok_session(IdentityService.issue_token(user)) == (user.id, 3)
-    assert decode_hoondok_session(IdentityService.issue_token(User(email="a@b.c", display_name="n")))[1] == 0
+    decoded = decode_hoondok_session(IdentityService.issue_token(User(email="a@b.c", display_name="n")))
+    assert decoded is not None and decoded[1] == 0
 
 
 def test_token_without_sv_is_read_as_version_zero():
