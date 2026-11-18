@@ -14,13 +14,13 @@ PR은 GitHub Actions에서 검증하고, main 의 CI 가 성공하면 `release.y
 | 공통 lockfile·설정·tooling·workflow | 필요한 앱·API·계약 검사까지 확대 |
 | 문서·모든 PR | Repository checks: 링크·경계·tooling 테스트·`infra/oracle-vm/*.sh` 각 파일을 순회하는 `bash -n` 구문 검사 |
 
-`CI Required`가 하위 job 결과를 집계한다. 변경이 없어 정상 skip한 job만 허용하며, 변경 감지 실패·검사 실패·취소·예상하지 않은 skip은 성공으로 바꾸지 않는다. required check 설정을 바꿀 때 저장소 branch protection의 실제 이름도 확인한다. 기존 검사 이름을 제거해 보호 규칙을 우회하지 않는다. **2026-09-05 기준 main 에는 보호 규칙이 없었다**(`protected: false`, Free private 레포는 설정 불가). public 전환 후 ruleset 으로 `CI Required` 를 필수 체크로 등록하기 전까지 `CI Required` 는 표시용이며 `gh pr merge --auto` 도 CI 를 기다리지 않는다([ADR](../adr/2026-09-05-cicd-audit-decisions.md)).
+`CI Required`가 하위 job 결과를 집계한다. 변경이 없어 정상 skip한 job만 허용하며, 변경 감지 실패·검사 실패·취소·예상하지 않은 skip은 성공으로 바꾸지 않는다. required check 설정을 바꿀 때 저장소 branch protection의 실제 이름도 확인한다. 기존 검사 이름을 제거해 보호 규칙을 우회하지 않는다. main 은 ruleset `main-protection` 으로 보호한다: PR 필수, `CI Required` 필수 체크, 강제 push·삭제 금지. 실제 설정은 `gh api repos/{owner}/{repo}/rulesets` 로 확인한다(도입 경위는 [ADR](../adr/2026-09-05-cicd-audit-decisions.md)).
 
 ## 언어별 실행
 
 | 범위 | 명령·원칙 |
 |---|---|
-| API | `cd apps/api` → `uv sync --frozen`(dev 그룹만, `eval` 그룹은 평가 스크립트 전용) → `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest` |
+| API | `cd apps/api` → `uv sync --frozen`(dev 그룹만, `eval` 그룹은 평가 스크립트 전용) → `uv run --frozen ruff check .` → `uv run --frozen basedpyright -p pyproject.toml` → `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest` |
 | JS/TS | 루트 `pnpm install --frozen-lockfile`; 앱·패키지별 test/typecheck/build |
 | 계약 | `pnpm contracts:generate` 후 생성 산출물 diff·`pnpm contracts:check`. 전제: 사전 `uv sync`, **Docker 데몬**(oasdiff 컨테이너), 기준 커밋을 포함한 git 이력. 비교 기준은 PR=base 브랜치 tip, main push=직전 커밋, 로컬·수동 실행=`merge-base HEAD origin/main` |
 | 저장소 | `pnpm docs:check`, `pnpm boundaries:check`, `pnpm tooling:test`, `bash -n infra/oracle-vm/*.sh` |

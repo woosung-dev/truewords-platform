@@ -130,6 +130,7 @@ S4 (Pydantic / code health)
 
 S5 (boundary cleanup)
   ├── B-1 ingestion_facade 에 repo factory 추가
+  │     └ 2026-11-16: facade 위치가 app/modules/pipeline/facade.py 로 이동. chat 이 pipeline 내부를 직접 보지 않는다는 결정은 그대로.
   ├── B-2 chatbot/router → admin facade 또는 decorator
   ├── B-3 get_main_loop common/ 이관
   ├── B-4 IngestionOrchestrator 도입

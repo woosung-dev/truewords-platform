@@ -13,6 +13,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { HoondokMascot } from "@/components/hoondok";
 import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { useCurrentUser } from "@/features/identity/use-current-user";
+import { publicQuestionsKey } from "../../query-keys";
 import { ASK_LIST_KEY, asksAPI } from "../asks-api";
 import { askMetaLabel } from "../format";
 import { useClearLegacyAskItems } from "../legacy";
@@ -50,7 +51,7 @@ function newQuestionHref(text: string): string {
 
 function RecommendedPanel({ query, term }: { query: string; term: string }) {
   const list = useInfiniteQuery({
-    queryKey: ["hoondok", "public-questions", query],
+    queryKey: publicQuestionsKey(query),
     queryFn: ({ pageParam, signal }) => publicQuestionsAPI.list({ q: query || undefined, cursor: pageParam }, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor ?? undefined,

@@ -23,7 +23,7 @@ from app.modules.admin.analytics_schemas import (
     TopQuery,
 )
 from app.modules.admin.analytics_service import AnalyticsService
-from app.modules.admin.dependencies import get_analytics_service, get_current_admin
+from app.modules.admin.dependencies import AdminPrincipal, get_analytics_service, get_current_admin
 
 router = APIRouter(prefix="/admin/analytics", tags=["analytics"])
 
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/admin/analytics", tags=["analytics"])
 @router.get("/dashboard-summary", response_model=DashboardSummary)
 async def get_dashboard_summary(
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> DashboardSummary:
     """대시보드 홈 요약 메트릭."""
     return DashboardSummary(**await service.get_dashboard_summary())
@@ -41,7 +41,7 @@ async def get_dashboard_summary(
 async def get_daily_trend(
     days: int = Query(default=30, ge=1, le=365),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[DailyCount]:
     """일별 질문 수 트렌드."""
     rows = await service.get_daily_trend(days)
@@ -52,7 +52,7 @@ async def get_daily_trend(
 async def get_daily_modes(
     days: int = Query(default=30, ge=1, le=365),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[DailyModeCount]:
     """일별 resolved_answer_mode 분포 (BL-6 — 4주 시범 운영 baseline)."""
     rows = await service.get_daily_modes(days)
@@ -63,7 +63,7 @@ async def get_daily_modes(
 async def get_search_stats(
     days: int = Query(default=30, ge=1, le=365),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> SearchStats:
     """검색 통계 집계."""
     return SearchStats(**await service.get_search_stats(days))
@@ -74,7 +74,7 @@ async def get_top_queries(
     days: int = Query(default=30, ge=1, le=365),
     limit: int = Query(default=10, ge=1, le=50),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[TopQuery]:
     """인기 질문 Top N."""
     rows = await service.get_top_queries(days, limit)
@@ -85,7 +85,7 @@ async def get_top_queries(
 async def get_feedback_summary(
     days: int = Query(default=30, ge=0, le=365),  # 0 = 전체 기간
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> FeedbackSummary:
     """피드백 유형 분포. days=0 이면 전체 기간."""
     rows = await service.get_feedback_distribution(days)
@@ -99,7 +99,7 @@ async def get_negative_feedback(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[NegativeFeedbackItem]:
     """부정 피드백 목록 (backward compat — /feedback/list?polarity=negative 와 동일)."""
     rows = await service.get_feedback_list("negative", limit, offset)
@@ -113,7 +113,7 @@ async def get_feedback_list(
     offset: int = Query(default=0, ge=0),
     days: int = Query(default=0, ge=0, le=365),  # 0 = 전체 기간
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> list[NegativeFeedbackItem]:
     """피드백 목록 (긍정/부정) — polarity + 기간(days) 으로 필터링."""
     rows = await service.get_feedback_list(polarity, limit, offset, days)
@@ -126,7 +126,7 @@ async def get_query_details(
     days: int = Query(default=30, ge=1, le=365),
     limit: int = Query(default=50, ge=1, le=100),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> QueryDetailResponse:
     """인기 질문의 모든 발생 상세 조회."""
     data = await service.get_query_details(query_text, days, limit)
@@ -137,7 +137,7 @@ async def get_query_details(
 async def get_session_detail(
     session_id: UUID,
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> SessionDetailResponse:
     """세션 전체 메시지 + 반응/피드백/출처 inline (시간순).
 
@@ -160,7 +160,7 @@ async def get_queries(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=50, ge=1, le=100),
     service: AnalyticsService = Depends(get_analytics_service),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> QueryListResponse:
     """고유 질문 집계 + 검색/정렬/페이지네이션."""
     data = await service.get_queries(q=q, days=days, sort=sort, page=page, size=size)

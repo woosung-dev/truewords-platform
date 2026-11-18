@@ -42,7 +42,7 @@ from app.modules.chat.pipeline.stages.suggested_followups import SuggestedFollow
 from app.core.common.database import get_async_session
 from app.modules.admin.dependencies import get_current_admin
 from app.modules.chat.dependencies import get_cache_service
-from app.modules.chat.trace import TraceCollector, current_trace
+from app.core.common.trace import TraceCollector, current_trace
 from app.modules.chat.trace_schemas import RagTraceRequest
 from app.modules.chat.trace_service import TRACE_STAGES, RagTraceService, rrf_expected
 from app.modules.chatbot.dependencies import get_chatbot_service

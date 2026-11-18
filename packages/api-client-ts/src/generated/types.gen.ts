@@ -4648,6 +4648,23 @@ export type SummaryEvidence = {
 };
 
 /**
+ * SummaryEvidenceSource
+ *
+ * 근거 한 건의 원문 미리보기. exact 면 말씀 from–to 만 정확히 자른 문단이고,
+ * 아니면(번호 없는 원문 등) 근거가 시작하는 원문 단락이다.
+ */
+export type SummaryEvidenceSource = {
+    /**
+     * Exact
+     */
+    exact: boolean;
+    /**
+     * Paragraphs
+     */
+    paragraphs: Array<string>;
+};
+
+/**
  * SummaryGeneration
  *
  * 생성 기록 — 관리자 응답에만 포함한다.
@@ -8149,6 +8166,40 @@ export type SummaryDetailHoondokAiSummariesUnitIdGetResponses = {
 };
 
 export type SummaryDetailHoondokAiSummariesUnitIdGetResponse = SummaryDetailHoondokAiSummariesUnitIdGetResponses[keyof SummaryDetailHoondokAiSummariesUnitIdGetResponses];
+
+export type SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+        /**
+         * Index
+         */
+        index: number;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}/evidence/{index}';
+};
+
+export type SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetError = SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetErrors[keyof SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetErrors];
+
+export type SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryEvidenceSource;
+};
+
+export type SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetResponse = SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetResponses[keyof SummaryEvidenceSourceHoondokAiSummariesUnitIdEvidenceIndexGetResponses];
 
 export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetData = {
     body?: never;

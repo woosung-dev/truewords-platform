@@ -7,9 +7,10 @@ from datetime import date, timedelta
 from typing import Protocol
 
 import httpx
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy.exc import IntegrityError
 
+from app.core.errors import ConflictError, DomainError, InvalidError, NotFoundError
 from app.modules.admin.service import AdminService
 from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.candidates import filter_results
@@ -94,7 +95,7 @@ class MissionService:
         try:
             saved = await self.repo.create(log)
         except IntegrityError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="오늘은 이미 완료했어요")
+            raise ConflictError(detail="오늘은 이미 완료했어요")
         return MissionCompleteResponse(mission_date=saved.mission_date, kind=kind, completed_at=saved.completed_at)
 
     async def summary(self, user_id: uuid.UUID) -> SummaryResponse:
@@ -119,8 +120,7 @@ class MissionService:
         month = month or f"{today:%Y-%m}"
         year, mon = int(month[:4]), int(month[5:7])
         if not HISTORY_MIN_YEAR <= year <= today.year + 1:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            raise InvalidError(
                 detail=f"조회 연도는 {HISTORY_MIN_YEAR}~{today.year + 1} 사이여야 해요",
             )
         read_dates = set(await self.repo.list_dates(user_id, "read"))
@@ -181,12 +181,11 @@ class JeongseongService:
         today = self.today_fn()
         started_on = data.started_on or today
         if not today <= started_on <= today + timedelta(days=JEONGSEONG_START_WINDOW_DAYS):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            raise InvalidError(
                 detail=f"시작일은 오늘부터 {JEONGSEONG_START_WINDOW_DAYS}일 안이어야 해요",
             )
         if await self._resolve_active(user_id, today) is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 진행 중인 정성 기간이 있어요")
+            raise ConflictError(detail="이미 진행 중인 정성 기간이 있어요")
         if self.path_runs is not None:
             # 사용자 행을 잠근 뒤 7일 정성을 확인한다 — 잠금은 아래 create 커밋까지 유지돼 두 시작 경로가 직렬화된다.
             await self.path_runs.lock_user(user_id)
@@ -204,14 +203,14 @@ class JeongseongService:
             saved = await self.repo.create(period)
         except IntegrityError:
             # 동시 생성 경쟁 — 부분 unique 가 잡은 경우도 같은 409.
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 진행 중인 정성 기간이 있어요")
+            raise ConflictError(detail="이미 진행 중인 정성 기간이 있어요")
         return await self._to_response(saved, today)
 
     async def abandon(self, user_id: uuid.UUID) -> None:
         """DELETE — active 를 abandoned 로. 이미 끝난 기간은 completed 로 정리되므로 404."""
         period = await self._resolve_active(user_id, self.today_fn())
         if period is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="진행 중인 정성 기간이 없어요")
+            raise NotFoundError(detail="진행 중인 정성 기간이 없어요")
         await self._transition(period, "abandoned")
 
     async def active_period(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
@@ -271,24 +270,24 @@ class DailyReadingAdminService:
         start = start or self.today_fn()
         end = end or start + timedelta(days=DEFAULT_LIST_DAYS)
         if end < start:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="종료일이 시작일보다 앞섭니다")
+            raise InvalidError(detail="종료일이 시작일보다 앞섭니다")
         if (end - start).days > MAX_LIST_DAYS:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"조회 범위는 최대 {MAX_LIST_DAYS}일입니다"
+            raise InvalidError(
+                detail=f"조회 범위는 최대 {MAX_LIST_DAYS}일입니다"
             )
         return await self.repo.list_range(start, end)
 
     async def get(self, reading_id: uuid.UUID) -> DailyReading:
         reading = await self.repo.get_by_id(reading_id)
         if reading is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="편성을 찾을 수 없습니다")
+            raise NotFoundError(detail="편성을 찾을 수 없습니다")
         return reading
 
     async def create(self, data: DailyReadingAdminCreate, *, commit: bool = True) -> DailyReading:
         try:
             return await self.repo.create(DailyReading(**data.model_dump()), commit=commit)
         except IntegrityError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="그 날짜에는 이미 편성이 있어요")
+            raise ConflictError(detail="그 날짜에는 이미 편성이 있어요")
 
     async def update(self, reading_id: uuid.UUID, data: DailyReadingAdminUpdate, *, commit: bool = True) -> DailyReading:
         reading = await self.get(reading_id)
@@ -298,7 +297,7 @@ class DailyReadingAdminService:
         try:
             return await self.repo.save(reading, commit=commit)
         except IntegrityError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="그 날짜에는 이미 편성이 있어요")
+            raise ConflictError(detail="그 날짜에는 이미 편성이 있어요")
 
     async def create_with_audit(self, data: DailyReadingAdminCreate, audit: AdminService, actor_id: uuid.UUID) -> DailyReading:
         reading = await self.create(data, commit=False)
@@ -359,10 +358,10 @@ class DailyReadingCandidateService:
     ) -> DailyReadingCandidateResponse:
         text = query.strip()
         if not text:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="검색어를 입력해 주세요")
+            raise InvalidError(detail="검색어를 입력해 주세요")
         if min_len > max_len:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="최소 길이가 최대 길이보다 큽니다"
+            raise InvalidError(
+                detail="최소 길이가 최대 길이보다 큽니다"
             )
         limit = min(limit, MAX_CANDIDATE_LIMIT)
         top_k = min(limit * _CANDIDATE_OVERFETCH, _MAX_CANDIDATE_FETCH)
@@ -373,7 +372,7 @@ class DailyReadingCandidateService:
             )
         except httpx.HTTPError as exc:
             # 검색·임베딩은 외부 의존(Qdrant·Gemini)이다. 편성 화면이 500 대신 이유를 받게 한다.
-            raise HTTPException(
+            raise DomainError(
                 status_code=status.HTTP_502_BAD_GATEWAY, detail="말씀 검색에 실패했어요. 잠시 후 다시 시도해 주세요"
             ) from exc
 

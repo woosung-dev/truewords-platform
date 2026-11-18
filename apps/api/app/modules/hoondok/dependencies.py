@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.clock import today_kst
 from app.core.common.database import get_async_session
 from app.core.config import settings
-from app.core.common.ingestion_facade import IngestionJobRepository
+from app.modules.pipeline.facade import IngestionJobRepository
 from app.modules.chat.dependencies import get_chat_repository, get_ingestion_repository
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.service import ChatService

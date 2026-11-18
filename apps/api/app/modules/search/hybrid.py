@@ -14,7 +14,7 @@ from time import perf_counter
 from pydantic import ValidationError
 
 from app.core.common.gemini import embed_dense_query
-from app.modules.chat.trace import HybridCall, current_trace
+from app.core.common.trace import HybridCall, current_trace
 from app.core.config import settings
 from app.modules.pipeline.chunk_payload import QdrantChunkPayload
 from app.modules.pipeline.embedder import embed_sparse_async

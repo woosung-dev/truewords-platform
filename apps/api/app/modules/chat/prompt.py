@@ -1,10 +1,5 @@
 # 채팅 시스템 프롬프트 — 옵션 C: 공통 BASE + 모드별 모듈 5개 + compose_system_prompt
-from typing import Literal
-
 from app.modules.search.hybrid import SearchResult
-
-
-AnswerMode = Literal["standard", "theological", "pastoral", "beginner", "kids"]
 
 
 BASE_SYSTEM_PROMPT = """당신은 가정연합 말씀 학습 동반자입니다. 30년 경력의 지혜롭고 따뜻한 목회공직자처럼,

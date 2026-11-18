@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -25,7 +26,7 @@ def _read_module(rel_path: str) -> str:
 def test_chat_dependencies_uses_facade_for_ingestion_repo() -> None:
     """audit 2차 B-1: chat/dependencies 가 facade 만 import — pipeline 직접 X."""
     src = _read_module("chat/dependencies.py")
-    assert "from app.core.common.ingestion_facade import" in src, (
+    assert "from app.modules.pipeline.facade import" in src, (
         "audit 2차 B-1 — chat/dependencies 는 facade 경유해야 함"
     )
     assert "from app.modules.pipeline.ingestion_repository import" not in src, (
@@ -35,7 +36,7 @@ def test_chat_dependencies_uses_facade_for_ingestion_repo() -> None:
 
 def test_facade_re_exports_repo_and_factory() -> None:
     """audit 2차 B-1: facade 가 IngestionJobRepository + make_ingestion_repo 노출."""
-    from app.core.common.ingestion_facade import (  # noqa: F401
+    from app.modules.pipeline.facade import (  # noqa: F401
         IngestionJobRepository,
         make_ingestion_repo,
     )
@@ -64,4 +65,120 @@ def test_deprecated_qdrant_client_shim_removed() -> None:
     shim_path = _SRC / "qdrant_client.py"
     assert not shim_path.exists(), (
         "src/qdrant_client.py shim 은 제거되었다. 신규 코드는 `from app.modules.qdrant import ...` 사용."
+    )
+
+
+# ── 패키지 간 의존 방향 ratchet ──────────────────────────────────────────────
+# app/**/*.py 의 모든 import(함수 안 지연 import 포함)를 ast 로 읽어
+# `core` / `modules.<이름>` 사이 간선을 모은다. 허용 집합은 현재 코드의 스냅숏이다.
+# 새 간선은 추가하지 말고, 사라진 간선은 여기서 지운다.
+
+_APP = Path(__file__).resolve().parent.parent / "app"
+
+_ALLOWED_CORE_TO_MODULES = {
+    ("core", "modules.admin"),
+    ("core", "modules.chat"),
+    ("core", "modules.chatbot"),
+    ("core", "modules.datasource"),
+    ("core", "modules.hoondok"),
+    ("core", "modules.identity"),
+    ("core", "modules.safety"),
+    ("core", "modules.search"),
+}
+
+_ALLOWED_MODULES_TO_MODULES = {
+    ("modules.admin", "modules.chat"),
+    ("modules.admin", "modules.datasource"),
+    ("modules.admin", "modules.pipeline"),
+    ("modules.admin", "modules.qdrant"),
+    ("modules.admin", "modules.safety"),
+    ("modules.chat", "modules.admin"),
+    ("modules.chat", "modules.cache"),
+    ("modules.chat", "modules.chatbot"),
+    ("modules.chat", "modules.malssum"),
+    ("modules.chat", "modules.pipeline"),
+    ("modules.chat", "modules.qdrant"),
+    ("modules.chat", "modules.safety"),
+    ("modules.chat", "modules.search"),
+    ("modules.chatbot", "modules.admin"),
+    ("modules.chatbot", "modules.chat"),
+    ("modules.chatbot", "modules.qdrant"),
+    ("modules.datasource", "modules.admin"),
+    ("modules.datasource", "modules.chatbot"),
+    ("modules.datasource", "modules.qdrant"),
+    ("modules.hoondok", "modules.admin"),
+    ("modules.hoondok", "modules.chat"),
+    ("modules.hoondok", "modules.chatbot"),
+    ("modules.hoondok", "modules.datasource"),
+    ("modules.hoondok", "modules.identity"),
+    ("modules.hoondok", "modules.pipeline"),
+    ("modules.hoondok", "modules.qdrant"),
+    ("modules.hoondok", "modules.safety"),
+    ("modules.hoondok", "modules.search"),
+    ("modules.identity", "modules.admin"),
+    ("modules.identity", "modules.hoondok"),
+    ("modules.identity", "modules.safety"),
+    ("modules.search", "modules.pipeline"),
+    ("modules.search", "modules.qdrant"),
+}
+
+
+def _package_node(dotted: str) -> str | None:
+    """`app.core...` → "core", `app.modules.<이름>...` → "modules.<이름>", 그 밖은 None."""
+    parts = dotted.split(".")
+    if parts[:2] == ["app", "core"]:
+        return "core"
+    if parts[:2] == ["app", "modules"] and len(parts) >= 3:
+        return f"modules.{parts[2]}"
+    return None
+
+
+def _collect_edges() -> dict[tuple[str, str], set[str]]:
+    """(출발, 도착) 간선 → 그 간선을 만든 파일 경로들."""
+    edges: dict[tuple[str, str], set[str]] = {}
+    for path in sorted(_APP.rglob("*.py")):
+        rel = path.relative_to(_APP.parent)
+        source = _package_node(".".join(rel.with_suffix("").parts))
+        if source is None:
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                targets = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                # `from app.modules import chat` 처럼 이름 쪽이 패키지인 경우도 잡도록 이름까지 붙인다
+                targets = [f"{node.module}.{alias.name}" for alias in node.names]
+            else:
+                continue
+            for target in targets:
+                dest = _package_node(target)
+                if dest is not None and dest != source:
+                    edges.setdefault((source, dest), set()).add(str(rel))
+    return edges
+
+
+def _new_edges_message(
+    edges: dict[tuple[str, str], set[str]], allowed: set[tuple[str, str]]
+) -> str:
+    lines = [
+        f"{src} → {dst}: {', '.join(sorted(edges[(src, dst)]))}"
+        for src, dst in sorted(set(edges) - allowed)
+    ]
+    return "허용되지 않은 의존 간선이 생겼다:\n" + "\n".join(lines)
+
+
+def test_core_to_modules_edges_do_not_grow() -> None:
+    edges = {e: files for e, files in _collect_edges().items() if e[0] == "core"}
+    assert set(edges) <= _ALLOWED_CORE_TO_MODULES, _new_edges_message(
+        edges, _ALLOWED_CORE_TO_MODULES
+    )
+
+
+def test_modules_to_modules_edges_do_not_grow() -> None:
+    edges = {
+        e: files
+        for e, files in _collect_edges().items()
+        if e[0].startswith("modules.") and e[1].startswith("modules.")
+    }
+    assert set(edges) <= _ALLOWED_MODULES_TO_MODULES, _new_edges_message(
+        edges, _ALLOWED_MODULES_TO_MODULES
     )

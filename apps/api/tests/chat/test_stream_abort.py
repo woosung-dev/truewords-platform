@@ -93,10 +93,6 @@ class TestStreamAbortIntegration:
                 new_callable=AsyncMock,
                 return_value=([], "none"),
             ),
-            patch(
-                "app.modules.qdrant.factory.get_async_client",
-                return_value=MagicMock(),
-            ),
             caplog.at_level(logging.WARNING, logger="app.modules.chat.pipeline.state"),
         ):
             with pytest.raises(asyncio.CancelledError):

@@ -81,9 +81,8 @@ class TestCacheHitSkipsSearch:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_cache_miss_runs_full_pipeline(
-        self, mock_qdrant, mock_generate, mock_search, mock_embed,
+        self, mock_generate, mock_search, mock_embed,
     ) -> None:
         mock_embed.return_value = [0.1] * 3072
 
@@ -109,9 +108,8 @@ class TestCacheHitSkipsSearch:
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("app.modules.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("app.modules.qdrant.factory.get_async_client")
     async def test_no_cache_service_works(
-        self, mock_qdrant, mock_generate, mock_search, mock_embed,
+        self, mock_generate, mock_search, mock_embed,
     ) -> None:
         """cache_service=None 이면 캐시 없이 동작."""
         mock_embed.return_value = [0.1] * 3072

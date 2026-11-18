@@ -2,9 +2,9 @@
 
 import uuid
 
-from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.core.errors import ConflictError, NotFoundError
 from app.modules.datasource.models import DataSourceCategory
 from app.modules.datasource.repository import DataSourceCategoryRepository
 from app.modules.datasource.schemas import DataSourceCategoryCreate, DataSourceCategoryUpdate
@@ -32,8 +32,7 @@ class DataSourceCategoryService:
             category = await self.repo.create(category)
             await self.repo.commit()
         except IntegrityError:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+            raise ConflictError(
                 detail=f"이미 존재하는 key입니다: {data.key}",
             )
         return category
@@ -43,8 +42,7 @@ class DataSourceCategoryService:
     ) -> DataSourceCategory:
         category = await self.repo.get_by_id(category_id)
         if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail="카테고리를 찾을 수 없습니다",
             )
         updates = data.model_dump(exclude_unset=True)
@@ -56,8 +54,7 @@ class DataSourceCategoryService:
         """soft delete (is_active=False)."""
         category = await self.repo.get_by_id(category_id)
         if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+            raise NotFoundError(
                 detail="카테고리를 찾을 수 없습니다",
             )
         await self.repo.update(category, {"is_active": False})

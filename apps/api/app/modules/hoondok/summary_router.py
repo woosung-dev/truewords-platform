@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.modules.admin.dependencies import (
+    AdminPrincipal,
     get_current_admin,
     get_admin_service,
     verify_csrf,
@@ -23,6 +24,7 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
+    SummaryEvidenceSource,
     SummaryTocItem,
 )
 from typing import Literal
@@ -62,6 +64,18 @@ async def summary_detail(
 ):
     no_cache(response)
     return await svc.detail(unit_id)
+
+
+@router.get("/{unit_id}/evidence/{index}", response_model=SummaryEvidenceSource)
+async def summary_evidence_source(
+    unit_id: uuid.UUID,
+    index: int,
+    response: Response,
+    svc: SummaryService = Depends(service),
+):
+    """근거(0부터 순번) 한 건의 원문 미리보기 — 요약 화면을 떠나지 않고 근거를 확인한다."""
+    no_cache(response)
+    return await svc.evidence_source(unit_id, index)
 
 
 @router.get("/{unit_id}/media/{asset_id}")
@@ -106,7 +120,7 @@ async def create_summary(
     data: SummaryInput,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.create(data, audit, admin["user_id"])
 
@@ -117,7 +131,7 @@ async def update_summary(
     data: SummaryUpdate,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.update(unit_id, data, audit, admin["user_id"])
 
@@ -128,7 +142,7 @@ async def summary_action(
     data: SummaryActionInput,
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     return await svc.action(unit_id, data, audit, admin["user_id"])
 
@@ -141,7 +155,7 @@ async def upload_summary_image(
     file: UploadFile = File(...),
     svc: SummaryService = Depends(service),
     audit: AdminService = Depends(get_admin_service),
-    admin: dict = Depends(get_current_admin),
+    admin: AdminPrincipal = Depends(get_current_admin),
 ):
     blob = await file.read(10 * 1024 * 1024 + 1)
     return await svc.upload(unit_id, blob, audit, admin["user_id"])

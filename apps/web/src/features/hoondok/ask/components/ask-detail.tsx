@@ -19,6 +19,7 @@ import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
+import { LIBRARY_KEY, PUBLIC_QUESTIONS_KEY } from "../../query-keys";
 import { type AnswerMode, ASK_ERROR_MESSAGE, ASK_QUESTION_MAX, type AskErrorKind, askLength } from "../ask-stream";
 import { ASKS_KEY, askDetailKey, asksAPI, isSessionId } from "../asks-api";
 import { askFullDate, SOURCE_RANK_UNKNOWN, sourceFields, sourceLabel } from "../format";
@@ -208,7 +209,7 @@ function AskNoSources() {
 /** 원문을 열 수 있는 근거인지 — 권리 목록에서 전문 공개가 허용된 권만 링크를 단다. */
 function useOriginalLink(enabled: boolean) {
   const rights = useQuery({
-    queryKey: ["hoondok", "library"],
+    queryKey: LIBRARY_KEY,
     queryFn: libraryAPI.list,
     enabled,
     retry: false,
@@ -738,7 +739,7 @@ function PublicSection({
   const [notice, setNotice] = useState<"withdrawn" | "cancelled" | "blocked" | null>(null);
   const refresh = () => {
     onChanged();
-    void queryClient.invalidateQueries({ queryKey: ["hoondok", "public-questions"] });
+    void queryClient.invalidateQueries({ queryKey: PUBLIC_QUESTIONS_KEY });
   };
   const submit = useMutation({
     mutationFn: () => publicQuestionsAPI.submit(turn.messageId as string),

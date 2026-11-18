@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { EditorContent, EditorContext, useEditor, useEditorState, type JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import StarterKit from "@tiptap/starter-kit";
@@ -257,10 +257,12 @@ export function SummaryEditor({
     setDialog(null);
     setError("");
   }
+  // 편집기 인스턴스가 바뀔 때만 context 값을 새로 만든다.
+  const editorContext = useMemo(() => ({ editor }), [editor]);
   if (!editor)
     return <div className="min-h-[420px] rounded-lg border bg-muted animate-pulse" aria-label="편집기 불러오는 중" />;
   return (
-    <EditorContext.Provider value={{ editor }}>
+    <EditorContext.Provider value={editorContext}>
     <div className="summary-rich-editor admin-editor-embed simple-editor-wrapper">
       <Toolbar ref={toolbarRef} aria-label="본문 서식" data-mobile-view={isMobile ? mobileView : "main"}>
         {mobileView === "main" || !isMobile ? <>

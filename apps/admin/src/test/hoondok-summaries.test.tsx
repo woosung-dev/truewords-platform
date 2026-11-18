@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SummaryForm, SummaryList } from "@/features/hoondok/summaries/workspace";
+import { SummaryList } from "@/features/hoondok/summaries/summary-list";
+import { SummaryForm } from "@/features/hoondok/summaries/workspace";
 import { summariesAPI, type SummaryAdminResponse } from "@/features/hoondok/summaries/api";
 import { rightsAPI } from "@/features/hoondok/rights-api";
 import { ApiError } from "@/lib/api";

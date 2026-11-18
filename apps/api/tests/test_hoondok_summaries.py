@@ -632,3 +632,66 @@ async def test_update_with_same_source_range_skips_source_lookup():
     assert unit.draft["title"] == "제목만 수정"
     assert unit.draft["source"]["chunk_ids"] == ["c"]
     assert unit.draft["source"]["verified"] is True
+
+
+# --- 근거 원문 미리보기 (GET /hoondok/ai-summaries/{id}/evidence/{index})
+EVIDENCE_CHUNKS = [
+    "의 실존을 인식하려고 하면 무리입니다. (3-10, 57.9.8, p. 24)\n"
+    "5 인간은 누구나 자기가 태어나고 싶어서 태어난 사람이 없습니다. (67-267, 73.7.22, p. 24)\n"
+    "6 남자와 여자가 서로 만나 생활합니다. (67-268, 73.7.22, p. 24)",
+    "7 이 땅의 모든 것에는 원인이 있어야 됩니다. (28-282, 70.2.11)\n"
+    "8 하나님은 이 우주의 원인적인 존재입니다. (89-75, 76.7.11, p. 25)",
+]
+
+
+async def published_with_evidence(slug="cheon-01-01-01"):
+    from app.modules.qdrant import QdrantPoint
+
+    svc, _repo, unit, _data, _right = published_setup()
+    unit.slug = slug
+    unit.draft["slug"] = slug
+    unit.draft["evidence"] = [
+        {"claim": "결과에는 원인이 있다", "from": 5, "to": 7, "chunk_index": 13},
+        {"claim": "단락 없음", "from": 9, "to": 9},
+    ]
+    await svc.action(unit.id, SummaryActionInput(action="publish", version=unit.version), AsyncMock(), uuid.uuid4())
+    client = AsyncMock()
+    svc.source_client = client
+    points = [(12, "앞 청크 꼬리"), (13, EVIDENCE_CHUNKS[0]), (14, EVIDENCE_CHUNKS[1])]
+    client.scroll.return_value = (
+        [QdrantPoint(id=str(uuid.uuid4()), score=0, payload={"text": t, "chunk_index": i}) for i, t in points],
+        None,
+    )
+    return svc, unit, client
+
+
+@pytest.mark.asyncio
+async def test_evidence_source_cuts_exact_range_from_one_chunk_before():
+    svc, unit, client = await published_with_evidence()
+    got = await svc.evidence_source(unit.id, 0)
+    assert got.exact is True
+    assert [p.split(" ")[0] for p in got.paragraphs] == ["5", "6", "7"]
+    # 저장된 시작 청크는 실데이터에서 한 칸 늦을 수 있어 한 칸 앞부터 읽는다
+    query = client.scroll.call_args.kwargs["scroll_filter"]["must"][1]["range"]
+    assert query["gte"] == 12
+
+
+@pytest.mark.asyncio
+async def test_evidence_source_falls_back_for_unnumbered_work_and_404s_unlinked():
+    svc, unit, _client = await published_with_evidence(slug="peace-01-01")
+    got = await svc.evidence_source(unit.id, 0)
+    assert got.exact is False
+    assert "인식하려고" in got.paragraphs[0]
+    for index in (1, 2, -1):
+        with pytest.raises(HTTPException) as error:
+            await svc.evidence_source(unit.id, index)
+        assert error.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_evidence_source_reports_source_failure_as_503():
+    svc, unit, client = await published_with_evidence()
+    client.scroll.side_effect = RuntimeError("down")
+    with pytest.raises(HTTPException) as error:
+        await svc.evidence_source(unit.id, 0)
+    assert error.value.status_code == 503

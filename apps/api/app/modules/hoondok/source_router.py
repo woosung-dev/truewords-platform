@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.core.config import settings
-from app.modules.admin.dependencies import get_current_admin, get_admin_service, verify_csrf
+from app.modules.admin.dependencies import AdminPrincipal, get_current_admin, get_admin_service, verify_csrf
 from app.modules.admin.service import AdminService
 from app.modules.qdrant import get_raw_client
 from app.modules.hoondok.source_repository import SourceRepository
@@ -56,24 +56,24 @@ async def source_range(range_id: uuid.UUID, response: Response, svc: SourceServi
 
 
 @router.post('/source-ranges', response_model=SourceRangeResult, status_code=201)
-async def create_range(data: SourceRangeInput, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: dict = Depends(get_current_admin)):
+async def create_range(data: SourceRangeInput, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: AdminPrincipal = Depends(get_current_admin)):
     private(response)
     return await svc.create_range(data, audit, admin['user_id'])
 
 
 @router.put('/source-ranges/{range_id}', response_model=SourceRangeResult)
-async def update_range(range_id: uuid.UUID, data: SourceRangeUpdate, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: dict = Depends(get_current_admin)):
+async def update_range(range_id: uuid.UUID, data: SourceRangeUpdate, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: AdminPrincipal = Depends(get_current_admin)):
     private(response)
     return await svc.update_range(range_id, data, audit, admin['user_id'])
 
 
 @router.post('/source-ranges/{range_id}/split', response_model=list[SourceRangeResult])
-async def split_range(range_id: uuid.UUID, data: SourceRangeSplit, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: dict = Depends(get_current_admin)):
+async def split_range(range_id: uuid.UUID, data: SourceRangeSplit, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: AdminPrincipal = Depends(get_current_admin)):
     private(response)
     return await svc.split(range_id, data, audit, admin['user_id'])
 
 
 @router.post('/source-ranges/{range_id}/merge', response_model=SourceRangeResult)
-async def merge_ranges(range_id: uuid.UUID, data: SourceRangeMerge, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: dict = Depends(get_current_admin)):
+async def merge_ranges(range_id: uuid.UUID, data: SourceRangeMerge, response: Response, svc: SourceService = Depends(service), audit: AdminService = Depends(get_admin_service), admin: AdminPrincipal = Depends(get_current_admin)):
     private(response)
     return await svc.merge(range_id, data, audit, admin['user_id'])

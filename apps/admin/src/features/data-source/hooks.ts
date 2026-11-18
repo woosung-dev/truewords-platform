@@ -69,6 +69,11 @@ export function useRemoveVolumeTagsBulk() {
   });
 }
 
+export const ingestStatusQuery = queryOptions({
+  queryKey: ["ingest-status"],
+  queryFn: dataAPI.getStatus,
+});
+
 export function useIngestionJobs() {
   return useQuery<IngestionJobInfo[]>({
     queryKey: ["ingestion-jobs"],

@@ -101,7 +101,6 @@ async def test_intent_drives_rerank_and_generation_K(
     reranked_results = _make_results(expected_rerank_top_k)
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch(
             "app.modules.chat.pipeline.stages.intent_classifier.classify_intent",
             new_callable=AsyncMock,
@@ -149,7 +148,6 @@ async def test_meta_intent_short_circuits_pipeline() -> None:
     service, _ = _make_service()
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch(
             "app.modules.chat.pipeline.stages.intent_classifier.classify_intent",
             new_callable=AsyncMock,
@@ -216,7 +214,6 @@ async def test_disabled_intent_classifier_uses_default_K() -> None:
     service = ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service)
 
     with (
-        patch("app.modules.qdrant.factory.get_async_client"),
         patch(
             "app.modules.chat.pipeline.stages.intent_classifier.classify_intent",
             new_callable=AsyncMock,

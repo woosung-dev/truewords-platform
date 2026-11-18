@@ -18,7 +18,7 @@ from google.genai import types
 from app.core.common.gemini_client import get_client
 from app.core.config import settings
 # 관리자 rag-trace 수집기. 꺼져 있으면 훅 비용은 ContextVar.get() 1회다.
-from app.modules.chat.trace import current_trace
+from app.core.common.trace import current_trace
 
 # 싱글턴 — retry_429=True (SDK 기본, 429 포함 재시도). chat 생성/쿼리 임베딩 전용.
 _client = get_client()

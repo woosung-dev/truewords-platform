@@ -74,6 +74,18 @@ export function SourcePicker({
     await passages(info);
     setRanges(await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`));
   }
+  // 저장한 구간의 첫·끝 블록을 함께 조회한다.
+  async function rangeEdges(snapshotId: string, range: SourceRangeResult) {
+    const [first, last] = await Promise.all([
+      fetchAPI<SourcePassages>(
+        `/admin/hoondok/source-snapshots/${snapshotId}/passages?start_block_id=${range.start_block_id}&limit=1`,
+      ),
+      fetchAPI<SourcePassages>(
+        `/admin/hoondok/source-snapshots/${snapshotId}/passages?start_block_id=${range.end_block_id}&limit=1`,
+      ),
+    ]);
+    return { first, last };
+  }
   function select(block: SourceBlock) {
     const selection = window.getSelection();
     if (
@@ -127,12 +139,7 @@ export function SourcePicker({
   async function restoreRange(range: SourceRangeResult) {
     if (!snapshot || snapshot.id !== range.snapshot_id)
       throw new Error("원문이 갱신됐어요. 범위를 다시 선택해 주세요.");
-    const first = await fetchAPI<SourcePassages>(
-      `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${range.start_block_id}&limit=1`,
-    );
-    const last = await fetchAPI<SourcePassages>(
-      `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${range.end_block_id}&limit=1`,
-    );
+    const { first, last } = await rangeEdges(snapshot.id, range);
     setStart(first.blocks[0]);
     setEnd(last.blocks[0]);
     setStartOffset(range.start_offset ?? 0);
@@ -343,12 +350,7 @@ export function SourcePicker({
                     void task(async () => {
                       if (!snapshot || snapshot.id !== r.snapshot_id)
                         throw new Error("원문이 갱신됐어요. 현재 원문에서 범위를 다시 선택해 주세요.");
-                      const first = await fetchAPI<SourcePassages>(
-                        `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${r.start_block_id}&limit=1`,
-                      );
-                      const last = await fetchAPI<SourcePassages>(
-                        `/admin/hoondok/source-snapshots/${snapshot.id}/passages?start_block_id=${r.end_block_id}&limit=1`,
-                      );
+                      const { first, last } = await rangeEdges(snapshot.id, r);
                       setStart(first.blocks[0]);
                       setEnd(last.blocks[0]);
                       setStartOffset(r.start_offset ?? 0);
