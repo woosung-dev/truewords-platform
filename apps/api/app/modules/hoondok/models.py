@@ -380,6 +380,16 @@ class PublicQuestionAsk(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class PublicQuestionBookmark(SQLModel, table=True):
+    """계정이 담아 둔 공개 질문(추천 질문 북마크). 인기도에는 반영하지 않는다."""
+
+    __tablename__ = "hoondok_public_question_bookmarks"
+
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True, index=True)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 # --- AI 질문 계정 보관·하루 횟수 (DEC-PWA-025 2차) ------------------------------------
 # 질문·답 원문은 chat 도메인(research_sessions·session_messages)에 이미 남는다. 그 테이블은 시연 챗과 함께 쓰므로
 # 훈독 전용 메타(저장 표시·화면에 보인 근거·횟수)는 여기 따로 둔다. 세션 소유는 research_sessions.user_id(훈독 user id)다.

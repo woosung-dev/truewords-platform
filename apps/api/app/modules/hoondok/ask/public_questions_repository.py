@@ -19,7 +19,7 @@ from sqlmodel import select
 
 from app.core.common.clock import utcnow
 from app.modules.chat.models import AnswerCitation, MessageRole, ResearchSession, SessionMessage
-from app.modules.hoondok.models import PublicQuestion, PublicQuestionAsk, PublicQuestionView
+from app.modules.hoondok.models import PublicQuestion, PublicQuestionAsk, PublicQuestionBookmark, PublicQuestionView
 
 # 인기도 = 조회 수 + 가중치 × 질문 수. 질문(새로 물어 답을 받음)이 조회보다 강한 관심 신호라 3배로 센다.
 POPULARITY_ASK_WEIGHT = 3
@@ -237,9 +237,54 @@ class PublicQuestionRepository:
             await self.session.rollback()
             return False
 
+    # --- 북마크 -------------------------------------------------------------------
+
+    async def add_bookmark(self, question_id: str, user_id: uuid.UUID) -> None:
+        """멱등 — 이미 있으면 그대로 둔다. 커밋한다."""
+        try:
+            await self.session.execute(
+                self._insert()(PublicQuestionBookmark)
+                .values(question_id=question_id, user_id=user_id, created_at=utcnow())
+                .on_conflict_do_nothing()
+            )
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+
+    async def remove_bookmark(self, question_id: str, user_id: uuid.UUID) -> None:
+        """멱등 — 없어도 오류가 아니다. 커밋한다."""
+        await self.session.execute(
+            delete(PublicQuestionBookmark)
+            .where(PublicQuestionBookmark.question_id == question_id, PublicQuestionBookmark.user_id == user_id)
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.commit()
+
+    async def bookmarked_ids(self, user_id: uuid.UUID, question_ids: list[str]) -> set[str]:
+        """주어진 질문 중 내가 담은 것 — 한 번의 쿼리."""
+        if not question_ids:
+            return set()
+        result = await self.session.execute(
+            select(PublicQuestionBookmark.question_id).where(
+                PublicQuestionBookmark.user_id == user_id, PublicQuestionBookmark.question_id.in_(question_ids)
+            )
+        )
+        return set(result.scalars().all())
+
+    async def list_bookmarked(self, user_id: uuid.UUID, limit: int) -> list[PublicQuestion]:
+        """내가 담은 공개(published) 질문 — 최근에 담은 순."""
+        result = await self.session.execute(
+            select(PublicQuestion)
+            .join(PublicQuestionBookmark, PublicQuestionBookmark.question_id == PublicQuestion.id)
+            .where(PublicQuestionBookmark.user_id == user_id, PublicQuestion.status == "published")
+            .order_by(PublicQuestionBookmark.created_at.desc(), PublicQuestion.id.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def _delete_children(self, question_ids) -> None:
         """조회·질문 중복 방지 행을 먼저 지운다(DB cascade 에 기대지 않는다). 커밋하지 않는다."""
-        for model in (PublicQuestionView, PublicQuestionAsk):
+        for model in (PublicQuestionView, PublicQuestionAsk, PublicQuestionBookmark):
             await self.session.execute(
                 delete(model).where(model.question_id.in_(question_ids)).execution_options(synchronize_session=False)
             )
@@ -259,6 +304,11 @@ class PublicQuestionRepository:
         await self._delete_children(mine)
         await self.session.execute(
             delete(PublicQuestionAsk).where(PublicQuestionAsk.user_id == user_id).execution_options(synchronize_session=False)
+        )
+        await self.session.execute(
+            delete(PublicQuestionBookmark)
+            .where(PublicQuestionBookmark.user_id == user_id)
+            .execution_options(synchronize_session=False)
         )
         await self.session.execute(
             delete(PublicQuestionView)

@@ -22,6 +22,7 @@ from app.modules.chat.models import (
     SearchEvent,
     SessionMessage,
 )
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, PublicQuestion
 
 
@@ -85,6 +86,10 @@ class AskRepository:
         if await self.session.get(AskTurn, turn.message_id) is None:
             self.session.add(turn)
         await self.session.commit()
+
+    async def count_public_ask(self, question_id: str, user_id: uuid.UUID) -> bool:
+        """공개 질문의 ask_count 를 계정당 1회 올린다(공개 중일 때만). 커밋한다."""
+        return await PublicQuestionRepository(self.session).record_ask(question_id, user_id)
 
     async def rollback(self) -> None:
         await self.session.rollback()

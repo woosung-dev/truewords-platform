@@ -34,6 +34,7 @@ from app.modules.hoondok.ask.public_questions_schemas import (
     MyPublicQuestionListResponse,
     PublicQuestionAdminItem,
     PublicQuestionAdminListResponse,
+    PublicQuestionBookmarkListResponse,
     PublicQuestionDetail,
     PublicQuestionListResponse,
     PublicQuestionPinsReorder,
@@ -191,26 +192,31 @@ class PublicQuestionService:
             raise NotFoundError(NOT_FOUND)
         return row
 
-    async def list_public(self, q: str | None, cursor: str | None, limit: int) -> PublicQuestionListResponse:
+    @staticmethod
+    def _summary(r: PublicQuestion, bookmarked: bool) -> PublicQuestionSummary:
+        return PublicQuestionSummary(
+            id=r.id,
+            question=r.question,
+            preview=make_preview(r.answer_md),
+            answer_mode=r.answer_mode,  # type: ignore[arg-type]
+            published_at=_published_at(r),
+            pinned=r.pin_order is not None,
+            view_count=r.view_count,
+            bookmarked=bookmarked,
+        )
+
+    async def list_public(
+        self, q: str | None, cursor: str | None, limit: int, user_id: uuid.UUID | None = None
+    ) -> PublicQuestionListResponse:
         """cursor 는 불투명 문자열(offset). 숫자가 아니면 422 — 예전 keyset cursor(질문 id)도 422 다."""
         offset = _parse_cursor(cursor)
         keyword = (q or "").strip() or None
         rows = await self.repo.list_published(keyword, offset, limit + 1)
         has_more = len(rows) > limit
         rows = rows[:limit]
+        mine = await self.repo.bookmarked_ids(user_id, [r.id for r in rows]) if user_id else set()
         return PublicQuestionListResponse(
-            items=[
-                PublicQuestionSummary(
-                    id=r.id,
-                    question=r.question,
-                    preview=make_preview(r.answer_md),
-                    answer_mode=r.answer_mode,  # type: ignore[arg-type]
-                    published_at=_published_at(r),
-                    pinned=r.pin_order is not None,
-                    view_count=r.view_count,
-                )
-                for r in rows
-            ],
+            items=[self._summary(r, r.id in mine) for r in rows],
             next_cursor=str(offset + limit) if has_more else None,
         )
 
@@ -225,8 +231,22 @@ class PublicQuestionService:
             return
         await self.repo.record_view(question_id, key, self.today_fn())
 
-    async def get_public(self, question_id: str) -> PublicQuestionDetail:
+    async def put_bookmark(self, user_id: uuid.UUID, question_id: str) -> None:
+        """멱등. published 가 아니면 404."""
+        await self._published(question_id)
+        await self.repo.add_bookmark(question_id, user_id)
+
+    async def delete_bookmark(self, user_id: uuid.UUID, question_id: str) -> None:
+        """멱등. 공개가 내려간 질문의 남은 북마크도 지울 수 있게 상태·존재를 확인하지 않는다."""
+        await self.repo.remove_bookmark(question_id, user_id)
+
+    async def list_bookmarks(self, user_id: uuid.UUID, limit: int) -> PublicQuestionBookmarkListResponse:
+        rows = await self.repo.list_bookmarked(user_id, limit)
+        return PublicQuestionBookmarkListResponse(items=[self._summary(r, True) for r in rows])
+
+    async def get_public(self, question_id: str, user_id: uuid.UUID | None = None) -> PublicQuestionDetail:
         row = await self._published(question_id)
+        bookmarked = user_id is not None and row.id in await self.repo.bookmarked_ids(user_id, [row.id])
         return PublicQuestionDetail(
             id=row.id,
             question=row.question,
@@ -234,6 +254,7 @@ class PublicQuestionService:
             sources=_sources(row),
             answer_mode=row.answer_mode,  # type: ignore[arg-type]
             published_at=_published_at(row),
+            bookmarked=bookmarked,
         )
 
 

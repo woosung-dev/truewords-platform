@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.chat.schemas import Source
 from app.modules.chat.types import AnswerMode
@@ -23,6 +23,9 @@ class AskRequest(BaseModel):
     session_id: uuid.UUID | None = None
     # 없으면 자동 — 서버가 질문을 보고 고른다.
     answer_mode: AnswerMode | None = None
+    # 공개 질문을 보고 새로 묻는 경우 그 질문 id(slug). 새 대화에서 답이 기록되면 해당 질문의 질문 수에 계정당 1회 반영한다.
+    # 없는·비공개 id 는 조용히 무시한다(질문 흐름을 막지 않는다). 이어 묻기(session_id)에서는 무시한다.
+    public_question_id: str | None = Field(default=None, max_length=16)
 
 
 class AskQuota(BaseModel):

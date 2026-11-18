@@ -62,6 +62,7 @@ class PublicQuestionSummary(BaseModel):
     published_at: datetime
     pinned: bool  # 관리자가 고정한 질문
     view_count: int
+    bookmarked: bool = False  # 로그인한 내가 담았는가(익명은 항상 false)
 
 
 class PublicQuestionListResponse(BaseModel):
@@ -71,6 +72,12 @@ class PublicQuestionListResponse(BaseModel):
     next_cursor: str | None
 
 
+class PublicQuestionBookmarkListResponse(BaseModel):
+    """내가 담은 공개 질문 — 최근에 담은 순, 아직 공개 중인 것만. 모든 항목이 bookmarked=true."""
+
+    items: list[PublicQuestionSummary]
+
+
 class PublicQuestionDetail(BaseModel):
     id: str
     question: str
@@ -78,6 +85,7 @@ class PublicQuestionDetail(BaseModel):
     sources: list[PublicQuestionSource]
     answer_mode: AnswerMode
     published_at: datetime
+    bookmarked: bool = False
 
 
 # --- admin ---------------------------------------------------------------------
