@@ -1,13 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { SummaryDetail } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
+import { libraryAPI } from "../library/api";
 import { summariesAPI } from "./api";
 import { SummaryMarks } from "./marks";
 import { AI_NOTICE, readingMinutes, SummaryDetailScreen, SummaryListScreen } from "./screens";
 
 vi.mock("./api", () => ({ summariesAPI: { list: vi.fn(), detail: vi.fn() } }));
+vi.mock("../library/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../library/api")>();
+  return { ...actual, libraryAPI: { ...actual.libraryAPI, words: vi.fn() } };
+});
 
 function wrap(node: ReactNode) {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{node}</QueryClientProvider>);
@@ -87,6 +92,41 @@ it("근거에 단락이 연결돼 있으면 그 단락으로, 없으면 장 첫�
   wrap(<SummaryDetailScreen id="one" />);
   expect(await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?chunk_id=c-13");
   expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
+});
+
+it("근거를 누르면 요약을 떠나지 않고 시작 단락을 시트로 보여주고, 닫으면 주소를 되돌린다", async () => {
+  window.history.replaceState(null, "", "/summaries/one");
+  vi.mocked(summariesAPI.detail).mockResolvedValue({
+    ...detail,
+    evidence: [
+      { claim: "첫 근거", from: 5, to: 7, chunk_index: 13, chunk_id: "c-13" },
+      { claim: "단락 없음", from: 9, to: 9 },
+      { claim: "둘째 근거", from: 10, to: 10, chunk_index: 18, chunk_id: "c-18" },
+    ],
+  });
+  const chunks = Array.from({ length: 20 }, (_, i) => ({ chunk_id: `c-${i}`, chunk_index: i, display_text: `단락 본문 ${i}`, text: "" }));
+  vi.mocked(libraryAPI.words).mockResolvedValue({ authority_grade: "O1", body: "", chunks, page: 1, page_size: 20, total_chunks: 40, total_pages: 2, volume: "천성경.pdf", work_title: "천성경" });
+  wrap(<SummaryDetailScreen id="one" />);
+  const link = await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" });
+  // 보조키 클릭은 가로채지 않는다(새 탭 열기)
+  fireEvent.click(link, { metaKey: true });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(link);
+  const sheet = await screen.findByRole("dialog", { name: "말씀 5–7" });
+  expect(window.location.search).toBe("?ev=1");
+  expect(await within(sheet).findByText("단락 본문 13")).toBeInTheDocument();
+  expect(within(sheet).queryByText("단락 본문 14")).not.toBeInTheDocument();
+  expect(vi.mocked(libraryAPI.words)).toHaveBeenCalledWith("천성경.pdf", 1, {}, expect.anything());
+  fireEvent.click(within(sheet).getByRole("button", { name: "다음 단락 이어 보기" }));
+  expect(await within(sheet).findByText("단락 본문 14")).toBeInTheDocument();
+  // 단락 없는 근거는 건너뛰고 다음 근거로 넘긴다
+  fireEvent.click(within(sheet).getByRole("button", { name: "다음 근거" }));
+  expect(await screen.findByRole("dialog", { name: "말씀 10" })).toBeInTheDocument();
+  expect(await screen.findByText("단락 본문 18")).toBeInTheDocument();
+  expect(window.location.search).toBe("?ev=2");
+  fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  await waitFor(() => expect(window.location.search).toBe(""));
 });
 
 it("평화경은 위치를 편 › 연설문(날짜)로 보이고 근거를 문단 번호로 읽는다", async () => {

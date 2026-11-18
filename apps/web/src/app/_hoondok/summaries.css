@@ -88,6 +88,38 @@
   [data-app="hoondok"] .sum-evidence a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 
+/* 지금 미리보기로 열린 근거 — 글자 자리를 밀지 않게 왼쪽 바깥에 선을 긋는다 */
+[data-app="hoondok"] .sum-evidence li { position: relative; }
+[data-app="hoondok"] .sum-evidence li.is-open::before { content: ""; position: absolute; left: -12px; top: 14px; bottom: 12px; width: 3px; border-radius: var(--r-full); background: var(--accent); }
+
+/* ---------- 근거 원문 미리보기 (넓은 화면 패널 · 좁은 화면 시트 공통 본문) ---------- */
+@keyframes sum-ev-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+[data-app="hoondok"] .sum-ev__claim { margin: 12px 0 4px; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.65; }
+[data-app="hoondok"] .sum-ev__note { margin: 0 0 12px; color: var(--ink-3); font-size: var(--fs-xs); }
+[data-app="hoondok"] .sum-ev__text { padding-top: 12px; border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-ev__text p { margin: 0 0 14px; font-size: var(--fs-lg); line-height: 1.85; white-space: pre-line; }
+[data-app="hoondok"] .sum-ev__err { color: var(--ink-2); }
+[data-app="hoondok"] .sum-ev__skel { display: grid; gap: 10px; padding: 4px 0 14px; }
+[data-app="hoondok"] .sum-ev__skel i { display: block; height: 14px; border-radius: var(--r-xs); background: var(--surface-2); }
+[data-app="hoondok"] .sum-ev__skel i:last-child { width: 60%; }
+[data-app="hoondok"] .sum-ev__more { min-height: 44px; padding: 0; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+[data-app="hoondok"] .sum-ev__open { display: flex; align-items: center; gap: 2px; min-height: 44px; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
+[data-app="hoondok"] .sum-ev__nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+[data-app="hoondok"] .sum-ev__nav button { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 6px; color: var(--ink); font-size: var(--fs-sm); font-weight: 600; }
+[data-app="hoondok"] .sum-ev__nav button:disabled { color: var(--ink-3); opacity: 0.45; cursor: default; }
+[data-app="hoondok"] .sum-ev__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+[data-app="hoondok"] .sum-ev__head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 700; }
+[data-app="hoondok"] .sum-ev__head h2:focus { outline: none; }
+[data-app="hoondok"] .sum-ev__close { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; border-radius: var(--r-full); color: var(--ink-2); }
+[data-app="hoondok"] .sum-ev--panel { position: sticky; top: 150px; max-height: calc(100dvh - 170px); overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--shadow-2); animation: sum-ev-in 0.25s ease-out; }
+@media (hover: hover) {
+  [data-app="hoondok"] .sum-ev__close:hover, [data-app="hoondok"] .sum-ev__nav button:not(:disabled):hover { background: var(--surface-2); }
+  [data-app="hoondok"] .sum-ev__open:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-app="hoondok"] .sum-ev--panel { animation: none; }
+}
+
 /* ---------- 되새길 물음 · 원문 · 이동 ---------- */
 [data-app="hoondok"] .sum-reflection { margin: 40px 0 0; padding: 20px; border-radius: var(--r-sm); background: var(--surface-2); }
 [data-app="hoondok"] .sum-reflection h3 { margin: 0 0 8px; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 650; }
@@ -133,6 +165,9 @@
   [data-app="hoondok"] .sum-main { grid-column: 2; }
   [data-app="hoondok"] .sum-aside { display: block; grid-column: 3; max-width: 232px; }
   [data-app="hoondok"] .sum-toc { position: sticky; top: 150px; max-height: calc(100dvh - 170px); overflow-y: auto; padding-top: 6px; }
+  /* 근거 미리보기가 열리면 목차 자리를 패널로 넓힌다 — 본문은 가운데에서 조금 왼쪽으로 줄어든다 */
+  [data-app="hoondok"] .sum-layout.has-ev { grid-template-columns: minmax(0, 1fr) minmax(0, 680px) minmax(320px, 400px); gap: 40px; }
+  [data-app="hoondok"] .sum-layout.has-ev .sum-aside { max-width: none; }
   [data-app="hoondok"] .sum-zoom { padding: 56px 24px 20px; }
 }
 
