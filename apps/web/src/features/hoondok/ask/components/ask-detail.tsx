@@ -1,14 +1,15 @@
 "use client";
 
-// 질문·답변 상세 — 제목·날짜 → 답한 모델(변경) → 핵심 근거 → 답 → 근거 말씀 → 저장·공유·다시 → 공개 → 이어서 한 질문들
-// → 관련 질문 → 하단 고정 "이어서 질문하기"(같은 session_id 로 잇는다).
+// 질문·답변 상세 — 제목·날짜(+ 오른쪽 북마크·공유) → 답한 모델(변경) → 핵심 근거 → 답 → 근거 말씀 → 다시 묻기 → 공개
+// → 이어서 한 질문들 → 관련 질문 → 하단 고정 "이어서 질문하기"(같은 session_id 로 잇는다).
+// 북마크는 계정 기록의 saved 다(API 이름만 saved, 화면 이름은 북마크). 앱바에 행동 자리가 없어 본문 메타 줄 오른쪽에 둔다.
 // 원본은 계정에 보관된 대화(`GET /hoondok/me/asks/{session_id}`)다. 지금 답을 받는 중인 질문만 메모리(live.ts)에서 그린다 —
 // 새 질문은 임시 주소(`/ask/live-…`)로 열렸다가 답이 끝나 대화 id 를 받으면 그 주소로 바꿔 낀다.
 // 근거 게이트(AC-017-01·04): sources 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다. 이어서 한 턴도 같다.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { MyAskDetail, MyAskTurn, Source } from "@truewords/api-client-ts/types";
-import { ArrowUp, ChevronRight, MessageCircleQuestion, PenLine, RotateCcw, Share2, Sparkles, Star } from "lucide-react";
+import { ArrowUp, ChevronRight, MessageCircleQuestion, PenLine, RotateCcw, Share2, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,11 +18,13 @@ import { HoondokButton, HoondokMascot } from "@/components/hoondok";
 import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
+import { ReaderToast, useReaderToast } from "@/features/hoondok/library/components/reader-toast";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { LIBRARY_KEY, PUBLIC_QUESTIONS_KEY } from "../../query-keys";
 import { type AnswerMode, ASK_ERROR_MESSAGE, ASK_QUESTION_MAX, type AskErrorKind, askLength } from "../ask-stream";
 import { ASKS_KEY, askDetailKey, asksAPI, isSessionId } from "../asks-api";
+import { useBookmarkToggle } from "../bookmarks";
 import { askFullDate, SOURCE_RANK_UNKNOWN, sourceFields, sourceLabel } from "../format";
 import { useClearLegacyAskItems } from "../legacy";
 import {
@@ -41,6 +44,7 @@ import { type AnswerChoice, answeredByLabel, answerModeInfo } from "../modes";
 import { PUBLIC_STATUS_LABEL, publicQuestionsAPI } from "../public-api";
 import { AskLoginGate, AskQuotaNote, DAILY_LIMIT_DONE, useAskQuota } from "./ask-gate";
 import { askNewReturnHref, keepDraft } from "./ask-new";
+import { BookmarkButton } from "./bookmark-button";
 import { ModeSheet } from "./mode-sheet";
 
 // react-markdown(unified·micromark) 은 답이 있을 때만 받는다 — 대기·근거 없음 화면의 첫 로드 JS 에서 뺀다.
@@ -53,7 +57,6 @@ const GATE_MESSAGE = "근거 말씀을 찾지 못했어요. 다른 표현으로 
 // 사용자가 스스로 멈춘 것은 실패가 아니지만, 다시 물어볼 길은 오류 카드(입력 보존 + 다시 시도)와 같다.
 const STOPPED_MESSAGE = "질문을 그만뒀어요. 다시 시도하면 처음부터 찾아요";
 const BLOCKED_MESSAGE = "이 답은 공개할 수 없어요. 마음 돌봄·위기 안내로 답했거나 근거를 다시 확인할 수 없는 답이에요.";
-const SHARE_VISIBLE_MS = 2200;
 /** 횟수를 다 써서 막힌 버튼이 이유를 가리키는 안내 id. */
 const QUOTA_REASON_ID = "ask-quota-reason";
 /** 제목을 3줄로 접는 기준 `[가정]` — 글자 수·줄 수로 어림한다(390px 에서 3줄 ≈ 60~70자). */
@@ -318,7 +321,8 @@ export function AskDetail({ id }: { id: string }) {
     retry: false,
   });
   const quota = useAskQuota(isLoggedIn);
-  const [shareTick, setShareTick] = useState(0);
+  const toast = useReaderToast();
+  const bookmarks = useBookmarkToggle({ showToast: toast.show, returnTo: `/ask/${id}` });
   const [isModeSheetOpen, setIsModeSheetOpen] = useState(false);
   const [followup, setFollowup] = useState("");
   const followupRef = useRef<HTMLInputElement>(null);
@@ -340,12 +344,6 @@ export function AskDetail({ id }: { id: string }) {
     if (nextSession) router.replace(`/ask/${nextSession}`);
   }, [nextSession, router]);
 
-  useEffect(() => {
-    if (shareTick === 0) return;
-    const timer = window.setTimeout(() => setShareTick(0), SHARE_VISIBLE_MS);
-    return () => window.clearTimeout(timer);
-  }, [shareTick]);
-
   // 이어서 질문을 보내면 새 턴으로 내려간다. 처음 열 때(기존 턴)는 움직이지 않는다.
   useEffect(() => {
     if (turnCountRef.current !== null && rest.length > turnCountRef.current) {
@@ -353,14 +351,6 @@ export function AskDetail({ id }: { id: string }) {
     }
     turnCountRef.current = rest.length;
   }, [rest.length]);
-
-  const saveMutation = useMutation({
-    mutationFn: (saved: boolean) => asksAPI.setSaved(id, saved),
-    onSuccess: (next) => {
-      queryClient.setQueryData(askDetailKey(id), next);
-      void queryClient.invalidateQueries({ queryKey: ASKS_KEY });
-    },
-  });
 
   if (!isLoggedIn && !isUserLoading) {
     return (
@@ -454,7 +444,8 @@ export function AskDetail({ id }: { id: string }) {
         return;
       }
       await navigator.clipboard.writeText(text);
-      setShareTick((tick) => tick + 1);
+      // 비공개 기록이라 주소가 아니라 질문과 답 글을 복사한다
+      toast.show("질문과 답을 복사했어요");
     } catch {
       // 사용자가 공유 시트를 닫았거나 클립보드 권한이 없으면 조용히 둔다
     }
@@ -463,13 +454,31 @@ export function AskDetail({ id }: { id: string }) {
   return (
     <section className={`col col--read ask-detail${canFollowUp ? " ask-detail--follow" : ""}`}>
       <AskTitle question={first.question} />
-      <div className="ask-q__meta">
-        <span className="ask-q__date">{askFullDate(createdAt)}</span>
-        {saved && <span className="badge">저장됨</span>}
-        {first.publicStatus && (
-          <span className={`badge ${first.publicStatus === "published" ? "badge--accent" : "badge--line"}`}>
-            {PUBLIC_STATUS_LABEL[first.publicStatus]}
-          </span>
+      <div className="ask-head">
+        <div className="ask-q__meta">
+          <span className="ask-q__date">{askFullDate(createdAt)}</span>
+          {first.publicStatus && (
+            <span className={`badge ${first.publicStatus === "published" ? "badge--accent" : "badge--line"}`}>
+              {PUBLIC_STATUS_LABEL[first.publicStatus]}
+            </span>
+          )}
+        </div>
+        {(detail.data || isAnswered) && (
+          <div className="ask-tools">
+            {/* 계정 기록이 도착한 대화만 북마크할 수 있다(받는 중인 임시 주소는 아직 기록이 없다) */}
+            {detail.data && (
+              <BookmarkButton
+                size={22}
+                isOn={saved}
+                onToggle={() => void bookmarks.toggle({ kind: "ask", id }, !saved)}
+              />
+            )}
+            {isAnswered && (
+              <button className="icon-btn" type="button" aria-label="공유" onClick={handleShare}>
+                <Share2 size={22} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -557,20 +566,6 @@ export function AskDetail({ id }: { id: string }) {
 
           <div className="sect">
             <div className="ask-acts">
-              <button
-                className="btn btn-line btn--sm"
-                type="button"
-                aria-pressed={saved}
-                disabled={!detail.data || saveMutation.isPending}
-                onClick={() => saveMutation.mutate(!saved)}
-              >
-                <Star size={18} aria-hidden="true" fill={saved ? "currentColor" : "none"} />
-                {saved ? "저장됨" : "저장"}
-              </button>
-              <HoondokButton variant="line" isSmall onClick={handleShare}>
-                <Share2 size={18} aria-hidden="true" />
-                공유
-              </HoondokButton>
               <HoondokButton
                 variant="line"
                 isSmall
@@ -582,12 +577,7 @@ export function AskDetail({ id }: { id: string }) {
                 다시 묻기
               </HoondokButton>
             </div>
-            <p className="hint ask-saved-note">
-              <span>내 계정에만 보관돼요</span>
-              <span aria-live="polite" data-testid="ask-share-status">
-                {saveMutation.isError ? "저장하지 못했어요" : shareTick > 0 ? "복사했어요" : ""}
-              </span>
-            </p>
+            <p className="hint ask-hint-line">내 계정에만 보관돼요</p>
             {first.messageId && (
               <PublicSection
                 turn={first}
@@ -715,6 +705,8 @@ export function AskDetail({ id }: { id: string }) {
           onClose={() => setIsModeSheetOpen(false)}
         />
       )}
+
+      {toast.toast && <ReaderToast toast={toast.toast} onDismiss={toast.dismiss} />}
     </section>
   );
 }

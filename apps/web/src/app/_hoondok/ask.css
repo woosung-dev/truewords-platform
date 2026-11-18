@@ -10,7 +10,7 @@
    `.badge--line`·`.pill-seg`·`.ai-note` 는 hoondok.css 공용 블록에 있다. 이 파일에는 AI 질문 전용 규칙만 둔다. */
 /* `@keyframes hoondok-spin` 은 버튼 스피너(.btn__spinner)도 함께 쓰게 돼 hoondok.css 로 옮겼다. 여기서는 참조만 한다. */
 [data-app="hoondok"] {
-  /* ---------- AI 질문 홈 : 탭(추천·저장·내 질문) + 돋보기 + "+ 질문하기" ---------- */
+  /* ---------- AI 질문 홈 : 탭(추천·북마크·내 질문) + 돋보기 + "+ 질문하기" ---------- */
   /* 떠 있는 "+ 질문하기" 가 마지막 행을 가리지 않게 본문 끝을 비운다 */
   .ask-home {
     padding-bottom: calc(5rem + 28px);
@@ -92,7 +92,7 @@
   }
   .ask-more {
     display: flex;
-    margin: 12px auto 0;
+    margin: 16px auto 0;
   }
   /* 검색에 없을 때 "이 말로 새로 묻기" — 좌 안내 · 우 행동 한 줄 */
   .ask-newline {
@@ -353,36 +353,77 @@
     margin-top: 12px;
   }
 
-  /* ---------- 질문 목록 행 (홈 세 탭 공용) ---------- */
+  /* ---------- 질문 목록 카드 (홈 세 탭 공용) ----------
+     카드 = li. 링크는 ::after 로 카드 전체를 덮고 행동 버튼(북마크·휴지통)만 그 위로 올린다 — 링크 안에 버튼을 넣지 않는다.
+     hover 는 그림자만(이동·확대 없음, DES §4.5). 순위가 의미인 목록이라 모든 폭에서 1열이다. */
   .ql-list {
-    margin: 4px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 8px 0 0;
     padding: 0;
     list-style: none;
   }
-  .ql-list li + li {
-    border-top: 1px solid var(--line);
+  .ql-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    /* 오른쪽 6 + 44px 버튼 → 아이콘이 가장자리에서 18px */
+    padding: 16px 6px 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--shadow-hairline);
+    transition:
+      background 0.12s ease,
+      box-shadow 0.12s ease;
   }
-  .ql-list a {
+  .ql-card__link {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    min-height: 60px;
-    padding: 14px 0;
-    justify-content: center;
+    gap: 8px;
   }
-  .ql-list a:active {
+  .ql-card__link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r);
+  }
+  /* 링크 자체 링 대신 카드 전체 둘레에 링을 그린다 */
+  .ql-card__link:focus-visible {
+    outline: none;
+  }
+  .ql-card:has(.ql-card__link:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .ql-card:has(.ql-card__link:active) {
     background: var(--surface-2);
   }
-  /* 목록 행은 `.shelf__item` 규격 — 질문 16/600 · 메타 12.5 의 "크고 굵다 / 작다" 대비다.
-     한 줄로 자르면 무엇을 물었는지 사라져 두 줄까지 보여 준 뒤 자른다 */
+  /* 첫 줄 가운데에 맞춘다. 켜짐 --accent-strong · 꺼짐 --ink-3 모두 흰 바탕 비텍스트 대비 3:1 이상 */
+  .ql-card__act {
+    position: relative;
+    z-index: 1;
+    margin-top: -10px;
+    color: var(--ink-3);
+  }
+  .ql-card__act[aria-pressed="true"] {
+    color: var(--accent-strong);
+  }
+  /* 추천의 내용은 질문 자체라 3줄까지 보이고 자른다. 전문은 링크 이름(DOM)과 상세에 있다 */
   .ql-q {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
     font-size: var(--fs-lg);
     font-weight: 600;
     line-height: 1.4;
-    overflow: hidden;
+    color: var(--ink);
   }
   .ql-m {
     display: flex;
@@ -392,8 +433,60 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
   }
-  .ql-saved {
-    font-size: var(--fs-2xs);
+  .ql-pin svg {
+    flex: none;
+  }
+  @media (hover: hover) {
+    .ql-card:has(.ql-card__link:hover) {
+      box-shadow: var(--shadow-1);
+    }
+    .ql-card__act:hover {
+      background: var(--surface-2);
+    }
+  }
+  /* 불러오는 중 — 실제 카드 높이와 비슷한 정적 카드(shimmer 없음, garden .skeleton 과 같은 결정) */
+  .ask-state--lead {
+    padding-bottom: 4px;
+  }
+  .ql-skels {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .ql-skel {
+    min-height: 92px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--surface);
+  }
+  .ql-skel__bar {
+    display: block;
+    height: 14px;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+  }
+  .ql-skel__bar + .ql-skel__bar {
+    margin-top: 10px;
+  }
+  .ql-skel__bar--72 {
+    width: 72%;
+  }
+  .ql-skel__bar--36 {
+    width: 36%;
+  }
+  /* 북마크 탭에서 한쪽 목록만 못 불러왔을 때 — 목록 위 한 줄 안내 + 다시 시도 */
+  .ask-partial {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .ask-partial .ask-state__k {
+    margin: 0;
   }
   /* 버튼은 폭 100% 가 기본이라 빈 상태에서만 가운데로 좁힌다 */
   .ql-empty__cta {
@@ -435,6 +528,28 @@
     align-items: center;
     gap: 8px;
     margin-top: 10px;
+  }
+  /* 상세 머리 행동 — 앱바에 행동 자리가 없어 메타 줄 오른쪽에 북마크·공유 아이콘(.icon-btn 44px)을 둔다 */
+  .ask-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .ask-head .ask-q__meta {
+    margin-top: 0;
+    min-width: 0;
+  }
+  /* 아이콘을 본문 오른쪽 끝선에 맞춘다 */
+  .ask-tools {
+    display: flex;
+    gap: 4px;
+    flex: none;
+    margin-right: -10px;
+  }
+  .ask-tools [aria-pressed="true"] {
+    color: var(--accent-strong);
   }
   .ask-q__date {
     font-size: var(--fs-xs);
@@ -621,7 +736,7 @@
   }
   /* 값이 하나뿐인 안내 줄 — 좌우 배분(`.hint` 기본)이면 빈 칸이 문장을 오른쪽 끝으로 민다.
      이름은 `.ask-hint`(library.css 의 검색 화면 질문 진입 카드)와 겹치지 않게 둔다 */
-  .ask-saved-note {
+  .ask-hint-line {
     justify-content: flex-start;
     gap: 4px;
   }

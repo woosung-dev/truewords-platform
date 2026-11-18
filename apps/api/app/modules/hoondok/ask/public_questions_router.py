@@ -5,7 +5,7 @@
 응답에 작성자 정보(user_id·이메일·이름)를 넣지 않는다.
 """
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.modules.hoondok.dependencies import get_public_question_service
 from app.modules.hoondok.ask.public_questions_schemas import (
@@ -15,12 +15,11 @@ from app.modules.hoondok.ask.public_questions_schemas import (
     PublicQuestionCreate,
     PublicQuestionDetail,
     PublicQuestionListResponse,
-    PublicQuestionViewCreate,
 )
 from app.modules.hoondok.ask.public_questions_service import PublicQuestionService
 from app.modules.identity.dependencies import get_current_user, get_optional_user, verify_csrf
 from app.modules.identity.models import User
-from app.modules.safety.middleware import check_rate_limit
+from app.modules.safety.middleware import check_question_view_rate_limit, extract_client_ip
 
 router = APIRouter(prefix="/hoondok", tags=["hoondok"])
 
@@ -54,19 +53,19 @@ async def get_public_question(
 @router.post(
     "/questions/{question_id}/views",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(verify_csrf), Depends(check_rate_limit)],
+    dependencies=[Depends(verify_csrf), Depends(check_question_view_rate_limit)],
 )
 async def record_public_question_view(
     question_id: str,
-    data: PublicQuestionViewCreate,
+    request: Request,
     service: PublicQuestionService = Depends(get_public_question_service),
     user: User | None = Depends(get_optional_user),
 ) -> Response:
-    """조회 1회 기록 — (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 viewer_id(기기 UUID).
+    """조회 1회 기록 — 본문 없음. (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 클라이언트 IP(HMAC 해시).
 
-    계정도 viewer_id 도 없으면 세지 않고 204. published 가 아니면 404, 403 CSRF, 429 요청 한도.
+    조회 전용 요청 한도(IP당 분당 60회)를 따로 쓴다. published 가 아니면 404, 403 CSRF, 429 요청 한도.
     """
-    await service.record_view(question_id, user.id if user else None, data.viewer_id)
+    await service.record_view(question_id, user.id if user else None, extract_client_ip(request))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

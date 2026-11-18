@@ -23,7 +23,7 @@ from app.modules.hoondok.models import (
     PublicQuestionBookmark,
     PublicQuestionView,
 )
-from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository, viewer_key
 from app.modules.hoondok.ask.public_questions_service import (
     PublicQuestionAdminService,
     PublicQuestionService,
@@ -478,16 +478,17 @@ async def test_cursor_paging_has_no_gaps(ctx: TestClient):
         if cursor is None:
             break
     assert seen == expected and pages == 3
-    for bad in ("abc", "-1", "1.5", "１"):
+    for bad in ("abc", "-1", "1.5", "１", "9" * 30, "100001"):
         assert ctx.get("/hoondok/questions", params={"cursor": bad}).status_code == 422
 
 
 # --- 조회 기록 ---------------------------------------------------------------------
 
 
-def view(ctx: TestClient, qid: str, viewer_id=None, headers=XHR):
-    body = {"viewer_id": str(viewer_id)} if viewer_id else {}
-    return ctx.post(f"/hoondok/questions/{qid}/views", json=body, headers=headers)
+def view(ctx: TestClient, qid: str, ip: str | None = None, headers=XHR):
+    # 익명 조회자는 서버가 본 클라이언트 IP 로 구분한다(CF-Connecting-IP 우선).
+    extra = {"CF-Connecting-IP": ip} if ip else {}
+    return ctx.post(f"/hoondok/questions/{qid}/views", headers={**headers, **extra})
 
 
 async def views_of(ctx: TestClient, qid: str) -> int:
@@ -501,23 +502,46 @@ async def test_view_counts_once_per_viewer_per_day(ctx: TestClient):
     await login(ctx)
     qid = await make_published(ctx, "조회")
     ctx.cookies.clear()
-    anon = uuid.uuid4()
-    assert view(ctx, qid, anon).status_code == 204
-    assert view(ctx, qid, anon).status_code == 204
+    assert view(ctx, qid, "203.0.113.1").status_code == 204
+    assert view(ctx, qid, "203.0.113.1").status_code == 204  # 같은 IP 는 하루 1회
     assert await views_of(ctx, qid) == 1
-    assert view(ctx, qid, uuid.uuid4()).status_code == 204  # 다른 익명
+    assert view(ctx, qid, "203.0.113.2").status_code == 204  # 다른 IP 는 따로
     assert await views_of(ctx, qid) == 2
-    assert view(ctx, qid).status_code == 204  # 식별자 없음 → 세지 않는다
-    assert await views_of(ctx, qid) == 2
+    assert view(ctx, qid).status_code == 204  # IP 헤더가 없어도 소켓 주소로 한 번 센다
+    assert view(ctx, qid).status_code == 204
+    assert await views_of(ctx, qid) == 3
 
     user = await login(ctx, "viewer@example.com")
     user_id = str(user.id)
-    assert view(ctx, qid, anon).status_code == 204  # 로그인 계정이 우선 — 익명과 별개로 1
-    assert view(ctx, qid, uuid.uuid4()).status_code == 204  # viewer_id 가 달라도 같은 계정
-    assert await views_of(ctx, qid) == 3
+    assert view(ctx, qid, "203.0.113.1").status_code == 204  # 로그인 계정은 IP 와 별개로 1
+    assert view(ctx, qid, "203.0.113.9").status_code == 204  # IP 가 달라도 같은 계정
+    assert await views_of(ctx, qid) == 4
     rows = (await ctx.session.execute(select(PublicQuestionView))).scalars().all()  # type: ignore[attr-defined]
-    assert all(len(r.viewer_key) == 64 and user_id not in r.viewer_key for r in rows)
-    assert str(anon) not in {r.viewer_key for r in rows}
+    keys = {r.viewer_key for r in rows}
+    assert all(len(k) == 64 for k in keys) and not any(user_id in k or "203.0.113" in k for k in keys)
+    assert viewer_key("ip", "203.0.113.1") in keys and viewer_key("u", user_id) in keys
+    # 키는 서버 비밀로 서명한 HMAC 이라 단순 sha256 과 다르다
+    import hashlib
+
+    assert viewer_key("ip", "203.0.113.1") != hashlib.sha256(b"ip:203.0.113.1").hexdigest()
+
+
+@pytest.mark.asyncio
+async def test_view_has_no_body_and_own_rate_limit(ctx: TestClient):
+    from app.modules.safety.middleware import question_view_limiter
+    from app.modules.safety.rate_limiter import get_rate_limiter
+
+    await login(ctx)
+    qid = await make_published(ctx, "조회")
+    ctx.cookies.clear()
+    ask_limiter = get_rate_limiter()
+    ask_limiter.reset()
+    for _ in range(question_view_limiter.max_requests):
+        assert view(ctx, qid, "198.51.100.7").status_code == 204
+    assert view(ctx, qid, "198.51.100.7").status_code == 429
+    assert view(ctx, qid, "198.51.100.8").status_code == 204  # 다른 IP 는 영향 없음
+    # 조회 때문에 채팅 질문 한도가 줄지 않는다
+    ask_limiter.check("198.51.100.7")
 
 
 @pytest.mark.asyncio
@@ -544,11 +568,9 @@ async def test_view_404_and_csrf(ctx: TestClient):
     ctx.patch(f"/admin/hoondok/questions/{hidden}", json={"status": "hidden"}, headers=XHR)
     published = await make_published(ctx, "공개", 2)
     ctx.cookies.clear()
-    anon = uuid.uuid4()
     for qid in (pending, hidden, "missing"):
-        assert view(ctx, qid, anon).status_code == 404
-    assert view(ctx, published, anon, headers={}).status_code == 403
-    assert ctx.post(f"/hoondok/questions/{published}/views", json={"x": 1}, headers=XHR).status_code == 422
+        assert view(ctx, qid, "203.0.113.5").status_code == 404
+    assert view(ctx, published, "203.0.113.5", headers={}).status_code == 403
     assert await views_of(ctx, published) == 0
 
 
@@ -801,3 +823,41 @@ async def test_admin_list_sort_and_search(ctx: TestClient):
     assert admin_get(ctx, q="%")["items"] == []
     assert ctx.get("/admin/hoondok/questions", params={"sort": "bogus"}).status_code == 422
     assert ctx.get("/admin/hoondok/questions", params={"q": "x" * 101}).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_patch_same_status_keeps_reviewed_at_and_audit(ctx: TestClient):
+    await login(ctx)
+    qid = await make_published(ctx, "재공개")
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    before = (await session.get(PublicQuestion, qid)).reviewed_at  # type: ignore[union-attr]
+    res = ctx.patch(f"/admin/hoondok/questions/{qid}", json={"status": "published"}, headers=XHR)
+    assert res.status_code == 200
+    session.expire_all()
+    assert (await session.get(PublicQuestion, qid)).reviewed_at == before  # type: ignore[union-attr]
+    audit = (await session.execute(select(AdminAuditLog))).scalars().all()
+    assert [a.changes for a in audit if a.changes.get("id") == qid and a.changes.get("status") == "published"] == [
+        {"id": qid, "status": "published"}
+    ]  # 처음 공개한 1건뿐
+
+
+@pytest.mark.asyncio
+async def test_pins_stay_contiguous_after_withdraw_and_account_purge(ctx: TestClient):
+    await login(ctx, "owner@example.com")
+    ids = [await make_published(ctx, f"질문 {n}", n) for n in range(4)]
+    for qid in ids:
+        pin(ctx, qid)
+    # 작성자 본인 철회 — 가운데 고정이 빠져도 0..n-1
+    assert ctx.delete(f"/hoondok/me/questions/{ids[1]}", headers=XHR).status_code == 204
+    pins = ctx.get("/admin/hoondok/questions/pins").json()["items"]
+    assert [(p["id"], p["pin_order"]) for p in pins] == [(ids[0], 0), (ids[2], 1), (ids[3], 2)]
+    # 다른 작성자의 고정 질문이 계정 삭제로 사라져도 구멍이 없다
+    other = await ctx.users.create(User(email="other@example.com", display_name="다른"))  # type: ignore[attr-defined]
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    (await session.get(PublicQuestion, ids[0])).user_id = other.id  # type: ignore[union-attr]
+    await session.commit()
+    await PublicQuestionRepository(session).delete_for_user(other.id)
+    await session.commit()
+    session.expire_all()
+    pins = ctx.get("/admin/hoondok/questions/pins").json()["items"]
+    assert [(p["id"], p["pin_order"]) for p in pins] == [(ids[2], 0), (ids[3], 1)]

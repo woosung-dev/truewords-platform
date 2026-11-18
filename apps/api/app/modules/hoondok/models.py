@@ -357,7 +357,7 @@ class PublicQuestion(SQLModel, table=True):
 
 
 class PublicQuestionView(SQLModel, table=True):
-    """공개 질문 조회 중복 방지 행. viewer_key 는 sha256(user/anon id) 해시라 원본 id 를 저장하지 않는다.
+    """공개 질문 조회 중복 방지 행. viewer_key 는 HMAC-SHA256(서버 비밀, 사용자 id 또는 익명 IP)라 원본 id·IP 를 저장하지 않는다.
 
     day 는 KST 날짜. 오래된 행(오늘 - 2일 미만)은 새 행을 넣을 때 함께 지운다.
     """
@@ -365,7 +365,7 @@ class PublicQuestionView(SQLModel, table=True):
     __tablename__ = "hoondok_public_question_views"
     __table_args__ = (Index("ix_hoondok_public_question_views_day", "day"),)
 
-    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", ondelete="CASCADE", primary_key=True, max_length=16)
     viewer_key: str = Field(primary_key=True, max_length=64)
     day: date = Field(primary_key=True)
 
@@ -375,7 +375,7 @@ class PublicQuestionAsk(SQLModel, table=True):
 
     __tablename__ = "hoondok_public_question_asks"
 
-    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", ondelete="CASCADE", primary_key=True, max_length=16)
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True, index=True)
     created_at: datetime = Field(default_factory=utcnow)
 
@@ -385,7 +385,7 @@ class PublicQuestionBookmark(SQLModel, table=True):
 
     __tablename__ = "hoondok_public_question_bookmarks"
 
-    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", ondelete="CASCADE", primary_key=True, max_length=16)
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True, index=True)
     created_at: datetime = Field(default_factory=utcnow)
 

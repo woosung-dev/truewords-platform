@@ -568,3 +568,22 @@ async def test_public_question_ask_count_not_when_ask_fails(ctx: TestClient, mon
     monkeypatch.setattr(AskRepository, "record_turn", broken)
     assert ask(ctx, public_question_id=qid).status_code == 200  # 기록 실패 → 횟수도 되돌림
     assert await ask_count(ctx, qid) == 0
+
+
+@pytest.mark.asyncio
+async def test_public_ask_count_failure_keeps_turn_and_quota(ctx: TestClient, monkeypatch):
+    """질문 수 반영이 실패해도 답 기록은 남고 쓴 횟수는 되돌리지 않는다."""
+    qid = await add_public(ctx)
+    await login(ctx)
+
+    async def broken(self, question_id, user_id):
+        raise RuntimeError("count down")
+
+    monkeypatch.setattr(AskRepository, "count_public_ask", broken)
+    res = ask(ctx, public_question_id=qid)
+    assert res.status_code == 200
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    message_id = uuid.UUID(sources_of(res)["message_id"])
+    assert await session.get(AskTurn, message_id) is not None  # 턴은 기록됨
+    assert quota(ctx)["used"] == 1  # 환불 없음
+    assert await ask_count(ctx, qid) == 0

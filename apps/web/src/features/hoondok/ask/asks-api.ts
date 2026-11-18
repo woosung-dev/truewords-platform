@@ -18,11 +18,15 @@ export const asksAPI = {
     request<MyAskListResponse>("/hoondok/me/asks?limit=100", { signal, cache: "no-store" }),
   detail: (id: string, signal?: AbortSignal) =>
     request<MyAskDetail>(`/hoondok/me/asks/${encodeURIComponent(id)}`, { signal, cache: "no-store" }),
+  /** 화면 이름은 "북마크"다(API 필드 이름만 saved). */
   setSaved: (id: string, saved: boolean) =>
     request<MyAskDetail>(`/hoondok/me/asks/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify({ saved }),
     }),
+  /** 질문·답·이어 묻기를 계정에서 지운다(204). 공개된 사본은 함께 지워지지 않는다. */
+  remove: (id: string) =>
+    request<Record<string, never>>(`/hoondok/me/asks/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 /** 질문 화면 상세 주소의 대화 id 가 서버 대화(session_id, UUID)인지. 아니면 아직 답을 받는 중인 임시 id 다. */

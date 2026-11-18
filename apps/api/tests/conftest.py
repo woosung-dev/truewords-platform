@@ -17,11 +17,13 @@ def _empty_featured_malssum(monkeypatch):
 @pytest.fixture(autouse=True)
 def _reset_login_limiter():
     """로그인 IP 상한(30회/분)은 프로세스 전역이라 테스트 사이에 비운다 — 모든 TestClient 가 같은 IP 다."""
-    from app.modules.safety.middleware import login_limiter
+    from app.modules.safety.middleware import login_limiter, question_view_limiter
 
     login_limiter.reset()
+    question_view_limiter.reset()
     yield
     login_limiter.reset()
+    question_view_limiter.reset()
 
 
 @pytest.fixture(autouse=True)

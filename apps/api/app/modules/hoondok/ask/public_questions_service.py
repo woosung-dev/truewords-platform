@@ -50,6 +50,8 @@ INVALID_CURSOR = "목록 위치(cursor)가 올바르지 않아요"
 PIN_NEEDS_PUBLISHED = "공개 중인 질문만 고정할 수 있어요"
 PIN_LIMIT = f"고정 질문은 최대 {MAX_PINNED}개예요"
 PIN_SET_MISMATCH = "고정된 질문 전체를 한 번씩만 보내야 해요"
+MAX_CURSOR_LENGTH = 9
+MAX_CURSOR_OFFSET = 100_000
 SOURCE_LIMIT = 3
 PREVIEW_LENGTH = 120
 NOT_FOUND = "질문을 찾을 수 없어요"
@@ -101,9 +103,12 @@ def _parse_cursor(cursor: str | None) -> int:
     """불투명 cursor(현재는 offset 문자열) → offset. 비어 있으면 0, 숫자가 아니거나 음수면 422."""
     if not cursor:
         return 0
-    if not cursor.isascii() or not cursor.isdigit():
+    if len(cursor) > MAX_CURSOR_LENGTH or not cursor.isascii() or not cursor.isdigit():
         raise InvalidError(INVALID_CURSOR)
-    return int(cursor)
+    offset = int(cursor)
+    if offset > MAX_CURSOR_OFFSET:  # DB 정수 범위를 넘는 offset 이 500 을 내지 않게
+        raise InvalidError(INVALID_CURSOR)
+    return offset
 
 
 def _published_at(row: PublicQuestion):
@@ -220,15 +225,13 @@ class PublicQuestionService:
             next_cursor=str(offset + limit) if has_more else None,
         )
 
-    async def record_view(self, question_id: str, user_id: uuid.UUID | None, viewer_id: uuid.UUID | None) -> None:
-        """공개 질문 조회 1회. 로그인 계정이 우선이고, 계정도 viewer_id 도 없으면 세지 않는다. published 가 아니면 404."""
+    async def record_view(self, question_id: str, user_id: uuid.UUID | None, client_ip: str) -> None:
+        """공개 질문 조회 1회. 로그인 계정이 우선, 익명은 클라이언트 IP 기준(둘 다 HMAC 키). published 가 아니면 404.
+
+        조회자 식별은 서버가 정한다 — 클라이언트가 보내는 값으로 조회 수를 부풀릴 수 없다.
+        """
         await self._published(question_id)
-        if user_id is not None:
-            key = viewer_key("u", user_id)
-        elif viewer_id is not None:
-            key = viewer_key("a", viewer_id)
-        else:
-            return
+        key = viewer_key("u", user_id) if user_id is not None else viewer_key("ip", client_ip)
         await self.repo.record_view(question_id, key, self.today_fn())
 
     async def put_bookmark(self, user_id: uuid.UUID, question_id: str) -> None:
@@ -280,9 +283,12 @@ class PublicQuestionAdminService:
         self, question_id: str, data: PublicQuestionReview, audit: AdminService, actor_id: uuid.UUID
     ) -> PublicQuestionAdminItem:
         """상태 전환(먼저) → 고정 변경. 숨김은 고정을 푼다. 고정은 최종 상태가 published 일 때만, 최대 MAX_PINNED."""
-        row = await self.repo.get(question_id)
+        # 고정 집합을 세고 다시 매기기 전에 고정 행·대상 행을 잠가(Postgres) 동시 변경이 같은 번호·초과 고정을 만들지 못하게 한다.
+        await self.repo.list_pins(lock=True)
+        row = await self.repo.get_for_update(question_id)
         if row is None:
             raise NotFoundError(NOT_FOUND)
+        status_changed = data.status is not None and data.status != row.status
         final_status = data.status or row.status
         pins: list[PublicQuestion] = []
         if data.pinned:
@@ -293,8 +299,9 @@ class PublicQuestionAdminService:
                 raise ConflictError(PIN_LIMIT)
 
         changes: dict = {"id": row.id}
-        if data.status is not None:
-            row.status = data.status
+        if status_changed:
+            # 같은 상태를 다시 보내면(재공개 등) 검수 시각·감사 기록을 건드리지 않는다.
+            row.status = data.status  # type: ignore[assignment]
             row.reviewed_at = utcnow()
             changes["status"] = data.status
         unpin = row.pin_order is not None and (data.pinned is False or final_status != PUBLIC_STATUS)
@@ -307,10 +314,7 @@ class PublicQuestionAdminService:
         saved = await self.repo.save(row, commit=False)
         if unpin:
             # 남은 고정을 0..n-1 로 이어 붙인다.
-            remaining = [p for p in await self.repo.list_pins() if p.id != saved.id]
-            for index, pin in enumerate(remaining):
-                pin.pin_order = index
-                await self.repo.save(pin, commit=False)
+            await self.repo.renumber_pins()
         # target_id 는 UUID 컬럼이라 slug 대신 원본 message_id 를 남기고, slug 는 changes 에 둔다.
         await audit.log_audit(
             admin_user_id=actor_id,
@@ -325,7 +329,7 @@ class PublicQuestionAdminService:
         self, data: PublicQuestionPinsReorder, audit: AdminService, actor_id: uuid.UUID
     ) -> PublicQuestionPinsResponse:
         """고정 순서 바꾸기 — ids 는 현재 고정 집합과 정확히 같아야 한다(중복·누락·추가 422)."""
-        pins = {p.id: p for p in await self.repo.list_pins()}
+        pins = {p.id: p for p in await self.repo.list_pins(lock=True)}
         if len(set(data.ids)) != len(data.ids) or set(data.ids) != set(pins):
             raise InvalidError(PIN_SET_MISMATCH)
         for index, question_id in enumerate(data.ids):

@@ -1,7 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render as renderView, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
-import type { MyAskDetail, MyAskSummary, MyAskTurn } from "@truewords/api-client-ts/types";
+import type {
+  MyAskDetail,
+  MyAskSummary,
+  MyAskTurn,
+  PublicQuestionDetail,
+  PublicQuestionSummary,
+} from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -28,12 +34,16 @@ vi.mock("@/features/hoondok/ask/public-api", async (original) => ({
     submit: vi.fn(),
     mine: vi.fn(),
     remove: vi.fn(),
+    recordView: vi.fn(),
+    bookmark: vi.fn(),
+    unbookmark: vi.fn(),
+    bookmarks: vi.fn(),
   },
 }));
 
 vi.mock("@/features/hoondok/ask/asks-api", async (original) => ({
   ...(await original<object>()),
-  asksAPI: { quota: vi.fn(), list: vi.fn(), detail: vi.fn(), setSaved: vi.fn() },
+  asksAPI: { quota: vi.fn(), list: vi.fn(), detail: vi.fn(), setSaved: vi.fn(), remove: vi.fn() },
 }));
 
 vi.mock("@/features/hoondok/library/api", () => ({
@@ -134,6 +144,33 @@ function summary(id: string, patch: Partial<MyAskSummary> = {}): MyAskSummary {
   };
 }
 
+function pub(id: string, patch: Partial<PublicQuestionSummary> = {}): PublicQuestionSummary {
+  return {
+    id,
+    question: `추천 ${id}`,
+    preview: "미리보기",
+    answer_mode: "standard",
+    published_at: "2026-10-28T00:00:00Z",
+    pinned: false,
+    view_count: 0,
+    bookmarked: false,
+    ...patch,
+  };
+}
+
+function publicDetail(patch: Partial<PublicQuestionDetail> = {}): PublicQuestionDetail {
+  return {
+    id: "pq1",
+    question: "참사랑과 보통의 사랑은 무엇이 다른가요?",
+    answer_md: "참사랑은 받기 전에 먼저 주는 사랑입니다.",
+    sources: [{ source: "A", volume: "천성경 4편", text: "가정은 사랑을 배우는 첫 학교입니다." }],
+    answer_mode: "theological",
+    published_at: "2026-10-28T00:00:00Z",
+    bookmarked: false,
+    ...patch,
+  };
+}
+
 function quota(remaining: number) {
   vi.mocked(asksAPI.quota).mockResolvedValue({
     limit: 5,
@@ -151,6 +188,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   clearLiveAsks();
   quota(5);
+  vi.mocked(publicQuestionsAPI.recordView).mockResolvedValue({});
+  vi.mocked(publicQuestionsAPI.bookmark).mockResolvedValue({});
+  vi.mocked(publicQuestionsAPI.unbookmark).mockResolvedValue({});
+  vi.mocked(publicQuestionsAPI.bookmarks).mockResolvedValue({ items: [] });
+  vi.mocked(asksAPI.remove).mockResolvedValue({});
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -242,15 +284,7 @@ describe("AI 질문 홈", () => {
 
   it("추천 질문은 비로그인도 보고, 답한 모델과 함께 공개 상세로 이어진다", async () => {
     vi.mocked(publicQuestionsAPI.list).mockResolvedValue({
-      items: [
-        {
-          id: "pq1",
-          question: "참사랑과 보통의 사랑은 무엇이 다른가요?",
-          preview: "받기 전에 먼저 주는 사랑",
-          answer_mode: "theological",
-          published_at: "2026-10-28T00:00:00Z",
-        },
-      ],
+      items: [pub("pq1", { question: "참사랑과 보통의 사랑은 무엇이 다른가요?", answer_mode: "theological" })],
       next_cursor: null,
     });
     render(<AskHome />);
@@ -266,18 +300,20 @@ describe("AI 질문 홈", () => {
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 
-  it("비로그인이면 저장·내 질문 탭은 로그인 안내만 보이고 계정 목록을 묻지 않는다", () => {
+  it("비로그인이면 북마크·내 질문 탭은 로그인 안내만 보이고 계정 목록을 묻지 않는다", () => {
     queryParams = { tab: "saved" };
     render(<AskHome />);
-    expect(screen.getByText("로그인하면 저장한 답을 볼 수 있어요")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "북마크" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("로그인하면 북마크한 질문을 볼 수 있어요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "로그인하기" })).toHaveAttribute(
       "href",
       `/onboarding?returnTo=${encodeURIComponent("/ask?tab=saved")}`,
     );
     expect(asksAPI.list).not.toHaveBeenCalled();
+    expect(publicQuestionsAPI.bookmarks).not.toHaveBeenCalled();
   });
 
-  it("로그인하면 계정 목록을 읽고, 다시 물은 질문은 답한 모델 이름으로 구분한다. 저장 탭은 저장한 것만", async () => {
+  it("로그인하면 계정 목록을 읽고, 다시 물은 질문은 답한 모델 이름으로 구분한다. 북마크 탭은 북마크한 것만", async () => {
     currentUser = { id: "u1" };
     queryParams = { tab: "mine" };
     vi.mocked(asksAPI.list).mockResolvedValue({
@@ -294,10 +330,12 @@ describe("AI 질문 홈", () => {
     expect(links[0]).toHaveTextContent("이어서 2번");
     expect(links[1]).toHaveTextContent("깊은 해설");
     expect(links[1]).toHaveTextContent("공개 허용");
+    expect(links[0]).toHaveTextContent("비공개");
     expect(links[1]).toHaveAttribute("href", "/ask/a2");
+    expect(screen.queryByText("저장됨")).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("tab", { name: "북마크" }));
+    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(1));
   });
 
   it("탭은 주소를 따라간다 — 홈에 있을 때 ?tab=mine 으로 와도 바뀌고, 고른 탭은 주소에 남는다", () => {
@@ -308,7 +346,7 @@ describe("AI 질문 홈", () => {
     view.rerender(<AskHome />);
     expect(screen.getByRole("tab", { name: "내 질문" })).toHaveAttribute("aria-selected", "true");
 
-    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "북마크" }));
     expect(mockReplace).toHaveBeenCalledWith("/ask?tab=saved", { scroll: false });
   });
 
@@ -399,6 +437,7 @@ describe("새 질문하기", () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(vi.mocked(globalThis.fetch).mock.calls[0][0]).toBe("/api/backend/hoondok/ask/stream");
     expect(requestBodies()[0]).toEqual({ query: "정성이 뭔가요?" });
+    expect(requestBodies()[0]).not.toHaveProperty("public_question_id");
     expect(publicQuestionsAPI.submit).not.toHaveBeenCalled();
   });
 
@@ -484,7 +523,7 @@ describe("질문·답변 상세", () => {
     render(<AskDetail id={SID} />);
     expect(await screen.findByText("근거 말씀을 찾지 못했어요. 다른 표현으로 물어봐 주세요")).toBeInTheDocument();
     expect(screen.queryByText("근거 없는 답")).toBeNull();
-    expect(screen.queryByRole("button", { name: "저장" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "공유" })).toBeNull();
   });
 
   it("모델 변경 시트는 카드의 모델을 미리 고르고, 그대로 확정하면 닫기만 한다. 다른 모델이면 새로 묻는다", async () => {
@@ -507,17 +546,34 @@ describe("질문·답변 상세", () => {
     expect(requestBodies()[0]).toEqual({ query: "정성을 드린다는 게 뭔가요?", answer_mode: "beginner" });
   });
 
-  it("저장은 계정에 남긴다", async () => {
+  it("북마크는 메타 줄 오른쪽 아이콘이고 계정 기록(saved)에 남긴다. 저장 버튼·배지는 없다", async () => {
     currentUser = { id: "u1" };
     vi.mocked(asksAPI.detail).mockResolvedValue(detail());
     vi.mocked(asksAPI.setSaved).mockResolvedValue(detail(undefined, { saved: true }));
     render(<AskDetail id={SID} />);
-    const toggle = await screen.findByRole("button", { name: "저장" });
+    const toggle = await screen.findByRole("button", { name: "북마크" });
     expect(toggle).toHaveAttribute("aria-pressed", "false");
-    vi.mocked(asksAPI.detail).mockResolvedValue(detail(undefined, { saved: true }));
+    expect(screen.queryByRole("button", { name: /저장/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "공유" })).toBeInTheDocument();
     fireEvent.click(toggle);
+    // 낙관적 — 응답 전에 바로 바뀐다
     await waitFor(() => expect(toggle).toHaveAttribute("aria-pressed", "true"));
     expect(asksAPI.setSaved).toHaveBeenCalledWith(SID, true);
+    expect(await screen.findByText("북마크했어요")).toBeInTheDocument();
+    expect(screen.queryByText("저장됨")).toBeNull();
+  });
+
+  it("북마크가 실패하면 되돌리고 이유를 알린다", async () => {
+    currentUser = { id: "u1" };
+    vi.mocked(asksAPI.detail).mockResolvedValue(detail(undefined, { saved: true }));
+    vi.mocked(asksAPI.setSaved).mockRejectedValue(new ApiError(500, "down"));
+    render(<AskDetail id={SID} />);
+    const toggle = await screen.findByRole("button", { name: "북마크" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(toggle);
+    expect(await screen.findByText("북마크하지 못했어요. 잠시 뒤 다시 해 주세요.")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(asksAPI.setSaved).toHaveBeenCalledWith(SID, false);
   });
 
   it("이어 묻기는 같은 대화로 보내고 받는 동안 턴이 쌓인다. 남은 횟수를 막대에 보인다", async () => {
@@ -719,27 +775,72 @@ describe("질문·답변 상세", () => {
 });
 
 describe("공개 질문 열람", () => {
-  it("질문·답한 모델·답·근거를 읽기만 하고 나도 물어보기로 이어진다", async () => {
-    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue({
-      id: "pq1",
-      question: "참사랑과 보통의 사랑은 무엇이 다른가요?",
-      answer_md: "참사랑은 받기 전에 먼저 주는 사랑입니다.",
-      sources: [{ source: "A", volume: "천성경 4편", text: "가정은 사랑을 배우는 첫 학교입니다." }],
-      answer_mode: "theological",
-      published_at: "2026-10-28T00:00:00Z",
-    });
+  it("질문·답한 모델·답·근거를 읽기만 하고, 나도 물어보기는 이 질문과 출처 id 로 새 질문 화면을 채운다", async () => {
+    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue(publicDetail());
     render(<AskPublic id="pq1" />);
     expect(await screen.findByText("참사랑은 받기 전에 먼저 주는 사랑입니다.")).toBeInTheDocument();
     expect(screen.getByText("깊은 해설")).toBeInTheDocument();
     expect(screen.getByText("가정은 사랑을 배우는 첫 학교입니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "나도 물어보기" })).toHaveAttribute("href", "/ask/new");
+    expect(screen.getByRole("link", { name: "나도 물어보기" })).toHaveAttribute(
+      "href",
+      `/ask/new?q=${encodeURIComponent("참사랑과 보통의 사랑은 무엇이 다른가요?")}&from=pq1`,
+    );
+    expect(screen.getByText("이 질문이 입력창에 채워져요. 보내기 전에 고칠 수 있어요.")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it("공개가 끝난 질문(404)은 찾을 수 없다고 말한다", async () => {
+  it("열면 조회를 한 번만 기록하고(같은 탭에서 다시 열어도), 질문 문장은 기기에 남기지 않는다", async () => {
+    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue(publicDetail());
+    const first = render(<AskPublic id="pq1" />);
+    await waitFor(() => expect(publicQuestionsAPI.recordView).toHaveBeenCalledWith("pq1"));
+    first.unmount();
+    render(<AskPublic id="pq1" />);
+    await screen.findByText("참사랑은 받기 전에 먼저 주는 사랑입니다.");
+    expect(publicQuestionsAPI.recordView).toHaveBeenCalledTimes(1);
+    const stored = [
+      ...Object.values({ ...window.sessionStorage }),
+      ...Object.keys({ ...window.sessionStorage }),
+      ...Object.values({ ...window.localStorage }),
+    ].join(" ");
+    expect(stored).not.toContain("참사랑");
+  });
+
+  it("조회 기록이 실패해도 화면은 그대로다", async () => {
+    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue(publicDetail());
+    vi.mocked(publicQuestionsAPI.recordView).mockRejectedValue(new ApiError(500, "down"));
+    render(<AskPublic id="pq1" />);
+    await waitFor(() => expect(publicQuestionsAPI.recordView).toHaveBeenCalled());
+    expect(screen.getByText("참사랑은 받기 전에 먼저 주는 사랑입니다.")).toBeInTheDocument();
+  });
+
+  it("로그인하면 북마크를 바로 켜고 서버에 남긴다", async () => {
+    currentUser = { id: "u1" };
+    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue(publicDetail());
+    render(<AskPublic id="pq1" />);
+    const toggle = await screen.findByRole("button", { name: "북마크" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-pressed", "true"));
+    expect(publicQuestionsAPI.bookmark).toHaveBeenCalledWith("pq1");
+    expect(await screen.findByText("북마크했어요")).toBeInTheDocument();
+  });
+
+  it("비로그인이 북마크를 누르면 화면을 떠나지 않고 로그인 행동을 알린다", async () => {
+    vi.mocked(publicQuestionsAPI.detail).mockResolvedValue(publicDetail());
+    render(<AskPublic id="pq1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "북마크" }));
+    expect(screen.getByText("로그인하면 북마크할 수 있어요")).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    expect(mockPush).toHaveBeenCalledWith(`/onboarding?returnTo=${encodeURIComponent("/ask/p/pq1")}`);
+    expect(publicQuestionsAPI.bookmark).not.toHaveBeenCalled();
+  });
+
+  it("공개가 끝난 질문(404)은 찾을 수 없다고 말하고 조회를 세지 않는다", async () => {
     vi.mocked(publicQuestionsAPI.detail).mockRejectedValue(new ApiError(404, "not found"));
     render(<AskPublic id="gone" />);
     expect(await screen.findByText("공개된 질문을 찾을 수 없어요")).toBeInTheDocument();
+    expect(publicQuestionsAPI.recordView).not.toHaveBeenCalled();
   });
 });
 

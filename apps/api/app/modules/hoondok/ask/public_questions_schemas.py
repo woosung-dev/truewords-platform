@@ -20,14 +20,6 @@ class PublicQuestionCreate(BaseModel):
     message_id: uuid.UUID
 
 
-class PublicQuestionViewCreate(BaseModel):
-    """조회 기록 본문. 로그인한 사용자는 계정이 우선이라 viewer_id 를 무시한다. 익명은 기기별 무작위 UUID 를 보낸다."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    viewer_id: uuid.UUID | None = None
-
-
 class PublicQuestionSource(BaseModel):
     """근거 말씀 한 줄 — answer_citations 복사본(상위 3건)."""
 

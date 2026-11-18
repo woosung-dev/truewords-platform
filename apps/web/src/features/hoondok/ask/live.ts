@@ -25,6 +25,8 @@ export type LiveAsk = {
   isFollowup: boolean;
   /** 새 질문에서 "공개하고 함께 나누기"를 골랐는지. */
   wantsPublic: boolean;
+  /** 추천 질문의 "나도 물어보기"로 연 새 질문이면 그 공개 질문 id. 이어 묻기에는 없다. */
+  publicQuestionId?: string;
   status: LiveStatus;
   result?: AskResult;
   errorKind?: AskErrorKind;
@@ -84,6 +86,7 @@ async function run(key: string, onSettled: LiveSettled): Promise<void> {
     const result = await requestHoondokAsk(entry.question, {
       answerMode: entry.answerMode,
       sessionId: entry.isFollowup ? entry.sessionId : undefined,
+      publicQuestionId: entry.isFollowup ? undefined : entry.publicQuestionId,
       signal: controller.signal,
     });
     if (controller.signal.aborted) return;
@@ -130,6 +133,8 @@ export type StartLiveAsk = {
   /** 있으면 이 대화로 이어 묻는다. */
   sessionId?: string;
   wantsPublic?: boolean;
+  /** 새 질문에만 쓴다. */
+  publicQuestionId?: string;
 };
 
 /** 질문을 보내기 시작하고 임시 id 를 돌려준다. 클릭 핸들러에서만 부른다. */
@@ -143,6 +148,7 @@ export function startLiveAsk(input: StartLiveAsk, onSettled: LiveSettled): strin
     sessionId: input.sessionId,
     isFollowup: Boolean(input.sessionId),
     wantsPublic: Boolean(input.wantsPublic) && !input.sessionId,
+    publicQuestionId: input.sessionId ? undefined : input.publicQuestionId,
     status: "pending",
     createdAt: new Date().toISOString(),
   };

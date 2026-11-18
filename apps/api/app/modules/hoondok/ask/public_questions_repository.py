@@ -6,6 +6,7 @@
 """
 
 import hashlib
+import hmac
 import uuid
 from datetime import date, timedelta
 from typing import Literal
@@ -18,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.common.clock import utcnow
+from app.core.config import settings
 from app.modules.chat.models import AnswerCitation, MessageRole, ResearchSession, SessionMessage
 from app.modules.hoondok.models import PublicQuestion, PublicQuestionAsk, PublicQuestionBookmark, PublicQuestionView
 
@@ -34,9 +36,10 @@ def popularity_score():
     return PublicQuestion.view_count + POPULARITY_ASK_WEIGHT * PublicQuestion.ask_count
 
 
-def viewer_key(kind: Literal["u", "a"], value: uuid.UUID) -> str:
-    """조회자 키 — 사용자(u)·익명(a) id 의 sha256 hex. 원본 id 는 저장하지 않는다."""
-    return hashlib.sha256(f"{kind}:{value}".encode()).hexdigest()
+def viewer_key(kind: Literal["u", "ip"], value: uuid.UUID | str) -> str:
+    """조회자 키 — 사용자(u)·익명 IP(ip) 의 HMAC-SHA256 hex. 서버 비밀로 서명해 원본 id·IP 는 저장하지 않고 역산도 어렵다."""
+    secret = settings.admin_jwt_secret.get_secret_value().encode()
+    return hmac.new(secret, f"{kind}:{value}".encode(), hashlib.sha256).hexdigest()
 
 
 def _escape_like(q: str) -> str:
@@ -152,12 +155,35 @@ class PublicQuestionRepository:
         result = await self.session.execute(query.order_by(*order).offset(offset).limit(limit))
         return list(result.scalars().all()), total
 
-    async def list_pins(self) -> list[PublicQuestion]:
-        """고정된 질문 — pin_order 순."""
-        result = await self.session.execute(
-            select(PublicQuestion).where(PublicQuestion.pin_order.is_not(None)).order_by(PublicQuestion.pin_order, PublicQuestion.id)  # type: ignore[union-attr]
+    async def list_pins(self, *, lock: bool = False) -> list[PublicQuestion]:
+        """고정된 질문 — pin_order 순. lock 이면 행을 잠가(SELECT ... FOR UPDATE, sqlite 에서는 무시) 동시 고정 변경을 직렬화한다."""
+        query = (
+            select(PublicQuestion)
+            .where(PublicQuestion.pin_order.is_not(None))  # type: ignore[union-attr]
+            .order_by(PublicQuestion.pin_order, PublicQuestion.id)
         )
+        if lock:
+            query = query.with_for_update()
+        result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def get_for_update(self, question_id: str) -> PublicQuestion | None:
+        """대상 행을 잠그고 읽는다(고정 변경 경로). 캐시된 객체도 DB 값으로 갱신한다."""
+        result = await self.session.execute(
+            select(PublicQuestion)
+            .where(PublicQuestion.id == question_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return result.scalar_one_or_none()
+
+    async def renumber_pins(self) -> None:
+        """남은 고정을 0..n-1 로 이어 붙인다. 커밋하지 않는다."""
+        for index, pin in enumerate(await self.list_pins(lock=True)):
+            if pin.pin_order != index:
+                pin.pin_order = index
+                self.session.add(pin)
+        await self.session.flush()
 
     async def save(self, question: PublicQuestion, *, commit: bool = True) -> PublicQuestion:
         """커밋 실패(IntegrityError 포함)는 롤백 뒤 그대로 올린다 — 서비스가 409 로 바꾼다."""
@@ -291,7 +317,11 @@ class PublicQuestionRepository:
 
     async def delete(self, question: PublicQuestion) -> None:
         await self._delete_children([question.id])
+        was_pinned = question.pin_order is not None
         await self.session.delete(question)
+        await self.session.flush()
+        if was_pinned:
+            await self.renumber_pins()  # 고정 순서에 구멍이 남지 않게
         await self.session.commit()
 
     async def delete_for_user(self, user_id: uuid.UUID) -> None:
@@ -301,6 +331,11 @@ class PublicQuestionRepository:
         남의 질문에 이미 올라간 view_count·ask_count 는 익명 집계라 되돌리지 않는다.
         """
         mine = select(PublicQuestion.id).where(PublicQuestion.user_id == user_id)
+        had_pins = (
+            await self.session.execute(
+                select(PublicQuestion.id).where(PublicQuestion.user_id == user_id, PublicQuestion.pin_order.is_not(None))  # type: ignore[union-attr]
+            )
+        ).first() is not None
         await self._delete_children(mine)
         await self.session.execute(
             delete(PublicQuestionAsk).where(PublicQuestionAsk.user_id == user_id).execution_options(synchronize_session=False)
@@ -316,3 +351,5 @@ class PublicQuestionRepository:
             .execution_options(synchronize_session=False)
         )
         await self.session.execute(delete(PublicQuestion).where(PublicQuestion.user_id == user_id))
+        if had_pins:
+            await self.renumber_pins()
