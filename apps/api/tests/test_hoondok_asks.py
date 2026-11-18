@@ -31,10 +31,10 @@ from app.modules.chat.pipeline.context import ChatContext
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.schemas import ChatRequest
 from app.modules.chat.service import ChatService
-from app.modules.hoondok.asks_repository import AskRepository
-from app.modules.hoondok.asks_service import AskService, next_reset
+from app.modules.hoondok.ask.asks_repository import AskRepository
+from app.modules.hoondok.ask.asks_service import AskService, next_reset
 from app.modules.hoondok.dependencies import get_ask_chat_service, get_ask_repository, get_public_question_repository
-from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, PublicQuestion
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
@@ -244,7 +244,7 @@ async def test_blocked_input_does_not_take_last_slot(ctx: TestClient):
         return await original(*args, **kwargs)
 
     repo.try_consume = spy  # type: ignore[method-assign]
-    from app.modules.hoondok.asks_schemas import AskRequest
+    from app.modules.hoondok.ask.asks_schemas import AskRequest
     from app.modules.safety.exceptions import InputBlockedError
 
     with pytest.raises(InputBlockedError):
@@ -269,7 +269,7 @@ async def test_record_failure_refunds_quota(ctx: TestClient, monkeypatch):
 @pytest.mark.asyncio
 async def test_start_charges_kst_day(ctx: TestClient):
     """UTC 15:00 = 다음 KST 날 — 질문 경로(start)가 차감하는 날짜가 KST 다."""
-    from app.modules.hoondok.asks_schemas import AskRequest
+    from app.modules.hoondok.ask.asks_schemas import AskRequest
 
     user = await login(ctx)
     repo = AskRepository(ctx.session)  # type: ignore[attr-defined]

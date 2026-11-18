@@ -21,11 +21,11 @@ from app.core.common.clock import today_kst
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository, get_path_repository
-from app.modules.hoondok.jeongseong import compute_progress
+from app.modules.hoondok.practice.jeongseong import compute_progress
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
-from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
-from app.modules.hoondok.schemas import JeongseongCreate
-from app.modules.hoondok.service import JeongseongService
+from app.modules.hoondok.practice.repository import JeongseongRepository, MissionLogRepository
+from app.modules.hoondok.practice.schemas import JeongseongCreate
+from app.modules.hoondok.practice.service import JeongseongService
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository

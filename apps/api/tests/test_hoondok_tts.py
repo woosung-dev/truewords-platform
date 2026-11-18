@@ -21,10 +21,10 @@ from sqlmodel import SQLModel, select
 
 from app.main import app
 from app.modules.hoondok.dependencies import get_tts_service
-from app.modules.hoondok.display_text import to_display_text
+from app.modules.hoondok.reading.display_text import to_display_text
 from app.modules.hoondok.exceptions import TtsError
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading.journey_service import JourneyService
 from app.modules.hoondok.models import (
     ContentRight,
     DailyReading,
@@ -32,8 +32,8 @@ from app.modules.hoondok.models import (
     JeongseongReading,
     TtsUsage,
 )
-from app.modules.hoondok.repository import JeongseongRepository
-from app.modules.hoondok.tts_google import (
+from app.modules.hoondok.practice.repository import JeongseongRepository
+from app.modules.hoondok.reading.tts_google import (
     TTS_ENDPOINT,
     TtsUpstreamError,
     MAX_CHARS_PER_REQUEST,
@@ -41,8 +41,8 @@ from app.modules.hoondok.tts_google import (
     split_for_synthesis,
     synthesize_mp3,
 )
-from app.modules.hoondok.tts_repository import TtsRepository
-from app.modules.hoondok.tts_service import (
+from app.modules.hoondok.reading.tts_repository import TtsRepository
+from app.modules.hoondok.reading.tts_service import (
     TtsService,
     billing_month,
     cache_key,

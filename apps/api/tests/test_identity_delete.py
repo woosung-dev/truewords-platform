@@ -31,7 +31,7 @@ from app.modules.hoondok.dependencies import (
     get_path_repository,
 )
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
-from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
+from app.modules.hoondok.practice.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository, get_user_identity_repository
 from app.modules.identity.models import User, UserIdentity
 from app.modules.identity.repository import UserRepository

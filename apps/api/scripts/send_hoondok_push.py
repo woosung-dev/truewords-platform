@@ -1,6 +1,6 @@
 """훈독 Web Push 발송 — VM cron 15분 간격 (PLAN-HD-006 §2-6).
 
-발송 로직은 `app/modules/hoondok/push_sender.py` 에 있고 이 파일은 얇은 진입점이다.
+발송 로직은 `app/modules/hoondok/notify/push_sender.py` 에 있고 이 파일은 얇은 진입점이다.
 
   cron:  */15 * * * * /home/ubuntu/truewords/send-hoondok-push.sh >> ~/truewords-cron.log 2>&1
   운영:  docker compose --env-file .env exec -T backend python scripts/send_hoondok_push.py --execute
@@ -28,7 +28,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.modules.hoondok.push_sender import run_push_sender  # noqa: E402
+from app.modules.hoondok.notify.push_sender import run_push_sender  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

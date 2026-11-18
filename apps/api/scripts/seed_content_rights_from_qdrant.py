@@ -41,9 +41,9 @@ from sqlmodel import select  # noqa: E402
 from app.core.common.clock import utcnow  # noqa: E402
 from app.core.common.database import async_session_factory  # noqa: E402
 from app.core.config import settings  # noqa: E402
-from app.modules.hoondok.library_series import BOOK_SERIES_TITLES, series_title  # noqa: E402
+from app.modules.hoondok.reading.library_series import BOOK_SERIES_TITLES, series_title  # noqa: E402
 from app.modules.hoondok.models import ContentRight  # noqa: E402
-from app.modules.hoondok.schemas import AuthorityGrade  # noqa: E402
+from app.modules.hoondok.practice.schemas import AuthorityGrade  # noqa: E402
 from app.modules.pipeline.metadata import classify_book_series  # noqa: E402
 from app.modules.qdrant.raw_client import RawQdrantClient  # noqa: E402
 

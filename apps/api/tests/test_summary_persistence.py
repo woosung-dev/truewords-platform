@@ -28,9 +28,9 @@ from app.modules.hoondok.summary_models import (
     SummaryRevision,
     SummaryAsset,
 )
-from app.modules.hoondok.summary_repository import SummaryRepository
-from app.modules.hoondok.summary_router import service
-from app.modules.hoondok.summary_service import SummaryService
+from app.modules.hoondok.content_admin.summary_repository import SummaryRepository
+from app.modules.hoondok.content_admin.summary_router import service
+from app.modules.hoondok.content_admin.summary_service import SummaryService
 from app.modules.qdrant import QdrantPoint
 
 PNG = base64.b64decode(

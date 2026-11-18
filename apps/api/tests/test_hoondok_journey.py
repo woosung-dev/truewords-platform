@@ -14,18 +14,18 @@ from sqlmodel import SQLModel, select
 
 from app.main import app
 from app.core.common.middleware import HoondokAccessLogFilter
-from app.modules.hoondok.client_errors import ClientErrorService, normalize_error_path
+from app.modules.hoondok.notify.client_errors import ClientErrorService, normalize_error_path
 from app.modules.hoondok.dependencies import get_journey_service
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok.journey_schemas import ClientErrorInput, ContentRightInput
-from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading.journey_schemas import ClientErrorInput, ContentRightInput
+from app.modules.hoondok.reading.journey_service import JourneyService
 from app.modules.hoondok.models import (
     ClientErrorEvent,
     ContentRight,
     JeongseongPeriod,
     JeongseongReading,
 )
-from app.modules.hoondok.repository import JeongseongRepository
+from app.modules.hoondok.practice.repository import JeongseongRepository
 from app.modules.identity.models import User
 from app.modules.qdrant import QdrantPoint
 from app.modules.search.exceptions import SearchFailedError
@@ -463,7 +463,7 @@ def test_admin_no_cookie_is_401():
 @pytest.mark.asyncio
 async def test_client_error_rate_limit_separate_and_optional_identity(setup):
     from httpx import AsyncClient, ASGITransport
-    from app.modules.hoondok.client_errors import (
+    from app.modules.hoondok.notify.client_errors import (
         error_limiter,
         get_client_error_service,
     )

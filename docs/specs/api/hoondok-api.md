@@ -81,7 +81,7 @@
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다. 로그인 수단 오류(API-HD-002 의 410 `PASSWORD_SIGNUP_CLOSED`, API-HD-066·067 의 `OAUTH_PROVIDER_UNAVAILABLE`·`REAUTH_REQUIRED`·`IDENTITY_NOT_FOUND`·`LAST_LOGIN_METHOD`)도 같은 `ErrorResponse` 형식이다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 - `API-HD-006~008`·`API-HD-012~013`은 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
-- `API-HD-019~022` 는 PLAN-HD-006(Web Push)이며 라우터는 `apps/api/app/modules/hoondok/notifications_router.py` 다. `API-HD-021` 의 409 `PUSH_DISABLED` 도 `ErrorResponse` 형식이다.
+- `API-HD-019~022` 는 PLAN-HD-006(Web Push)이며 라우터는 `apps/api/app/modules/hoondok/notify/notifications_router.py` 다. `API-HD-021` 의 409 `PUSH_DISABLED` 도 `ErrorResponse` 형식이다.
 - `API-HD-009~011` 은 2026-09-19 PLAN-HD-002 W0-B 에서 확정했다(정성 기간·월 기록·계정 삭제). 모두 `hoondok_token` 이며 상태 변경(POST·DELETE)은 `X-Requested-With` 가 없으면 403.
 
 ---
@@ -391,7 +391,7 @@ PATCH /hoondok/auth/me
 
 ## 훈독 AI 질문 — `POST /hoondok/ask/stream` · `/hoondok/me/asks*` (API-HD-059~061, DEC-PWA-025)
 
-AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
+AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/ask/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
 
 ### API-HD-059 `POST /hoondok/ask/stream`
 
@@ -568,7 +568,7 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `display_text` 는 화면 표시용이다 — 앞 청크와
 겹치는 머리(~150자) 제거(016만, 페이지 첫 청크와 015 는 앞이 없다), 페이지 번호 줄(`- 2 -`) 제거,
 한 글자씩 띄운 제목(`머 리 말`) 붙이기, PDF 줄바꿈 합치기, 문단 경계는 `"\n\n"`.
-규칙은 `app/modules/hoondok/display_text.py` 순수 함수가 소유하고 Qdrant 데이터·임베딩은 바꾸지 않는다.
+규칙은 `app/modules/hoondok/reading/display_text.py` 순수 함수가 소유하고 Qdrant 데이터·임베딩은 바꾸지 않는다.
 
 ### API-HD-025 이어 읽기 (`hoondok_token`)
 
@@ -637,7 +637,7 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 > 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/completed/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
 
 오늘(KST) 훈독하기(`kind="read"`, 연속일과 같은 kind)를 완료한 **서로 다른 사용자 수**. 익명 전체 집계만 내며
-사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/router.py`.
+사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/practice/router.py`.
 
 응답 `TogetherTodayResponse`:
 

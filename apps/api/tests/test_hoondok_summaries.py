@@ -7,12 +7,12 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from app.modules.hoondok.models import ContentRight
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryRevision
-from app.modules.hoondok.summary_schemas import (
+from app.modules.hoondok.content_admin.summary_schemas import (
     SummaryInput,
     SummaryUpdate,
     SummaryActionInput,
 )
-from app.modules.hoondok.summary_service import SummaryService
+from app.modules.hoondok.content_admin.summary_service import SummaryService
 
 
 def setup():
@@ -236,7 +236,7 @@ def test_admin_endpoints_require_authentication_and_csrf():
 @pytest.mark.asyncio
 async def test_complete_review_publish_edit_and_withdraw_cycle():
     from types import SimpleNamespace
-    from app.modules.hoondok.summary_schemas import SummarySource, SummaryImage
+    from app.modules.hoondok.content_admin.summary_schemas import SummarySource, SummaryImage
 
     svc, repo, unit, data, right = setup()
     data.source = SummarySource(
@@ -331,7 +331,7 @@ async def test_withdrawn_unit_can_return_to_published():
 @pytest.mark.asyncio
 async def test_reversed_source_ids_cannot_publish_wrong_reader_start():
     from app.modules.qdrant import QdrantPoint
-    from app.modules.hoondok.summary_schemas import SummarySource
+    from app.modules.hoondok.content_admin.summary_schemas import SummarySource
 
     svc, repo, unit, data, right = setup()
     first, second = str(uuid.uuid4()), str(uuid.uuid4())
@@ -358,7 +358,7 @@ async def test_reversed_source_ids_cannot_publish_wrong_reader_start():
 def published_setup():
     """증거·물음·관리자 전용 필드까지 채운, 원문 전문 없는 새 계약 단위."""
     from types import SimpleNamespace
-    from app.modules.hoondok.summary_schemas import SummaryImage, SummarySource
+    from app.modules.hoondok.content_admin.summary_schemas import SummaryImage, SummarySource
 
     svc, repo, unit, data, right = setup()
     assets = [
@@ -475,7 +475,7 @@ async def test_admin_toc_lists_all_199_verses_and_merges_unit_state():
 
 
 def test_toc_file_has_structure_only():
-    from app.modules.hoondok.summary_service import work_toc
+    from app.modules.hoondok.content_admin.summary_service import work_toc
 
     rows = work_toc("cheonseong")
     assert len(rows) == 199
@@ -487,7 +487,7 @@ def test_toc_file_has_structure_only():
 
 def test_pyeonghwa_toc_is_speech_units_with_chapters_only_in_4_14():
     """평화경은 편 › 연설문, 제4편 14 만 장 단위. slug 는 번호와 맞고 읽기 순서로 정렬된다."""
-    from app.modules.hoondok.summary_service import work_toc
+    from app.modules.hoondok.content_admin.summary_service import work_toc
 
     rows = work_toc("pyeonghwa")
     assert len(rows) == 182 and len({r["slug"] for r in rows}) == 182
@@ -509,7 +509,7 @@ def test_pyeonghwa_toc_is_speech_units_with_chapters_only_in_4_14():
 
 @pytest.mark.asyncio
 async def test_admin_toc_by_work_and_paragraph_label():
-    from app.modules.hoondok.summary_service import paragraph_label, section_position
+    from app.modules.hoondok.content_admin.summary_service import paragraph_label, section_position
     from types import SimpleNamespace
 
     svc, repo, unit, data, right = published_setup()
@@ -547,7 +547,7 @@ def test_admin_toc_endpoint_rejects_unknown_work():
 def test_bundled_manifest_matches_contract_without_source_text():
     """가져올 경전 요약은 계약을 통과하고, 원문 전문 없이 근거 단락 링크만 싣는다."""
     import json
-    from app.modules.hoondok.summary_service import TOC_DIR, WORKS, toc_index
+    from app.modules.hoondok.content_admin.summary_service import TOC_DIR, WORKS, toc_index
 
     # 권리 원장 volume — 적재본 파일 이름
     volumes = {"천성경": "천성경.pdf", "평화경": "평화경.txt"}
@@ -613,7 +613,7 @@ async def test_request_review_rejects_default_body_with_heading_only():
 
 @pytest.mark.asyncio
 async def test_update_with_same_source_range_skips_source_lookup():
-    from app.modules.hoondok.summary_schemas import SummarySource
+    from app.modules.hoondok.content_admin.summary_schemas import SummarySource
 
     svc, repo, unit, data, right = setup()
     data.source_range_id = uuid.uuid4()

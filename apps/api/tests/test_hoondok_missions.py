@@ -18,10 +18,10 @@ from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import get_hoondok_repository, get_mission_repository
 from app.modules.hoondok.models import DailyReading, MissionLog
-from app.modules.hoondok.repository import DailyReadingRepository, MissionLogRepository
-from app.modules.hoondok.schemas import TodayFlags
-from app.modules.hoondok.service import MissionService
-from app.modules.hoondok.streak import best_streak, compute_summary, current_streak, week_of
+from app.modules.hoondok.practice.repository import DailyReadingRepository, MissionLogRepository
+from app.modules.hoondok.practice.schemas import TodayFlags
+from app.modules.hoondok.practice.service import MissionService
+from app.modules.hoondok.practice.streak import best_streak, compute_summary, current_streak, week_of
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.service import IdentityService
