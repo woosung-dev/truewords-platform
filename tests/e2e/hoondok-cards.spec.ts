@@ -1,5 +1,5 @@
 import type { BrowserContext, Locator, Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogleApi, test } from "./hoondok-test";
 
 // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026). 시드 seed_hoondok_journey.py 의 active 카드 3장 중 오늘 회전 카드를 쓴다.
 // 플래그 NEXT_PUBLIC_HOONDOK_CARDS=1 은 playwright.config webServer env 가 준다. 계정은 매번 새로 만든다(재실행 안전).
@@ -23,11 +23,8 @@ async function todayCard(page: Page): Promise<TodayCard> {
 }
 
 async function signUp(page: Page) {
-  const response = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `cards-${Date.now()}@example.com`, password: "password1", display_name: "책갈피" },
-  });
-  expect(response.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `cards-${Date.now()}@example.com`, name: "책갈피" });
+  expect(status).toBe("created");
 }
 
 async function overflow(page: Page) {

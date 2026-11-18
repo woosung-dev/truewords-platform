@@ -1,4 +1,4 @@
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogle, test } from "./hoondok-test";
 
 // 7일 정성 플래그 OFF 회귀 — 홈 시작 카드가 없고 /path* 는 404 다.
 // NEXT_PUBLIC_HOONDOK_PATHS 는 빌드 시 고정이고 Next 개발 서버는 한 앱 폴더에 하나만 뜨므로, 기본 하네스(플래그 ON)로는
@@ -9,11 +9,7 @@ test.skip(!offOrigin, "E2E_WEB_PATHS_OFF_ORIGIN(NEXT_PUBLIC_HOONDOK_PATHS 없이
 
 test("플래그 OFF — 로그인한 홈에 정성 시작 카드가 없고 /path* 는 404", async ({ page }) => {
   const email = `e2e-paths-off-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill("정성끔");
-  await page.getByLabel(/이메일/).fill(email);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name: "정성끔", email });
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogleApi, test } from "./hoondok-test";
 
 // 훈독 AI 질문 (DEC-PWA-025 2차) — 로그인 필수 · 계정 보관 · 하루 5회.
 // 답은 e2e 서버의 고정 답(`apps/api/tests/e2e_app.py` — LLM 만 fixture, 로그인·횟수·계정 기록은 실제 코드)을 쓴다.
@@ -29,11 +29,8 @@ async function horizontalOverflow(page: Page) {
 const headers = { "X-Requested-With": "XMLHttpRequest" };
 
 async function signUp(page: Page, prefix: string) {
-  const response = await page.request.post("/api/backend/hoondok/auth/signup", {
-    headers,
-    data: { email: `${prefix}-${Date.now()}@example.com`, password: "password1", display_name: "질문" },
-  });
-  expect(response.status()).toBe(201);
+  const { status } = await signInWithGoogleApi(page, { email: `${prefix}-${Date.now()}@example.com`, name: "질문" });
+  expect(status).toBe("created");
 }
 
 /** `/hoondok/ask/stream` 요청 본문을 모은다(스텁하지 않고 그대로 보낸다). */

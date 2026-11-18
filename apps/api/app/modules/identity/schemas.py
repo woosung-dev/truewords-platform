@@ -2,8 +2,10 @@
 
 import re
 import uuid
+from datetime import datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 # email-validator 의존성 없이 형태만 검사한다(로컬@도메인.tld). 소문자 정규화는 repository 가 한다.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -37,11 +39,41 @@ class LoginRequest(BaseModel):
     _email = field_validator("email")(_validate_email)
 
 
+class ProfileUpdateRequest(BaseModel):
+    """표시 이름 변경. 앞뒤 공백을 지운 뒤 1~64자(SignupRequest.display_name 과 같은 길이) — 공백만이면 422."""
+
+    display_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+
+
+class LoginMethod(BaseModel):
+    """계정에 연결된 로그인 수단. 비밀번호는 provider="password"·identity_id=None 이다."""
+
+    provider: str
+    identity_id: uuid.UUID | None = None
+    email: str | None = None
+    linked_at: datetime | None = None
+
+
 class UserPublic(BaseModel):
     id: uuid.UUID
     email: str
     display_name: str
+    login_methods: list[LoginMethod] = Field(default_factory=list)
 
 
 class UserEnvelope(BaseModel):
     user: UserPublic
+
+
+class OAuthStartRequest(BaseModel):
+    """return_to 는 서버가 검증한다(통과 못 하면 "/"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다)."""
+
+    intent: Literal["login", "link"]
+    return_to: str | None = Field(default=None, max_length=2048)  # 서버 검증은 512 초과를 "/" 로 본다
+    invite_code: str | None = Field(default=None, max_length=64)
+    # intent=link 이고 계정에 비밀번호가 있을 때만 쓴다(재확인). 소셜 전용 계정은 보내지 않는다.
+    password: str | None = Field(default=None, max_length=128)
+
+
+class OAuthStartResponse(BaseModel):
+    authorization_url: str

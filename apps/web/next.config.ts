@@ -17,7 +17,10 @@ const nextConfig: NextConfig = {
   logging: {
     // 예전 주소(/hoondok/search)도 308 전에 한 번 들어오므로 함께 거른다.
     incomingRequests: {
-      ignore: [/^\/api\/backend\/hoondok\/search(?:[/?]|$)/, /^\/search(?:[/?]|$)/, /^\/hoondok\/search(?:[/?]|$)/],
+      // OAuth 콜백 쿼리(code·state)도 남기지 않는다.
+      ignore: [
+        /^\/api\/backend\/hoondok\/auth\/oauth\//,
+        /^\/api\/backend\/hoondok\/search(?:[/?]|$)/, /^\/search(?:[/?]|$)/, /^\/hoondok\/search(?:[/?]|$)/],
     },
   },
   outputFileTracingRoot: path.join(__dirname, "../.."),

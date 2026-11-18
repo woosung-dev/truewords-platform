@@ -47,6 +47,7 @@ API 문서는 http://localhost:8000/docs, 헬스는 http://localhost:8000/health
 | `WEB_FRONTEND_URL`, `ADMIN_FRONTEND_URL` | API, 명시적 CORS 허용 origin | http://localhost:3000 / http://localhost:3001 |
 | `NEXT_PUBLIC_API_URL` | 두 Next 앱의 API rewrite 목적지 | http://localhost:8000; **build 시 고정** |
 | `NEXT_PUBLIC_WEB_URL`, `NEXT_PUBLIC_ADMIN_URL` | 두 Next 앱의 앱 간 이동 | http://localhost:3000 / http://localhost:3001; **build 시 고정** |
+| `HOONDOK_GOOGLE_CLIENT_ID`, `HOONDOK_GOOGLE_CLIENT_SECRET` | API, 훈독 구글 로그인 | 둘 다 있어야 켜진다. 하나라도 비면 `/oauth/google/*` 가 404. 비밀 값은 VM `.env`에만 둔다. 운영에서 켜면 `WEB_FRONTEND_URL`이 `https://`여야 한다 |
 
 전체 필드의 원본은 `apps/api/app/core/config.py`와 앱별 `.env.example`이다. `NEXT_PUBLIC_*` 값은 비밀이 아니며 사용자에게 노출될 수 있으므로 토큰·비밀번호를 넣지 않는다. 운영 Next 빌드에서는 API 주소가 내부 `http://backend:8080`이 된다.
 
@@ -64,7 +65,21 @@ API 문서는 http://localhost:8000/docs, 헬스는 http://localhost:8000/health
 
 웹과 관리자는 같은 origin 프록시를 통해 API를 호출한다. 쿠키 전송은 `credentials: include`, 변경 요청은 `X-Requested-With: XMLHttpRequest`를 유지한다. 파일 업로드에는 JSON Content-Type을 강제하지 않는다.
 
-localhost의 **포트는 쿠키 격리 경계가 아니다**. 3000/3001에서 쿠키가 같이 보이는 것은 운영의 서로 다른 hostname에서 로그인된다는 증거가 아니다. 독립 host에서는 별도 로그인이 필요할 수 있으며 broad Domain 쿠키나 SSO를 이번 구조 전환에서 임의로 추가하지 않는다.
+localhost의 **포트는 쿠키 격리 경계가 아니다**. 3000/3001에서 쿠키가 같이 보이는 것은 운영의 서로 다른 hostname에서 로그인된다는 증거가 아니다. 독립 host에서는 별도 로그인이 필요할 수 있으며 broad Domain 쿠키나 앱 간·외부 통합 SSO를 임의로 추가하지 않는다. 훈독의 구글 로그인은 통합 SSO가 아니라 서비스 DB(`users`·`user_identities`) 안의 OIDC 클라이언트이며, 로그인 세션은 계속 해당 앱 origin의 `hoondok_token` 쿠키 하나다.
+
+## 구글 로그인 설정 (훈독)
+
+Google Cloud Console의 OAuth 클라이언트(유형: 웹 애플리케이션)를 만들고 아래를 등록한다. 리디렉션 URI는 API가 `{WEB_FRONTEND_URL}/api/backend/hoondok/auth/oauth/google/callback`으로 조립해 보내므로 **API의 `WEB_FRONTEND_URL`과 글자 그대로 같아야** 한다(스킴·호스트·포트·끝 슬래시 없음).
+
+| 항목 | 값 |
+|---|---|
+| 승인된 리디렉션 URI (운영) | `https://<운영 web 호스트>/api/backend/hoondok/auth/oauth/google/callback` |
+| 승인된 리디렉션 URI (로컬) | `http://localhost:3000/api/backend/hoondok/auth/oauth/google/callback` (`WEB_FRONTEND_URL=http://localhost:3000`일 때. 다른 포트·`127.0.0.1`을 쓰면 그 값으로 따로 등록) |
+| 동의 화면 범위 | `openid` `email` `profile` — 민감·제한 범위 없음 |
+| 환경변수 | `HOONDOK_GOOGLE_CLIENT_ID`, `HOONDOK_GOOGLE_CLIENT_SECRET` (`apps/api/.env.example` 참고) |
+
+- 콜백은 web의 같은 origin 프록시(`/api/backend`)를 지나므로 API 호스트가 아니라 **web 호스트**를 등록한다.
+- 동의 화면을 프로덕션으로 게시하는 조건과 운영 전환 절차는 [TODO](../TODO.md)와 [훈독 롤아웃](hoondok-pwa-rollout.md#구글-로그인-전환-기존-가입자)을 따른다.
 
 ## DB 마이그레이션
 

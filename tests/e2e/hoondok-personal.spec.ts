@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogle, test } from "./hoondok-test";
 
 // 맞춤 말씀 앱 안 화면: 가입 직후 질문 흐름 → 홈 오늘의 책갈피 아래 한 줄(고르기 / 까닭·바꾸기) → 관심사 바꾸기.
 // 답은 이 기기 localStorage 에만 있고 카드는 기기에서 고른다(카드 목록은 시드 3장, topic "감사"). 선택값은 요청에 실리지 않는다.
@@ -11,11 +11,7 @@ function carriesSelection(url: string, body: string | null): boolean {
 }
 
 async function signUp(page: Page, name: string) {
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill(name);
-  await page.getByLabel(/이메일/).fill(`e2e-personal-${Date.now()}@example.com`);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name, email: `e2e-personal-${Date.now()}@example.com` });
   await expect(page).toHaveURL(/\/start$/);
 }
 

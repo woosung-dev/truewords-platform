@@ -2244,6 +2244,30 @@ export type LlmUsage = {
 };
 
 /**
+ * LoginMethod
+ *
+ * 계정에 연결된 로그인 수단. 비밀번호는 provider="password"·identity_id=None 이다.
+ */
+export type LoginMethod = {
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Identity Id
+     */
+    identity_id?: string | null;
+    /**
+     * Linked At
+     */
+    linked_at?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
  * LoginRequest
  */
 export type LoginRequest = {
@@ -2582,6 +2606,40 @@ export type NotificationPreferenceResponse = {
 };
 
 /**
+ * OAuthStartRequest
+ *
+ * return_to 는 서버가 검증한다(통과 못 하면 "/"). invite_code 가 틀려도 막지 않는다(재로그인일 수 있다).
+ */
+export type OAuthStartRequest = {
+    /**
+     * Intent
+     */
+    intent: 'login' | 'link';
+    /**
+     * Invite Code
+     */
+    invite_code?: string | null;
+    /**
+     * Password
+     */
+    password?: string | null;
+    /**
+     * Return To
+     */
+    return_to?: string | null;
+};
+
+/**
+ * OAuthStartResponse
+ */
+export type OAuthStartResponse = {
+    /**
+     * Authorization Url
+     */
+    authorization_url: string;
+};
+
+/**
  * PaginatedResponse[ChatbotConfigResponse]
  */
 export type PaginatedResponseChatbotConfigResponse = {
@@ -2862,6 +2920,18 @@ export type PathStepSummary = {
      * Volume
      */
     volume: string;
+};
+
+/**
+ * ProfileUpdateRequest
+ *
+ * 표시 이름 변경. 앞뒤 공백을 지운 뒤 1~64자(SignupRequest.display_name 과 같은 길이) — 공백만이면 422.
+ */
+export type ProfileUpdateRequest = {
+    /**
+     * Display Name
+     */
+    display_name: string;
 };
 
 /**
@@ -5401,6 +5471,10 @@ export type UserPublic = {
      * Id
      */
     id: string;
+    /**
+     * Login Methods
+     */
+    login_methods?: Array<LoginMethod>;
 };
 
 /**
@@ -8196,6 +8270,36 @@ export type AskStreamHoondokAskStreamPostResponses = {
 
 export type AskStreamHoondokAskStreamPostResponse = AskStreamHoondokAskStreamPostResponses[keyof AskStreamHoondokAskStreamPostResponses];
 
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Identity Id
+         */
+        identity_id: string;
+    };
+    query?: never;
+    url: '/hoondok/auth/identities/{identity_id}';
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteError = DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors[keyof DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteErrors];
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponse = DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses[keyof DeleteIdentityHoondokAuthIdentitiesIdentityIdDeleteResponses];
+
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;
     path?: never;
@@ -8269,6 +8373,95 @@ export type MeHoondokAuthMeGetResponses = {
 
 export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
 
+export type UpdateMeHoondokAuthMePatchData = {
+    body: ProfileUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type UpdateMeHoondokAuthMePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMeHoondokAuthMePatchError = UpdateMeHoondokAuthMePatchErrors[keyof UpdateMeHoondokAuthMePatchErrors];
+
+export type UpdateMeHoondokAuthMePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type UpdateMeHoondokAuthMePatchResponse = UpdateMeHoondokAuthMePatchResponses[keyof UpdateMeHoondokAuthMePatchResponses];
+
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetData = {
+    body?: never;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: {
+        /**
+         * Code
+         */
+        code?: string | null;
+        /**
+         * State
+         */
+        state?: string | null;
+        /**
+         * Error
+         */
+        error?: string | null;
+    };
+    url: '/hoondok/auth/oauth/{provider}/callback';
+};
+
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OauthCallbackHoondokAuthOauthProviderCallbackGetError = OauthCallbackHoondokAuthOauthProviderCallbackGetErrors[keyof OauthCallbackHoondokAuthOauthProviderCallbackGetErrors];
+
+export type OauthStartHoondokAuthOauthProviderStartPostData = {
+    body: OAuthStartRequest;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/hoondok/auth/oauth/{provider}/start';
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostError = OauthStartHoondokAuthOauthProviderStartPostErrors[keyof OauthStartHoondokAuthOauthProviderStartPostErrors];
+
+export type OauthStartHoondokAuthOauthProviderStartPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: OAuthStartResponse;
+};
+
+export type OauthStartHoondokAuthOauthProviderStartPostResponse = OauthStartHoondokAuthOauthProviderStartPostResponses[keyof OauthStartHoondokAuthOauthProviderStartPostResponses];
+
 export type SignupHoondokAuthSignupPostData = {
     body: SignupRequest;
     path?: never;
@@ -8277,6 +8470,10 @@ export type SignupHoondokAuthSignupPostData = {
 };
 
 export type SignupHoondokAuthSignupPostErrors = {
+    /**
+     * PASSWORD_SIGNUP_CLOSED — 이메일·비밀번호 가입 종료
+     */
+    410: unknown;
     /**
      * Validation Error
      */

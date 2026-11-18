@@ -47,6 +47,7 @@ from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     ask_daily_limit_handler,
     embedding_failed_handler,
+    identity_error_handler,
     input_blocked_handler,
     invite_required_handler,
     path_error_handler,
@@ -60,7 +61,7 @@ from app.core.common.exception_handlers import (
 from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.hoondok.exceptions import AskDailyLimitError, PathError, PushDisabledError, TtsError
-from app.modules.identity.exceptions import InviteRequiredError
+from app.modules.identity.exceptions import IdentityError, InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -135,6 +136,7 @@ app.add_exception_handler(PushDisabledError, push_disabled_handler)  # type: ign
 app.add_exception_handler(TtsError, tts_error_handler)  # type: ignore[arg-type]
 app.add_exception_handler(AskDailyLimitError, ask_daily_limit_handler)  # type: ignore[arg-type]
 app.add_exception_handler(PathError, path_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(IdentityError, identity_error_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]

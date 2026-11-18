@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./hoondok-test";
+import { expect, signInWithGoogle, test } from "./hoondok-test";
 
 // 훈독 7일 정성 (읽기 정성 1a). 시드: `scripts.seed_reading_paths --publish --e2e`(cs7·ph7·cs21) + API HOONDOK_PATHS_ENABLED=true,
 // 웹 NEXT_PUBLIC_HOONDOK_PATHS=1 (playwright.config). 시계는 바꾸지 않는다 — 운영 코드에 시계 오버라이드가 없으므로
@@ -58,11 +58,7 @@ async function collectConsoleErrors(page: Page) {
 
 async function signUp(page: Page, name: string): Promise<string> {
   const email = `e2e-paths-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
-  await page.goto("/onboarding");
-  await page.getByLabel(/이름/).fill(name);
-  await page.getByLabel(/이메일/).fill(email);
-  await page.getByLabel(/비밀번호/).fill("password1");
-  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await signInWithGoogle(page, { name, email });
   await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);

@@ -1,7 +1,8 @@
-"""훈독 identity — API-HD-002·003: 가입·로그인·쿠키 hoondok_token·JWT aud 분리·CSRF."""
+"""훈독 identity — API-HD-002·003: 가입 종료(410)·로그인·쿠키 hoondok_token·JWT aud 분리·CSRF."""
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 
@@ -15,18 +16,20 @@ from sqlmodel import SQLModel
 from unittest.mock import MagicMock
 
 from app.main import app
-from app.modules.admin.auth import create_access_token
+from app.modules.admin.auth import create_access_token, hash_password
 from app.modules.admin.dependencies import get_current_admin
 from app.modules.identity.dependencies import (
     COOKIE_NAME,
+    decode_hoondok_session,
     decode_hoondok_token,
     get_current_user,
     get_identity_repository,
     get_optional_user,
+    get_user_identity_repository,
 )
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import LoginRequest, SignupRequest
+from app.modules.identity.schemas import LoginRequest
 from app.modules.identity.service import AUDIENCE, IdentityService
 
 XHR = {"X-Requested-With": "XMLHttpRequest"}
@@ -47,36 +50,45 @@ async def repo():
         await engine.dispose()
 
 
-def _signup(email="Hoondok@Example.com", password="password1", display_name="효진") -> SignupRequest:
-    return SignupRequest(email=email, password=password, display_name=display_name)
+def _user(email="Hoondok@Example.com", password: str | None = "password1", display_name="효진") -> User:
+    """가입 API 는 닫혔다 — 계정은 저장소에 직접 만든다. password=None 은 소셜 전용 계정."""
+    return User(email=email, password_hash=hash_password(password) if password else None, display_name=display_name)
 
 
 # --- service --------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_signup_normalizes_email_and_hashes_password(repo: UserRepository):
-    service = IdentityService(repo)
-    user = await service.signup(_signup())
+async def test_create_normalizes_email_and_keeps_defaults(repo: UserRepository):
+    user = await repo.create(_user())
     assert user.email == "hoondok@example.com"
-    assert user.password_hash != "password1" and user.password_hash.startswith("$2b$")
+    assert user.password_hash is not None and user.password_hash != "password1"
+    assert user.password_hash.startswith("$2b$")
     assert user.consented_at is None and user.consent_version is None
     assert user.timezone == "Asia/Seoul"
+    assert user.email_verified_at is None and user.email_verified_by is None
 
 
 @pytest.mark.asyncio
-async def test_signup_duplicate_email_is_409_case_insensitive(repo: UserRepository):
-    service = IdentityService(repo)
-    await service.signup(_signup())
-    with pytest.raises(HTTPException) as exc:
-        await service.signup(_signup(email="HOONDOK@example.com"))
-    assert exc.value.status_code == 409
+async def test_login_for_account_without_password_is_401_and_still_runs_bcrypt(repo: UserRepository):
+    """소셜 전용 계정(password_hash NULL)도 500 이 아니라 같은 401 이고, 타이밍 보호(bcrypt 1회)도 유지된다."""
+    from unittest.mock import patch
+
+    from app.modules.admin import auth as auth_module
+
+    await repo.create(_user(password=None))
+    with patch.object(auth_module, "verify_password", wraps=auth_module.verify_password) as spy:
+        with pytest.raises(HTTPException) as exc:
+            await IdentityService(repo).login(LoginRequest(email="hoondok@example.com", password="password1"))
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "이메일 또는 비밀번호가 올바르지 않습니다"
+    assert spy.call_count == 1
 
 
 @pytest.mark.asyncio
 async def test_login_wrong_password_unknown_email_and_deleted_share_401(repo: UserRepository):
     service = IdentityService(repo)
-    user = await service.signup(_signup())
+    user = await repo.create(_user())
     assert (await service.login(LoginRequest(email="hoondok@example.com", password="password1"))).id == user.id
 
     for req in (
@@ -119,6 +131,25 @@ def test_hoondok_token_round_trips_with_aud():
     assert decode_hoondok_token(token) == user.id
 
 
+def test_issue_token_carries_session_version_and_decoder_reads_it():
+    user = User(email="a@b.c", password_hash="x", display_name="n", session_version=3)
+    assert decode_hoondok_session(IdentityService.issue_token(user)) == (user.id, 3)
+    decoded = decode_hoondok_session(IdentityService.issue_token(User(email="a@b.c", display_name="n")))
+    assert decoded is not None and decoded[1] == 0
+
+
+def test_token_without_sv_is_read_as_version_zero():
+    """배포 전에 발급된 토큰 호환."""
+    uid = uuid.uuid4()
+    assert decode_hoondok_session(create_access_token({"sub": str(uid), "aud": AUDIENCE})) == (uid, 0)
+
+
+@pytest.mark.parametrize("bad", ["1", 1.5, None, True, [1]])
+def test_token_with_non_integer_sv_is_rejected(bad):
+    token = create_access_token({"sub": str(uuid.uuid4()), "aud": AUDIENCE, "sv": bad})
+    assert decode_hoondok_session(token) is None
+
+
 def test_admin_style_token_without_aud_is_rejected_by_hoondok_decoder():
     """python-jose 는 aud 없는 토큰을 audience 검사에서 통과시킨다 — 명시 검사 회귀."""
     token = create_access_token({"sub": str(uuid.uuid4()), "role": "admin", "email": "admin@test.com"})
@@ -141,6 +172,22 @@ async def test_hoondok_token_cannot_authenticate_admin():
     assert exc.value.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_repository_update_display_name_changes_only_that_user(repo: UserRepository):
+    me = await repo.create(_user("me@example.com", display_name="구글 이름"))
+    other = await repo.create(_user("other@example.com", display_name="다른 사람"))
+    version = me.session_version
+
+    updated = await repo.update_display_name(me.id, "새 이름")
+    assert updated is not None and updated.display_name == "새 이름"
+    assert updated.session_version == version  # 이름 변경은 세션을 끊지 않는다
+    assert (await repo.get_by_id(other.id)).display_name == "다른 사람"  # type: ignore[union-attr]
+
+    other.deleted_at = datetime.now(timezone.utc)
+    await repo.save(other)
+    assert await repo.update_display_name(other.id, "되살림") is None
+
+
 # --- 의존성 ---------------------------------------------------------------
 
 
@@ -161,6 +208,13 @@ class _MemoryRepo:
     async def create(self, user: User) -> User:
         user.email = user.email.strip().lower()
         self.users[user.id] = user
+        return user
+
+    async def update_display_name(self, user_id: uuid.UUID, display_name: str) -> User | None:
+        user = self.users.get(user_id)
+        if user is None or user.deleted_at is not None:
+            return None
+        user.display_name = display_name
         return user
 
 
@@ -189,41 +243,59 @@ async def test_get_optional_user_ignores_admin_token_and_deleted_users():
 # --- 라우터 쿠키 흐름 ---------------------------------------------------------
 
 
+class _MemoryIdentities:
+    """로그인 수단 fake — 이 파일은 로그인 수단이 없는(비밀번호만 있는) 계정만 본다."""
+
+    session = MagicMock()
+
+    async def list_for_user(self, user_id: uuid.UUID) -> list:
+        return []
+
+
 @pytest.fixture
 def client():
     repo = _MemoryRepo()
     app.dependency_overrides[get_identity_repository] = lambda: repo
+    app.dependency_overrides[get_user_identity_repository] = lambda: _MemoryIdentities()
     try:
-        yield TestClient(app)
+        c = TestClient(app)
+        c.repo = repo  # type: ignore[attr-defined]
+        yield c
     finally:
         app.dependency_overrides.pop(get_identity_repository, None)
+        app.dependency_overrides.pop(get_user_identity_repository, None)
 
 
-def test_signup_me_logout_cookie_flow(client: TestClient):
-    body = {"email": "New@Example.com", "password": "password1", "display_name": "새벽"}
-    created = client.post("/hoondok/auth/signup", json=body, headers=XHR)
-    assert created.status_code == 201, created.text
-    assert created.json()["user"]["email"] == "new@example.com"
-    assert set(created.json()["user"]) == {"id", "email", "display_name"}
-    cookie = created.headers["set-cookie"]
+def test_login_me_logout_cookie_flow(client: TestClient):
+    asyncio.run(client.repo.create(_user("New@Example.com", display_name="새벽")))  # type: ignore[attr-defined]
+    login = client.post("/hoondok/auth/login", json={"email": "new@example.com", "password": "password1"}, headers=XHR)
+    assert login.status_code == 200, login.text
+    user = login.json()["user"]
+    assert user["email"] == "new@example.com"
+    assert set(user) == {"id", "email", "display_name", "login_methods"}
+    # 비밀번호는 provider="password" 로 드러난다 — 소셜 수단이 없으니 연결 안내 대상이다
+    assert user["login_methods"] == [{"provider": "password", "identity_id": None, "email": "new@example.com", "linked_at": None}]
+    cookie = login.headers["set-cookie"]
     assert cookie.startswith(f"{COOKIE_NAME}=") and "HttpOnly" in cookie and "Path=/" in cookie
     assert "admin_token" not in cookie
 
     me = client.get("/hoondok/auth/me")
     assert me.status_code == 200 and me.json()["user"]["display_name"] == "새벽"
-
-    assert client.post("/hoondok/auth/signup", json=body, headers=XHR).status_code == 409
+    assert me.json()["user"]["login_methods"] == user["login_methods"]
 
     out = client.post("/hoondok/auth/logout", headers=XHR)
     assert out.status_code == 204
     assert client.get("/hoondok/auth/me").status_code == 401
 
-    login = client.post("/hoondok/auth/login", json={"email": "new@example.com", "password": "password1"}, headers=XHR)
-    assert login.status_code == 200 and login.json()["user"]["email"] == "new@example.com"
-    assert client.get("/hoondok/auth/me").status_code == 200
-
     bad = client.post("/hoondok/auth/login", json={"email": "new@example.com", "password": "nope-nope"}, headers=XHR)
     assert bad.status_code == 401
+
+
+def test_login_for_account_without_password_is_401(client: TestClient):
+    asyncio.run(client.repo.create(_user("social@example.com", password=None)))  # type: ignore[attr-defined]
+    res = client.post("/hoondok/auth/login", json={"email": "social@example.com", "password": "password1"}, headers=XHR)
+    assert res.status_code == 401
+    assert "set-cookie" not in res.headers
 
 
 @pytest.mark.parametrize("path", ["/hoondok/auth/login", "/admin/auth/login"])
@@ -258,61 +330,71 @@ def test_me_with_admin_token_only_is_401(client: TestClient):
 
 
 def test_mutations_require_xhr_header_and_validate_body(client: TestClient):
-    body = {"email": "x@example.com", "password": "password1", "display_name": "x"}
-    assert client.post("/hoondok/auth/signup", json=body).status_code == 403
     assert client.post("/hoondok/auth/logout").status_code == 403
+    assert client.post("/hoondok/auth/login", json={"email": "x@example.com", "password": "password1"}).status_code == 403
+    bad_email = client.post("/hoondok/auth/login", json={"email": "not-an-email", "password": "password1"}, headers=XHR)
+    assert bad_email.status_code == 422
+
+
+@pytest.mark.parametrize("gate", [None, SecretStr(" 새벽-2026 ")], ids=["gate-off", "gate-on"])
+def test_signup_is_closed_with_410(client: TestClient, monkeypatch, gate):
+    """이메일·비밀번호 가입은 닫혔다 — 초대 코드·CSRF 헤더·중복 여부와 무관하게 410 PASSWORD_SIGNUP_CLOSED. 계정을 만들지 않는다."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "hoondok_invite_code", gate)
+    body = {"email": "Closed@Example.com", "password": "password1", "display_name": "닫힘", "invite_code": "새벽-2026"}
+    for headers in (XHR, {}):
+        res = client.post("/hoondok/auth/signup", json=body, headers=headers)
+        assert res.status_code == 410, res.text
+        assert res.json()["error_code"] == "PASSWORD_SIGNUP_CLOSED"
+        assert "set-cookie" not in res.headers
+    assert client.repo.users == {}  # type: ignore[attr-defined]
+    # 요청 스키마는 유지된다 — 형식이 틀리면 410 이전에 422
     assert client.post("/hoondok/auth/signup", json={**body, "password": "short"}, headers=XHR).status_code == 422
-    assert client.post("/hoondok/auth/signup", json={**body, "email": "not-an-email"}, headers=XHR).status_code == 422
 
 
-# --- Phase 3 F: 제한 베타 초대 코드 게이트 (HOONDOK_INVITE_CODE) ---
+def _login_as(client: TestClient, user: User) -> None:
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
 
 
-def test_signup_invite_gate_when_configured(client: TestClient, monkeypatch):
-    """설정 시: 누락·불일치 403 INVITE_REQUIRED(ErrorResponse 형식), 일치 201 + 쿠키. 게이트는 중복 409 보다 먼저.
-    로그인·로그아웃은 코드와 무관하다. 앞뒤 공백은 양쪽 모두 무시하고, 한글 코드도 비교한다."""
-    from app.core.config import settings
+def test_update_display_name_trims_and_keeps_session(client: TestClient):
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="Google Name")))  # type: ignore[attr-defined]
+    other = asyncio.run(client.repo.create(_user("other@example.com", password=None, display_name="다른 사람")))  # type: ignore[attr-defined]
+    version = me.session_version
+    _login_as(client, me)
 
-    monkeypatch.setattr(settings, "hoondok_invite_code", SecretStr(" 새벽-2026 "))
-    body = {"email": "Gate@Example.com", "password": "password1", "display_name": "게이트"}
+    res = client.patch("/hoondok/auth/me", json={"display_name": "  효진  "}, headers=XHR)
+    assert res.status_code == 200, res.text
+    assert res.json()["user"]["display_name"] == "효진"
+    assert set(res.json()["user"]) == {"id", "email", "display_name", "login_methods"}
+    assert "set-cookie" not in res.headers  # 세션을 다시 발급하지 않는다
+    assert me.session_version == version
+    assert client.get("/hoondok/auth/me").json()["user"]["display_name"] == "효진"  # 같은 쿠키가 계속 유효하다
+    assert other.display_name == "다른 사람"
 
-    missing = client.post("/hoondok/auth/signup", json=body, headers=XHR)
-    assert missing.status_code == 403, missing.text
-    assert missing.json()["error_code"] == "INVITE_REQUIRED"
-    assert "초대 코드" in missing.json()["message"]
-    assert "request_id" in missing.json()
-    assert "set-cookie" not in missing.headers
-
-    wrong = client.post("/hoondok/auth/signup", json={**body, "invite_code": "틀린코드"}, headers=XHR)
-    assert wrong.status_code == 403 and wrong.json()["error_code"] == "INVITE_REQUIRED"
-    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "   "}, headers=XHR).status_code == 403
-
-    ok = client.post("/hoondok/auth/signup", json={**body, "invite_code": " 새벽-2026"}, headers=XHR)
-    assert ok.status_code == 201, ok.text
-    assert ok.headers["set-cookie"].startswith(f"{COOKIE_NAME}=")
-
-    # 기존 이메일 + 틀린 코드 → 403 (409 가 아니어야 이메일 존재 여부가 새지 않는다), 맞는 코드 → 409
-    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "x"}, headers=XHR).status_code == 403
-    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "새벽-2026"}, headers=XHR).status_code == 409
-
-    assert client.post("/hoondok/auth/logout", headers=XHR).status_code == 204
-    login = client.post(
-        "/hoondok/auth/login", json={"email": "gate@example.com", "password": "password1"}, headers=XHR
-    )
-    assert login.status_code == 200 and client.get("/hoondok/auth/me").status_code == 200
+    # 64자는 허용된다(앞뒤 공백은 길이에 세지 않는다)
+    assert client.patch("/hoondok/auth/me", json={"display_name": " " + "가" * 64 + " "}, headers=XHR).status_code == 200
 
 
-@pytest.mark.parametrize("configured", [None, SecretStr(""), SecretStr("   ")], ids=["unset", "empty", "blank"])
-def test_signup_ignores_invite_code_when_gate_off(client: TestClient, monkeypatch, configured):
-    """미설정·빈 값(`HOONDOK_INVITE_CODE=` 는 SecretStr("") 로 들어온다)이면 invite_code 는 무시된다 — 로컬·E2E 기존 동작.
-    필드 자체는 스키마에 있으므로 64자 초과만 422."""
-    from app.core.config import settings
+@pytest.mark.parametrize("name", ["", "   ", "\t\n", "가" * 65])
+def test_update_display_name_rejects_blank_and_too_long(client: TestClient, name: str):
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="원래")))  # type: ignore[attr-defined]
+    _login_as(client, me)
+    res = client.patch("/hoondok/auth/me", json={"display_name": name}, headers=XHR)
+    assert res.status_code == 422
+    assert me.display_name == "원래"
 
-    monkeypatch.setattr(settings, "hoondok_invite_code", configured)
-    body = {"email": "open@example.com", "password": "password1", "display_name": "열림"}
-    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "아무거나"}, headers=XHR).status_code == 201
-    assert client.post("/hoondok/auth/signup", json={**body, "email": "open2@example.com"}, headers=XHR).status_code == 201
-    too_long = client.post(
-        "/hoondok/auth/signup", json={**body, "email": "open3@example.com", "invite_code": "x" * 65}, headers=XHR
-    )
-    assert too_long.status_code == 422
+
+def test_update_display_name_requires_login_and_csrf_header(client: TestClient):
+    assert client.patch("/hoondok/auth/me", json={"display_name": "새 이름"}, headers=XHR).status_code == 401
+
+    me = asyncio.run(client.repo.create(_user("me@example.com", password=None, display_name="원래")))  # type: ignore[attr-defined]
+    _login_as(client, me)
+    res = client.patch("/hoondok/auth/me", json={"display_name": "새 이름"})
+    assert res.status_code == 403
+    assert me.display_name == "원래"
+
+    # 옛 세션(sv 불일치)도 미로그인과 같다
+    me.session_version += 1
+    assert client.patch("/hoondok/auth/me", json={"display_name": "새 이름"}, headers=XHR).status_code == 401
+    assert me.display_name == "원래"
