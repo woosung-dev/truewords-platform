@@ -56,6 +56,14 @@ function row(text: string) {
   return within(tr);
 }
 
+// jsdom 은 Tailwind 를 적용하지 않아 좁은 화면용·넓은 화면용 동작 묶음이 모두 보인다 — 동작 열(마지막 칸)만 본다
+function actions(text: string) {
+  const tr = within(screen.getByRole("table")).getByText(text).closest("tr");
+  const cell = tr?.lastElementChild as HTMLElement | null;
+  if (!cell) throw new Error("actions cell not found");
+  return within(cell);
+}
+
 beforeEach(() => {
   vi.mocked(questionsAPI.list)
     .mockReset()
@@ -87,8 +95,9 @@ describe("추천 질문 고르기", () => {
     expect(r.getByText("4")).toBeInTheDocument();
     expect(r.getByText("1,212")).toHaveClass("font-medium", "text-right");
     expect(r.getByText("후보")).toBeInTheDocument();
-    expect(r.getByRole("button", { name: "추천하기" })).toBeInTheDocument();
-    expect(r.getByRole("button", { name: "추천에서 빼기" })).toBeInTheDocument();
+    const a = actions("가족과 자주 다투는데 말씀에서는?");
+    expect(a.getByRole("button", { name: /추천하기/ })).toBeInTheDocument();
+    expect(a.getByRole("button", { name: /추천에서 빼기/ })).toBeInTheDocument();
   });
 
   it("화면 이름과 상태 필터를 추천 문구로 보여 준다", async () => {
@@ -103,7 +112,7 @@ describe("추천 질문 고르기", () => {
 
   it("질문을 누르면 답과 근거를 펼친다", async () => {
     show();
-    const toggle = await screen.findByRole("button", { name: /가족과 자주 다투는데/ });
+    const toggle = await screen.findByRole("button", { name: /^가족과 자주 다투는데/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -124,7 +133,7 @@ describe("추천 질문 고르기", () => {
   it("추천하기를 누르면 published 로 PATCH 후 목록을 다시 읽는다", async () => {
     show();
     await screen.findByText("가족과 자주 다투는데 말씀에서는?");
-    fireEvent.click(row("가족과 자주 다투는데 말씀에서는?").getByRole("button", { name: "추천하기" }));
+    fireEvent.click(actions("가족과 자주 다투는데 말씀에서는?").getByRole("button", { name: /추천하기/ }));
     await waitFor(() => expect(questionsAPI.update).toHaveBeenCalledWith("q-pending", { status: "published" }));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("추천했습니다"));
     await waitFor(() => expect(questionsAPI.list).toHaveBeenCalledTimes(2));
@@ -143,13 +152,15 @@ describe("추천 질문 고르기", () => {
     show();
     await screen.findByText("추천 중인 질문");
     const pub = row("추천 중인 질문");
+    const pubActions = actions("추천 중인 질문");
     expect(pub.getByText("추천 중")).toBeInTheDocument();
-    expect(pub.queryByRole("button", { name: "추천하기" })).toBeNull();
-    expect(pub.getByRole("button", { name: "추천에서 빼기" })).toBeInTheDocument();
+    expect(pubActions.queryByRole("button", { name: /추천하기/ })).toBeNull();
+    expect(pubActions.getByRole("button", { name: /추천에서 빼기/ })).toBeInTheDocument();
     const hid = row("빼 둔 질문");
+    const hidActions = actions("빼 둔 질문");
     expect(hid.getByText("추천 안 함")).toBeInTheDocument();
-    expect(hid.getByRole("button", { name: "추천하기" })).toBeInTheDocument();
-    expect(hid.queryByRole("button", { name: "추천에서 빼기" })).toBeNull();
+    expect(hidActions.getByRole("button", { name: /추천하기/ })).toBeInTheDocument();
+    expect(hidActions.queryByRole("button", { name: /추천에서 빼기/ })).toBeNull();
   });
 
   it("답 미리보기는 제목 줄을 굵은 줄로, 나머지 기호는 원문대로 보여 준다", async () => {
@@ -160,7 +171,7 @@ describe("추천 질문 고르기", () => {
       page_size: 50,
     });
     show();
-    fireEvent.click(await screen.findByRole("button", { name: /가족과 자주 다투는데/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^가족과 자주 다투는데/ }));
     const preview = within(screen.getByRole("region", { name: "답 미리보기" }));
     expect(preview.getByText("짧게 말하면")).toHaveClass("font-semibold");
     expect(preview.queryByText(/###/)).toBeNull();
@@ -172,7 +183,7 @@ describe("추천 질문 고르기", () => {
     vi.mocked(questionsAPI.update).mockRejectedValue(new ApiError(404, { message: "Not Found" }));
     show();
     await screen.findByText("가족과 자주 다투는데 말씀에서는?");
-    fireEvent.click(row("가족과 자주 다투는데 말씀에서는?").getByRole("button", { name: "추천에서 빼기" }));
+    fireEvent.click(actions("가족과 자주 다투는데 말씀에서는?").getByRole("button", { name: /추천에서 빼기/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     await waitFor(() => expect(questionsAPI.list).toHaveBeenCalledTimes(2));
   });
@@ -194,9 +205,33 @@ describe("추천 질문 고르기", () => {
         ? { items: [], total: 50, page: 2, page_size: 50 }
         : { items: [question({})], total: 50, page: 1, page_size: 50 },
     );
-    fireEvent.click(row("마지막 질문").getByRole("button", { name: "추천하기" }));
+    fireEvent.click(actions("마지막 질문").getByRole("button", { name: /추천하기/ }));
     await screen.findByText("가족과 자주 다투는데 말씀에서는?");
     expect(questionsAPI.list).toHaveBeenLastCalledWith({ status: "pending", sort: "oldest", q: "", page: 1 });
+  });
+
+  it("3쪽의 마지막 항목을 처리해 비면 1쪽이 아니라 2쪽으로 옮긴다", async () => {
+    const make = (page: number, total: number) => ({
+      items: page === 3 && total === 100 ? [] : [question({ id: `q${page}`, question: `${page}쪽 질문` })],
+      total,
+      page,
+      page_size: 50,
+    });
+    vi.mocked(questionsAPI.list).mockImplementation(async ({ page }) => make(page ?? 1, 101));
+    show();
+    await screen.findByText("1쪽 질문");
+    fireEvent.click(screen.getByRole("button", { name: /다음/ }));
+    await screen.findByText("2쪽 질문");
+    fireEvent.click(screen.getByRole("button", { name: /다음/ }));
+    await screen.findByText("3쪽 질문");
+
+    vi.mocked(questionsAPI.list).mockImplementation(async ({ page }) => make(page ?? 1, 100));
+    fireEvent.click(actions("3쪽 질문").getByRole("button", { name: /추천하기/ }));
+    await screen.findByText("2쪽 질문");
+    expect(questionsAPI.list).toHaveBeenLastCalledWith({ status: "pending", sort: "oldest", q: "", page: 2 });
+    // 1쪽은 처음 한 번만 읽었다(빈 쪽에서 1쪽으로 건너뛰지 않음)
+    const page1 = vi.mocked(questionsAPI.list).mock.calls.filter(([arg]) => arg.page === 1);
+    expect(page1).toHaveLength(1);
   });
 
   it("후보 행에는 고정 버튼이 없다", async () => {
@@ -207,7 +242,7 @@ describe("추천 질문 고르기", () => {
 });
 
 const pinned = (n: number, overrides: Partial<PublicQuestionAdminItem> = {}) =>
-  question({ id: `p${n}`, question: `고정 질문 ${n}`, status: "published", pin_order: n, view_count: 10 * n, ask_count: n, ...overrides });
+  question({ id: `p${n}`, question: `고정 질문 ${n}`, status: "published", pin_order: n - 1, view_count: 10 * n, ask_count: n, ...overrides });
 
 describe("상단 고정", () => {
   const three = () => [pinned(1), pinned(2), pinned(3)];
@@ -292,10 +327,10 @@ describe("상단 고정", () => {
     });
     show();
     await screen.findByText("추천 중 미고정");
-    expect(row("후보 질문").queryByRole("button", { name: /고정/ })).toBeNull();
+    expect(actions("후보 질문").queryByRole("button", { name: /고정/ })).toBeNull();
     expect(row("고정 질문 1").getByText("고정 1번")).toBeInTheDocument();
-    expect(row("고정 질문 1").getByRole("button", { name: "고정 해제" })).toBeInTheDocument();
-    fireEvent.click(row("추천 중 미고정").getByRole("button", { name: /상단 고정/ }));
+    expect(actions("고정 질문 1").getByRole("button", { name: "'고정 질문 1' 고정 해제" })).toBeInTheDocument();
+    fireEvent.click(actions("추천 중 미고정").getByRole("button", { name: /상단 고정/ }));
     await waitFor(() => expect(questionsAPI.update).toHaveBeenCalledWith("u", { pinned: true }));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("상단에 고정했습니다 (2/10)"));
   });
@@ -312,7 +347,7 @@ describe("상단 고정", () => {
     });
     show();
     const btn = await waitFor(() => {
-      const b = row("추천 중 미고정").getByRole("button", { name: /상단 고정/ });
+      const b = actions("추천 중 미고정").getByRole("button", { name: /상단 고정/ });
       expect(b).toBeDisabled();
       return b;
     });
@@ -331,7 +366,7 @@ describe("상단 고정", () => {
     });
     show();
     await screen.findByText("추천 중 미고정");
-    fireEvent.click(row("추천 중 미고정").getByRole("button", { name: /상단 고정/ }));
+    fireEvent.click(actions("추천 중 미고정").getByRole("button", { name: /상단 고정/ }));
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith("상단 고정은 10개까지예요. 하나를 해제하고 다시 시도해 주세요."),
     );
@@ -341,7 +376,7 @@ describe("상단 고정", () => {
     vi.mocked(questionsAPI.list).mockResolvedValue({ items: [pinned(1)], total: 1, page: 1, page_size: 50 });
     show();
     await screen.findByText("고정 질문 1");
-    fireEvent.click(row("고정 질문 1").getByRole("button", { name: "추천에서 빼기" }));
+    fireEvent.click(actions("고정 질문 1").getByRole("button", { name: /추천에서 빼기/ }));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("추천에서 뺐습니다. 상단 고정도 풀렸습니다"));
   });
 });

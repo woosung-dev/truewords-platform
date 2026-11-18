@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isNotFound, loadErrorMessage, mutationErrorMessage } from "@/features/hoondok/api-errors";
+import { ApiError } from "@/lib/api";
 import {
   MAX_PINNED,
   type PublicQuestionAdminItem,
@@ -25,10 +26,15 @@ export function shortQuestion(text: string): string {
   return chars.length > 20 ? `${chars.slice(0, 20).join("")}…` : text;
 }
 
+/** API 의 pin_order 는 0부터 이어지므로 화면에는 1을 더해 보인다. */
+export function pinLabel(order: number): string {
+  return `고정 ${order + 1}번`;
+}
+
 type Dir = "up" | "down";
 
 /** 추천 상단 고정 카드 — 고정 목록을 보이고, ▲▼ 로 순서를 바꾸며, 해제한다. */
-export function PinnedQuestionsCard() {
+export function PinnedQuestionsCard({ externalBusy = false }: { externalBusy?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: PINS_KEY,
@@ -39,6 +45,8 @@ export function PinnedQuestionsCard() {
   const [announce, setAnnounce] = useState("");
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const pendingFocus = useRef<{ id: string; dir: Dir } | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const pendingUnpin = useRef<{ id: string; index: number } | null>(null);
 
   const invalidateAll = () => queryClient.invalidateQueries({ queryKey: QUESTIONS_KEY });
 
@@ -64,7 +72,7 @@ export function PinnedQuestionsCard() {
       if (context?.previous) queryClient.setQueryData(PINS_KEY, context.previous);
       setAnnounce("");
       toast.error("순서를 바꾸지 못했습니다. 원래 순서로 돌렸습니다");
-      if (isNotFound(err)) invalidateAll();
+      if (isNotFound(err) || (err instanceof ApiError && err.status === 422)) invalidateAll();
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: PINS_KEY });
@@ -78,6 +86,7 @@ export function PinnedQuestionsCard() {
       invalidateAll();
     },
     onError: (err: Error) => {
+      pendingUnpin.current = null;
       toast.error(isNotFound(err) ? mutationErrorMessage(err, "") : "고정을 풀지 못했습니다");
       if (isNotFound(err)) invalidateAll();
     },
@@ -104,14 +113,25 @@ export function PinnedQuestionsCard() {
     buttons.current.get(`${target.id}:${dir}`)?.focus();
   }, [reorder.isPending, items]);
 
-  const saving = reorder.isPending;
+  // 해제로 행이 사라지면 다음 행(없으면 이전 행, 없으면 제목)의 해제 버튼으로 포커스를 옮긴다
+  useEffect(() => {
+    const target = pendingUnpin.current;
+    if (!target || unpin.isPending) return;
+    if (items.some((item) => item.id === target.id)) return;
+    pendingUnpin.current = null;
+    const neighbor = items[target.index] ?? items[target.index - 1];
+    const el = neighbor ? buttons.current.get(`${neighbor.id}:unpin`) : null;
+    (el ?? heading.current)?.focus();
+  }, [unpin.isPending, items]);
+
+  const saving = reorder.isPending || unpin.isPending || externalBusy;
 
   return (
     <section aria-labelledby="pinned-title">
       <Card className="p-0 overflow-hidden gap-0">
         <div className="px-5 py-4 border-b space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 id="pinned-title" className="text-base font-semibold">
+            <h2 ref={heading} tabIndex={-1} id="pinned-title" className="text-base font-semibold outline-none">
               추천 상단 고정
             </h2>
             <span className="text-sm text-muted-foreground tabular-nums">
@@ -187,11 +207,18 @@ export function PinnedQuestionsCard() {
                       <ChevronDown aria-hidden />
                     </Button>
                     <Button
+                      ref={(el: HTMLButtonElement | null) => {
+                        if (el) buttons.current.set(`${item.id}:unpin`, el);
+                        else buttons.current.delete(`${item.id}:unpin`);
+                      }}
                       variant="outline"
                       size="sm"
                       aria-label={`'${name}' 고정 해제`}
-                      disabled={saving || unpin.isPending}
-                      onClick={() => unpin.mutate(item.id)}
+                      disabled={saving}
+                      onClick={() => {
+                        pendingUnpin.current = { id: item.id, index };
+                        unpin.mutate(item.id);
+                      }}
                     >
                       <PinOff aria-hidden /> 해제
                     </Button>

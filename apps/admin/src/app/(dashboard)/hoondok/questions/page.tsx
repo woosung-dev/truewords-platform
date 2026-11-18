@@ -13,7 +13,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isNotFound, loadErrorMessage, mutationErrorMessage } from "@/features/hoondok/api-errors";
-import { PINS_KEY, PinnedQuestionsCard, QUESTIONS_KEY, shortQuestion } from "@/features/hoondok/components/pinned-questions-card";
+import { PINS_KEY, PinnedQuestionsCard, QUESTIONS_KEY, pinLabel, shortQuestion } from "@/features/hoondok/components/pinned-questions-card";
 import { kstTodayIso } from "@/features/hoondok/dates";
 import {
   ANSWER_MODE_LABEL,
@@ -116,7 +116,7 @@ export default function HoondokQuestionsPage() {
     return () => clearTimeout(timer);
   }, [searchInput, q]);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, isPlaceholderData } = useQuery({
     queryKey: [...LIST_KEY, status, sort, q, page],
     queryFn: () => questionsAPI.list({ status, sort, q, page }),
     placeholderData: keepPreviousData,
@@ -167,7 +167,7 @@ export default function HoondokQuestionsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   const busy = patchMutation.isPending;
   // 뒤쪽 쪽의 마지막 항목을 추천하거나 빼면 그 쪽이 비고 쪽 넘김도 사라진다 — 남은 마지막 쪽으로 옮긴다
-  if (data && !isLoading && items.length === 0 && page > 1) setPage(totalPages < page ? totalPages : page - 1);
+  if (data && !isLoading && !isPlaceholderData && items.length === 0 && page > 1) setPage(totalPages < page ? totalPages : page - 1);
 
   return (
     <div className="space-y-5 page-wide">
@@ -179,7 +179,7 @@ export default function HoondokQuestionsPage() {
         </p>
       </div>
 
-      <PinnedQuestionsCard />
+      <PinnedQuestionsCard externalBusy={busy} />
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div role="group" aria-label="상태 필터" className="flex flex-wrap gap-1.5">
@@ -285,7 +285,7 @@ export default function HoondokQuestionsPage() {
                   >
                     신청일
                   </TableHead>
-                  <TableHead className="text-right font-semibold text-foreground">동작</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground hidden md:table-cell">동작</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,7 +341,7 @@ function QuestionRow({ item, open, onToggle, busy, pinLimitReached, onPatch }: Q
   return (
     <Fragment>
       <TableRow data-id={item.id} className="hover:bg-admin-muted/30 transition-colors align-top">
-        <TableCell className="min-w-[14rem] max-w-[32rem] whitespace-normal">
+        <TableCell className="md:min-w-[14rem] max-w-[32rem] whitespace-normal">
           <button
             type="button"
             aria-expanded={open}
@@ -354,9 +354,13 @@ function QuestionRow({ item, open, onToggle, busy, pinLimitReached, onPatch }: Q
           </button>
           {pinned && (
             <p className="mt-1 ml-5.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <Pin className="w-3 h-3" aria-hidden /> 고정 {item.pin_order}번
+              <Pin className="w-3 h-3" aria-hidden />
+              {pinLabel(item.pin_order as number)}
             </p>
           )}
+          <div className="mt-2 ml-5.5 flex flex-wrap gap-2 md:hidden">
+            <RowActions item={item} busy={busy} pinLimitReached={pinLimitReached} onPatch={onPatch} />
+          </div>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm hidden md:table-cell">
           {ANSWER_MODE_LABEL[item.answer_mode]}
@@ -370,42 +374,9 @@ function QuestionRow({ item, open, onToggle, busy, pinLimitReached, onPatch }: Q
         <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground hidden md:table-cell">
           {kstDate(item.created_at)}
         </TableCell>
-        <TableCell className="whitespace-normal">
-          <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:justify-end">
-            {item.status !== "published" && (
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => onPatch({ status: "published" })}>
-                추천하기
-              </Button>
-            )}
-            {item.status !== "hidden" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                disabled={busy}
-                onClick={() => onPatch({ status: "hidden" })}
-              >
-                추천에서 빼기
-              </Button>
-            )}
-            {item.status === "published" &&
-              (pinned ? (
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => onPatch({ pinned: false })}>
-                  <PinOff aria-hidden /> 고정 해제
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy || pinLimitReached}
-                  aria-describedby={pinLimitReached ? "pin-limit-note" : undefined}
-                  title={pinLimitReached ? LIMIT_MESSAGE_SHORT : undefined}
-                  aria-label={`'${shortQuestion(item.question)}' 상단 고정`}
-                  onClick={() => onPatch({ pinned: true })}
-                >
-                  <Pin aria-hidden /> 고정
-                </Button>
-              ))}
+        <TableCell className="whitespace-normal hidden md:table-cell">
+          <div className="flex justify-end gap-1.5">
+            <RowActions item={item} busy={busy} pinLimitReached={pinLimitReached} onPatch={onPatch} />
           </div>
         </TableCell>
       </TableRow>
@@ -452,5 +423,71 @@ function QuestionRow({ item, open, onToggle, busy, pinLimitReached, onPatch }: Q
         </TableRow>
       )}
     </Fragment>
+  );
+}
+
+interface RowActionsProps {
+  item: PublicQuestionAdminItem;
+  busy: boolean;
+  pinLimitReached: boolean;
+  onPatch: (patch: QuestionPatch) => void;
+}
+
+/** 행 동작 버튼 묶음 — 좁은 화면에서는 질문 칸 아래, 넓은 화면에서는 동작 열에 놓는다. */
+function RowActions({ item, busy, pinLimitReached, onPatch }: RowActionsProps) {
+  const pinned = item.pin_order !== null;
+  const name = shortQuestion(item.question);
+  return (
+    <>
+      {item.status !== "published" && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          aria-label={`'${name}' 추천하기`}
+          onClick={() => onPatch({ status: "published" })}
+        >
+          추천하기
+        </Button>
+      )}
+      {item.status !== "hidden" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          disabled={busy}
+          aria-label={`'${name}' 추천에서 빼기`}
+          onClick={() => onPatch({ status: "hidden" })}
+        >
+          추천에서 빼기
+        </Button>
+      )}
+      {item.status === "published" &&
+        (pinned ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-w-[5.5rem]"
+            disabled={busy}
+            aria-label={`'${name}' 고정 해제`}
+            onClick={() => onPatch({ pinned: false })}
+          >
+            <PinOff aria-hidden /> 고정 해제
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-w-[5.5rem]"
+            disabled={busy || pinLimitReached}
+            aria-describedby={pinLimitReached ? "pin-limit-note" : undefined}
+            title={pinLimitReached ? LIMIT_MESSAGE_SHORT : undefined}
+            aria-label={`'${name}' 상단 고정`}
+            onClick={() => onPatch({ pinned: true })}
+          >
+            <Pin aria-hidden /> 고정
+          </Button>
+        ))}
+    </>
   );
 }
