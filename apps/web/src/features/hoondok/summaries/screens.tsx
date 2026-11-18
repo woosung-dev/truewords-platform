@@ -5,10 +5,11 @@ import { ApiError } from "@truewords/api-client-ts";
 import type { SummaryDetail } from "@truewords/api-client-ts/types";
 import { ArrowLeft, ArrowRight, BookOpenText, ChevronRight, Info, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { wordsHref, wordsSectionHref } from "../library/api";
 import { aiSummaryKey, aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
+import { EvidenceViewer, previewableEvidence, rangeLabel, useEvidenceParam, useWide } from "./evidence-viewer";
 import { SummaryFigures } from "./figures";
 import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
 
@@ -35,10 +36,6 @@ export function readingMinutes(item: Pick<SummaryDetail, "lead" | "key_points" |
 export function sourceHref(item: Pick<SummaryDetail, "volume" | "section_position" | "source">): string {
   if (item.section_position != null) return wordsSectionHref(item.volume, item.section_position);
   return wordsHref(item.volume, item.source.chunk_ids?.[0]);
-}
-
-function range(from: number, to: number) {
-  return from === to ? `${from}` : `${from}–${to}`;
 }
 
 /** group_title 의 마지막 조각(절 제목)은 목록 제목과 겹치므로 그 위 단계(장)만 보인다. */
@@ -91,6 +88,21 @@ function SummaryToc({ entries }: { entries: TocEntry[] }) {
 export function SummaryDetailScreen({ id }: { id: string }) {
   const query = useQuery({ queryKey: aiSummaryKey(id), queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
   const item = query.data;
+  // 근거 원문 미리보기 — 단락이 연결된 근거만 연다. 훅이라 이른 return 보다 앞에 둔다.
+  const previewable = previewableEvidence(item?.evidence ?? []);
+  // 넓은 화면에서 패널이 열리고 닫히면 본문 폭이 바뀌어 위쪽 글이 다시 흐른다 — 보던 근거를 화면 같은 자리에 붙잡아 둔다
+  const anchor = useRef<{ el: Element; top: number } | null>(null);
+  const keepInView = (el: Element | null) => {
+    if (el) anchor.current = { el, top: el.getBoundingClientRect().top };
+  };
+  const evidenceView = useEvidenceParam(previewable.length, () => keepInView(document.querySelector(".sum-evidence li.is-open")));
+  const wide = useWide();
+  const hasPanel = wide && evidenceView.open !== null;
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    if (a?.el.isConnected) window.scrollBy(0, a.el.getBoundingClientRect().top - a.top);
+  }, [hasPanel]);
   if (!item || query.isError) return <section className="sum-page"><Status pending={query.isPending} missing={query.error instanceof ApiError && query.error.status === 404} retry={() => void query.refetch()} /></section>;
   const toSource = sourceHref(item);
   const crumbs = item.group_title.split(" · ").filter(Boolean);
@@ -107,8 +119,16 @@ export function SummaryDetailScreen({ id }: { id: string }) {
     ...(item.reflection_questions.length ? [{ id: "sum-questions", label: "되새길 물음" }] : []),
     { id: "sum-source", label: "원문과 함께 읽기" },
   ];
+  const openEvidence = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
+    // 새 탭·새 창(보조키·가운데 버튼)은 지금처럼 원문 뷰로 간다
+    if (index < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    keepInView(event.currentTarget.closest("li"));
+    evidenceView.show(index);
+  };
+  const viewer = evidenceView.open === null ? null : <EvidenceViewer wide={wide} summaryId={item.id} volume={item.volume} unit={unit} evidence={previewable} index={evidenceView.open} onMove={evidenceView.show} onClose={evidenceView.close} />;
   return <article className="sum-page sum-reading" aria-labelledby="sum-title">
-    <div className="sum-layout">
+    <div className={wide && viewer ? "sum-layout has-ev" : "sum-layout"}>
       <div className="sum-main">
         {/* 1. 머리 — 위치·제목·읽기 시간·고정 안내 */}
         <header className="sum-header">
@@ -126,14 +146,15 @@ export function SummaryDetailScreen({ id }: { id: string }) {
         {/* 5. 차근히 이해하기 */}
         <section id="sum-body" aria-labelledby="sum-body-h"><h3 id="sum-body-h" className="sum-h">차근히 이해하기</h3><SummaryBody body={item.body} assets={item.assets ?? []} /></section>
         {/* 6. 근거 확인하기 */}
-        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`${unit} ${range(e.from, e.to)} 원문에서 확인하기`}>{unit} {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
+        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => { const pi = previewable.findIndex((p) => p.index === i); return <li key={i} className={pi >= 0 && pi === evidenceView.open ? "is-open" : undefined}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} onClick={(event) => openEvidence(event, pi)} aria-label={`${unit} ${rangeLabel(e.from, e.to)} 원문에서 확인하기`}>{unit} {rangeLabel(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>; })}</ul></section>}
         {/* 7. 되새길 물음 */}
         {item.reflection_questions.length > 0 && <section id="sum-questions" className="sum-reflection" aria-labelledby="sum-questions-h"><h3 id="sum-questions-h">되새길 물음</h3><ul>{item.reflection_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></section>}
         {/* 8. 원문과 함께 읽기 */}
         <section id="sum-source" className="sum-source" aria-labelledby="sum-source-h"><BookOpenText size={22} aria-hidden="true" /><div><h3 id="sum-source-h">원문과 함께 읽기</h3><p>{[item.source.edition, item.source.locator].filter(Boolean).join(" · ")}</p></div><Link className="btn btn-line" href={toSource}>원문 읽기</Link></section>
         <nav className="sum-next" aria-label="요약 이동"><Link href="/summaries"><ArrowLeft size={16} aria-hidden="true" />전체 요약</Link>{item.next_id ? <Link href={`/summaries/${item.next_id}`}>다음 요약 읽기 <ArrowRight size={16} aria-hidden="true" /></Link> : <span>다음 요약은 준비 중이에요</span>}</nav>
       </div>
-      <aside className="sum-aside"><SummaryToc entries={toc} /></aside>
+      <aside className="sum-aside">{wide && viewer ? viewer : <SummaryToc entries={toc} />}</aside>
     </div>
+    {!wide && viewer}
   </article>;
 }

@@ -24,6 +24,7 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
+    SummaryEvidenceSource,
     SummaryTocItem,
 )
 from typing import Literal
@@ -63,6 +64,18 @@ async def summary_detail(
 ):
     no_cache(response)
     return await svc.detail(unit_id)
+
+
+@router.get("/{unit_id}/evidence/{index}", response_model=SummaryEvidenceSource)
+async def summary_evidence_source(
+    unit_id: uuid.UUID,
+    index: int,
+    response: Response,
+    svc: SummaryService = Depends(service),
+):
+    """근거(0부터 순번) 한 건의 원문 미리보기 — 요약 화면을 떠나지 않고 근거를 확인한다."""
+    no_cache(response)
+    return await svc.evidence_source(unit_id, index)
 
 
 @router.get("/{unit_id}/media/{asset_id}")
