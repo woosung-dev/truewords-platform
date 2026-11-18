@@ -27,7 +27,8 @@ class CacheCheckStage:
             ctx.pipeline_state = PipelineState.CACHE_CHECKED
             return ctx
 
-        if not self.cache_service or ctx.query_embedding is None:
+        # 권리 필터가 걸린 요청은 캐시 답(필터 없이 만든 답·근거)을 돌려주면 필터를 우회한다.
+        if not self.cache_service or ctx.query_embedding is None or ctx.volume_filter is not None:
             ctx.pipeline_state = PipelineState.CACHE_CHECKED
             return ctx
 

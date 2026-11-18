@@ -56,6 +56,7 @@ async def cascading_search(
     dense_embedding: list[float] | None = None,
     collection_name: str | None = None,
     query_metadata: dict[str, int] | None = None,
+    volume_filter: list[str] | None = None,
 ) -> list[SearchResult]:
     """티어별 순차 검색 — 임베딩 1회 계산 후 모든 티어에서 재사용.
 
@@ -69,6 +70,7 @@ async def cascading_search(
         top_k: 최종 반환할 최대 결과 수.
         dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
         query_metadata: ``extract_query_metadata`` 결과 dict. hybrid_search 로 그대로 전달.
+        volume_filter: 훈독 권리 허용 volume. hybrid_search 로 그대로 전달.
 
     Returns:
         score 내림차순 정렬된 SearchResult 리스트 (최대 top_k건).
@@ -102,6 +104,7 @@ async def cascading_search(
                 dense_embedding=dense,
                 sparse_embedding=sparse,
                 collection_name=collection_name,
+                volume_filter=volume_filter,
             )
         except Exception as e:
             logger.warning(

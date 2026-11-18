@@ -63,6 +63,7 @@ class SearchStage:
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
                 query_metadata=ctx.query_metadata,
+                volume_filter=ctx.volume_filter,
             )
         else:
             ctx.results = await cascading_search(
@@ -70,6 +71,7 @@ class SearchStage:
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
                 query_metadata=ctx.query_metadata,
+                volume_filter=ctx.volume_filter,
             )
         ctx.search_latency_ms = int((time.monotonic() - start) * 1000)
 
@@ -80,6 +82,7 @@ class SearchStage:
                 original_results=ctx.results,
                 dense_embedding=ctx.query_embedding or [],
                 collection_name=resolved.main,
+                volume_filter=ctx.volume_filter,
             )
 
         ctx.pipeline_state = PipelineState.SEARCHED

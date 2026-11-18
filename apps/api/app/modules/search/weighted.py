@@ -49,6 +49,7 @@ async def weighted_search(
     dense_embedding: list[float] | None = None,
     collection_name: str | None = None,
     query_metadata: dict[str, int] | None = None,
+    volume_filter: list[str] | None = None,
 ) -> list[SearchResult]:
     """소스별 가중치 기반 병렬 하이브리드 검색.
 
@@ -101,6 +102,7 @@ async def weighted_search(
                 dense_embedding=dense,
                 sparse_embedding=sparse,
                 collection_name=collection_name,
+                volume_filter=volume_filter,
             )
         except Exception as e:
             logger.warning(

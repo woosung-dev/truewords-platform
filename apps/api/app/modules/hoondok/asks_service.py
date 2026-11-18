@@ -120,6 +120,9 @@ class AskService:
         if not validation.passed:
             raise InputBlockedError("허용되지 않는 입력 패턴이 감지되었습니다.")
 
+        # 권리가 닫힌 권(원장에 없는 권 포함)의 본문이 답·근거로 나가지 않도록 검색 자체를 허용 volume 으로 좁힌다.
+        volumes = await self.repo.searchable_volumes()
+
         now = self.now()
         day = today_kst(now)
         if not await self.repo.try_consume(user_id, day, self.daily_limit):
@@ -132,7 +135,7 @@ class AskService:
             session_id=data.session_id,
             answer_mode=data.answer_mode,
         )
-        frames = self.chat.process_chat_stream(request, user_id)
+        frames = self.chat.process_chat_stream(request, user_id, volume_filter=volumes)
         try:
             first = await anext(frames)
         except StopAsyncIteration:

@@ -35,7 +35,7 @@ from app.modules.hoondok.asks_repository import AskRepository
 from app.modules.hoondok.asks_service import AskService, next_reset
 from app.modules.hoondok.dependencies import get_ask_chat_service, get_ask_repository, get_public_question_repository
 from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
-from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, PublicQuestion
+from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, ContentRight, PublicQuestion
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
@@ -55,6 +55,7 @@ TABLES = [
     AskThread,
     AskTurn,
     AskUsage,
+    ContentRight,
 ]
 
 
@@ -62,8 +63,12 @@ class FakeChatService(ChatService):
     """입력 검증·세션 단계는 실제로 돌리고, 그 뒤는 고정 답(인용 1건)을 기록해 SSE 로 흘린다."""
 
     fail_after_session: Exception | None = None
+    volume_filter: list[str] | None = None
 
-    async def process_chat_stream(self, request: ChatRequest, user_id: uuid.UUID | None = None):
+    async def process_chat_stream(
+        self, request: ChatRequest, user_id: uuid.UUID | None = None, volume_filter: list[str] | None = None
+    ):
+        self.volume_filter = volume_filter
         ctx = await self.input_validation_stage.execute(ChatContext(request=request, user_id=user_id))
         ctx = await self.session_stage.execute(ctx)
         if self.fail_after_session is not None:
@@ -193,6 +198,39 @@ async def test_ask_streams_same_event_contract_and_records_turn(ctx: TestClient)
     assert chat_session.user_id == user.id  # 세션은 훈독 계정에 묶인다
     turn = await session.get(AskTurn, uuid.UUID(data["message_id"]))
     assert turn.sources[0]["chunk_id"] == "chunk-1" and turn.suggested_followups == ["다음 질문"]
+
+
+# --- 권리 ------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ask_searches_only_rights_open_volumes(ctx: TestClient):
+    """권리가 닫힌 권(말씀선집 615권 등)은 AI 질문 검색 범위에서 빠진다 — 원장에 없는 권도 닫힌 것으로 본다."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    rows = [
+        ("open", "allowed", True, True),
+        ("search-only", "allowed", True, False),
+        ("615", "allowed", False, False),  # 서고 목록에도 없는 권
+        ("full-text-only", "allowed", False, True),
+        ("pending", "pending", True, True),
+        ("withdrawn", "withdrawn", True, True),
+    ]
+    for volume, status_, search, full in rows:
+        session.add(
+            ContentRight(volume=volume, status=status_, scope_search=search, scope_full_text=full, work_title=volume)
+        )
+    await session.commit()
+    await login(ctx)
+    assert ask(ctx).status_code == 200
+    assert sorted(ctx.chat.volume_filter) == ["open", "search-only"]  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_ask_without_any_open_volume_searches_nothing(ctx: TestClient):
+    """권리 원장이 비면 빈 목록(검색 0건)을 넘긴다 — None(필터 없음, 전체 검색)이 아니다."""
+    await login(ctx)
+    assert ask(ctx).status_code == 200
+    assert ctx.chat.volume_filter == []  # type: ignore[attr-defined]
 
 
 # --- 하루 횟수 ------------------------------------------------------------------------

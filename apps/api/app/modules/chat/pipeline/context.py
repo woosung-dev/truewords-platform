@@ -55,6 +55,9 @@ class ChatContext:
     # SearchStage 가 채우고 cascading/weighted_search 의 hybrid_search 로 전달된다.
     # 빈 dict 면 metadata filter 적용 안 함 (= v5 baseline).
     query_metadata: dict[str, int] = field(default_factory=dict)
+    # 훈독 권리 필터 — 검색을 이 volume 들로만 좁힌다(Qdrant 쿼리 시점 must 조건, fallback 포함).
+    # None 이면 기존 검색(시연 챗), 빈 목록이면 검색 0건. 훈독 AI 질문이 content_rights 로 채운다.
+    volume_filter: list[str] | None = None
     answer: str | None = None
     stream_sanitizer_aborted: bool = False
     assistant_message: SessionMessage | None = None

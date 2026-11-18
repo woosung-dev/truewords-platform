@@ -152,7 +152,10 @@ class ChatService:
         return await build_display_name_lookup(self.ingestion_repo)
 
     async def _run_pre_pipeline(
-        self, request: ChatRequest, user_id: uuid.UUID | None = None
+        self,
+        request: ChatRequest,
+        user_id: uuid.UUID | None = None,
+        volume_filter: list[str] | None = None,
     ) -> ChatContext:
         """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
 
@@ -164,7 +167,7 @@ class ChatService:
         valid 로 처리되며, 이는 cache invalidation 만 비활성화하고 RAG 본 흐름엔
         영향 없다.
         """
-        ctx = ChatContext(request=request, user_id=user_id)
+        ctx = ChatContext(request=request, user_id=user_id, volume_filter=volume_filter)
         if self.ingestion_repo is not None:
             # facade 로 cross-domain 조회 좁힘 (audit P1-9).
             ctx.corpus_updated_at = await get_corpus_updated_at(self.ingestion_repo)
@@ -277,14 +280,19 @@ class ChatService:
         )
 
     async def process_chat_stream(
-        self, request: ChatRequest, user_id: uuid.UUID | None = None
+        self,
+        request: ChatRequest,
+        user_id: uuid.UUID | None = None,
+        volume_filter: list[str] | None = None,
     ) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield.
+
+        volume_filter: 검색을 이 volume 들로만 좁힌다(훈독 권리). None 이면 기존 검색.
 
         Client disconnect 또는 task cancellation 시 force_transition_to 로
         ctx.pipeline_state = STREAM_ABORTED 갱신 후 re-raise (관찰성 baseline).
         """
-        ctx = await self._run_pre_pipeline(request, user_id)
+        ctx = await self._run_pre_pipeline(request, user_id, volume_filter)
 
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
