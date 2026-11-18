@@ -82,7 +82,7 @@ test("비로그인은 추천만 보고, 질문·내 질문은 로그인 안내�
   expect(errors.filter((text) => !EXPECTED_401.test(text))).toEqual([]);
 });
 
-test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 열어도 계정에 남아 있다", async ({ page }) => {
+test("로그인 → 질문 → 답 → 이어서 질문 → 북마크 → 다시 열어도 계정에 남아 있다", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   const requests = watchAskRequests(page);
   await signUp(page, "ask-flow");
@@ -107,7 +107,7 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   await expect(page.getByText("오늘 남은 질문 4회")).toBeVisible();
   const sessionId = page.url().split("/").at(-1);
 
-  const toggle = page.getByRole("button", { name: "저장" });
+  const toggle = page.getByRole("button", { name: "북마크" });
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -127,7 +127,7 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.reload();
   await expect(page.getByRole("region", { name: "이어서 한 질문" }).getByText(ANSWER)).toBeVisible();
-  await expect(page.getByRole("button", { name: "저장" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "북마크" })).toHaveAttribute("aria-pressed", "true");
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
   // 예전 질문 기록 주소는 홈의 내 질문 탭으로 간다
@@ -136,7 +136,7 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   const row = page.getByRole("link", { name: /정성을 드린다는 게/ });
   await expect(row).toBeVisible();
   await expect(row).toContainText("말씀 길잡이");
-  await page.getByRole("tab", { name: "저장" }).click();
+  await page.getByRole("tab", { name: "북마크" }).click();
   await expect(page.getByRole("link", { name: /정성을 드린다는 게/ })).toBeVisible();
 
   // 상세에서 ← 는 보던 탭으로 돌아간다

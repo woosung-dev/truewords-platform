@@ -230,6 +230,19 @@ describe("AI 질문 어댑터", () => {
     expect(requestBodies()[0]).toEqual({ query: "이어서", answer_mode: "theological", session_id: SID });
   });
 
+  it("이어 묻기에는 공개 질문 id 를 싣지 않는다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async () => sseResponse(sseBody([SOURCE]))),
+    );
+    await requestHoondokAsk("새 질문", { publicQuestionId: "pq1" });
+    await requestHoondokAsk("이어서", { sessionId: SID, publicQuestionId: "pq1" });
+    expect(requestBodies()).toEqual([
+      { query: "새 질문", public_question_id: "pq1" },
+      { query: "이어서", session_id: SID },
+    ]);
+  });
+
   it.each([
     [
       jsonError(429, "ASK_DAILY_LIMIT"),
@@ -389,6 +402,218 @@ describe("AI 질문 홈", () => {
   });
 });
 
+describe("AI 질문 홈 — 카드·북마크·삭제", () => {
+  it("추천 카드는 링크 밖 형제 북마크 버튼(질문 설명 연결)을 두고, 고정 질문은 글자 배지로 보인다", async () => {
+    vi.mocked(publicQuestionsAPI.list).mockResolvedValue({
+      items: [pub("p1", { pinned: true }), pub("p2", { bookmarked: true })],
+      next_cursor: null,
+    });
+    render(<AskHome />);
+    const pinned = await screen.findByRole("link", { name: /추천 p1/ });
+    expect(pinned).toHaveTextContent("고정");
+    expect(screen.getByRole("link", { name: /추천 p2/ })).not.toHaveTextContent("고정");
+    const toggles = screen.getAllByRole("button", { name: "북마크" });
+    expect(toggles).toHaveLength(2);
+    expect(toggles[0]).toHaveAttribute("aria-pressed", "false");
+    expect(toggles[1]).toHaveAttribute("aria-pressed", "true");
+    expect(toggles[0]).toHaveAccessibleDescription("추천 p1");
+    expect(pinned.querySelector("button")).toBeNull();
+    // 조회수·순위 수치는 보이지 않는다
+    expect(screen.queryByText(/조회/)).toBeNull();
+  });
+
+  it("더 보기로 붙인 쪽에 이미 나온 질문이 다시 와도 한 번만 그린다", async () => {
+    vi.mocked(publicQuestionsAPI.list)
+      .mockResolvedValueOnce({ items: [pub("p1"), pub("p2")], next_cursor: "2" })
+      .mockResolvedValueOnce({ items: [pub("p2"), pub("p3")], next_cursor: null });
+    render(<AskHome />);
+    await screen.findByRole("link", { name: /추천 p1/ });
+    fireEvent.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("link", { name: /추천 p3/ });
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(publicQuestionsAPI.list).toHaveBeenLastCalledWith({ q: undefined, cursor: "2" }, expect.anything());
+  });
+
+  it("추천 카드 북마크는 바로 켜지고 서버에 남긴다. 실패하면 되돌리고 알린다", async () => {
+    currentUser = { id: "u1" };
+    vi.mocked(publicQuestionsAPI.list).mockResolvedValue({ items: [pub("p1")], next_cursor: null });
+    render(<AskHome />);
+    const toggle = await screen.findByRole("button", { name: "북마크" });
+    fireEvent.click(toggle);
+    // 낙관적 — 서버 응답을 기다리지 않는다(요청이 끝나지 않아도 바뀐다)
+    let finish: () => void = () => {};
+    vi.mocked(publicQuestionsAPI.unbookmark).mockReturnValueOnce(
+      new Promise((_resolve, reject) => (finish = () => reject(new ApiError(500, "down")))),
+    );
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-pressed", "true"));
+    expect(publicQuestionsAPI.bookmark).toHaveBeenCalledWith("p1");
+    expect(await screen.findByText("북마크했어요")).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-pressed", "false"));
+    await act(async () => finish());
+    expect(await screen.findByText("북마크하지 못했어요. 잠시 뒤 다시 해 주세요.")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("요청이 끝나기 전 같은 카드를 다시 눌러도 요청은 한 번이다", async () => {
+    currentUser = { id: "u1" };
+    vi.mocked(publicQuestionsAPI.list).mockResolvedValue({ items: [pub("p1")], next_cursor: null });
+    let finish: () => void = () => {};
+    vi.mocked(publicQuestionsAPI.bookmark).mockReturnValue(new Promise((resolve) => (finish = () => resolve({}))));
+    render(<AskHome />);
+    const toggle = await screen.findByRole("button", { name: "북마크" });
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    expect(publicQuestionsAPI.bookmark).toHaveBeenCalledTimes(1);
+    expect(publicQuestionsAPI.unbookmark).not.toHaveBeenCalled();
+    await act(async () => finish());
+  });
+
+  it("비로그인이 추천 카드 북마크를 누르면 요청 없이 로그인 행동을 알린다(돌아올 곳 /ask)", async () => {
+    vi.mocked(publicQuestionsAPI.list).mockResolvedValue({ items: [pub("p1")], next_cursor: null });
+    render(<AskHome />);
+    fireEvent.click(await screen.findByRole("button", { name: "북마크" }));
+    expect(screen.getByRole("status")).toHaveTextContent("로그인하면 북마크할 수 있어요");
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    expect(mockPush).toHaveBeenCalledWith(`/onboarding?returnTo=${encodeURIComponent("/ask")}`);
+    expect(publicQuestionsAPI.bookmark).not.toHaveBeenCalled();
+  });
+
+  it("?tab=bookmarks 도 북마크 탭을 열고 주소를 ?tab=saved 로 맞춘다", () => {
+    queryParams = { tab: "bookmarks" };
+    render(<AskHome />);
+    expect(screen.getByRole("tab", { name: "북마크" })).toHaveAttribute("aria-selected", "true");
+    expect(mockReplace).toHaveBeenCalledWith("/ask?tab=saved", { scroll: false });
+  });
+
+  it("북마크 탭은 내 질문(최근 답 순) 뒤에 추천 질문(서버 순서)을 한 목록으로 잇고 종류를 글자로 구분한다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({
+      items: [
+        summary("a1", { saved: true, last_at: "2026-11-01T00:00:00Z" }),
+        summary("a2", { saved: false }),
+        summary("a3", { saved: true, last_at: "2026-11-05T00:00:00Z" }),
+      ],
+    });
+    vi.mocked(publicQuestionsAPI.bookmarks).mockResolvedValue({
+      items: [pub("p2", { bookmarked: true }), pub("p1", { bookmarked: true })],
+    });
+    render(<AskHome />);
+    await screen.findByRole("link", { name: /추천 p1/ });
+    const links = within(screen.getByRole("list")).getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/ask/a3", "/ask/a1", "/ask/p/p2", "/ask/p/p1"]);
+    expect(links[0]).toHaveTextContent("내 질문");
+    expect(links[2]).toHaveTextContent("추천 질문");
+    for (const toggle of screen.getAllByRole("button", { name: "북마크" }))
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+    // 돋보기 검색은 합친 목록 안에서 거른다
+    fireEvent.click(screen.getByRole("button", { name: "질문 검색" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "질문 검색어" }), { target: { value: "p2" } });
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("북마크 탭에서 해제하면 카드를 바로 빼고 다음 카드로 포커스를 옮기며, 되돌리면 같은 자리로 돌아온다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [] });
+    vi.mocked(publicQuestionsAPI.bookmarks).mockResolvedValue({
+      items: [pub("p1", { bookmarked: true }), pub("p2", { bookmarked: true }), pub("p3", { bookmarked: true })],
+    });
+    render(<AskHome />);
+    await screen.findByRole("link", { name: /추천 p2/ });
+    const card = screen.getByRole("link", { name: /추천 p2/ }).closest("li") as HTMLElement;
+    fireEvent.click(within(card).getByRole("button", { name: "북마크" }));
+
+    await waitFor(() => expect(screen.queryByRole("link", { name: /추천 p2/ })).toBeNull());
+    expect(screen.getByRole("link", { name: /추천 p3/ })).toHaveFocus();
+    expect(publicQuestionsAPI.unbookmark).toHaveBeenCalledWith("p2");
+    fireEvent.click(await screen.findByRole("button", { name: "되돌리기" }));
+
+    await waitFor(() => expect(publicQuestionsAPI.bookmark).toHaveBeenCalledWith("p2"));
+    await screen.findByRole("link", { name: /추천 p2/ });
+    const hrefs = within(screen.getByRole("list"))
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(["/ask/p/p1", "/ask/p/p2", "/ask/p/p3"]);
+    expect(screen.getByRole("link", { name: /추천 p2/ })).toHaveFocus();
+  });
+
+  it("북마크 탭에서 해제가 실패하면 카드를 제자리에 돌려놓고 알린다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [summary("a1", { saved: true })] });
+    vi.mocked(asksAPI.setSaved).mockRejectedValue(new ApiError(500, "down"));
+    render(<AskHome />);
+    fireEvent.click(await screen.findByRole("button", { name: "북마크" }));
+    expect(await screen.findByText("북마크를 해제하지 못했어요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /질문 a1/ })).toBeInTheDocument();
+    expect(asksAPI.setSaved).toHaveBeenCalledWith("a1", false);
+  });
+
+  it("추천 질문 북마크만 못 불러오면 내 질문 북마크는 보이고 다시 시도를 둔다. 비면 안내한다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [summary("a1", { saved: true })] });
+    vi.mocked(publicQuestionsAPI.bookmarks).mockRejectedValueOnce(new ApiError(500, "down"));
+    render(<AskHome />);
+    expect(await screen.findByText("추천 질문 북마크를 불러오지 못했어요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /질문 a1/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await waitFor(() => expect(screen.queryByText("추천 질문 북마크를 불러오지 못했어요")).toBeNull());
+  });
+
+  it("북마크한 질문이 없으면 어디서 북마크하는지 알린다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "saved" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [summary("a1")] });
+    render(<AskHome />);
+    expect(await screen.findByText("북마크한 질문이 없어요")).toBeInTheDocument();
+    expect(screen.getByText("추천 질문이나 내 답에서 북마크를 누르면 여기에 모여요.")).toBeInTheDocument();
+  });
+
+  it("내 질문은 휴지통 → 확인 시트로 지우고, 공개된 사본 안내를 함께 보인다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "mine" };
+    vi.mocked(asksAPI.list).mockResolvedValue({
+      items: [summary("a1"), summary("a2", { public_id: "pq9", public_status: "published" }), summary("a3")],
+    });
+    render(<AskHome />);
+    await screen.findByRole("link", { name: /질문 a2/ });
+    const trash = screen.getAllByRole("button", { name: "질문 삭제" })[1];
+    expect(trash).toHaveAccessibleDescription("질문 a2");
+    fireEvent.click(trash);
+
+    const dialog = screen.getByRole("dialog", { name: "이 질문을 지울까요?" });
+    expect(within(dialog).getByText(/추천 질문으로 공개된 사본은 함께 지워지지 않아요/)).toBeInTheDocument();
+    expect(asksAPI.remove).not.toHaveBeenCalled();
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [summary("a1"), summary("a3")] });
+    fireEvent.click(within(dialog).getByRole("button", { name: "지우기" }));
+
+    expect(await screen.findByText("질문을 지웠어요")).toBeInTheDocument();
+    expect(asksAPI.remove).toHaveBeenCalledWith("a2");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("link", { name: /질문 a2/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /질문 a3/ })).toHaveFocus();
+  });
+
+  it("지우기가 실패하면 시트 안에서 알리고 목록은 그대로다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { tab: "mine" };
+    vi.mocked(asksAPI.list).mockResolvedValue({ items: [summary("a1")] });
+    vi.mocked(asksAPI.remove).mockRejectedValue(new ApiError(500, "down"));
+    render(<AskHome />);
+    fireEvent.click(await screen.findByRole("button", { name: "질문 삭제" }));
+    const dialog = screen.getByRole("dialog", { name: "이 질문을 지울까요?" });
+    expect(within(dialog).queryByText(/사본/)).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "지우기" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("지우지 못했어요. 잠시 뒤 다시 해 주세요.");
+    expect(screen.getByRole("link", { name: /질문 a1/ })).toBeInTheDocument();
+  });
+});
+
 describe("새 질문하기", () => {
   it("비로그인이면 입력 대신 로그인 안내를 보이고, 문장은 주소가 아닌 이 탭에 맡기고 모델만 주소에 싣는다", () => {
     queryParams = { q: "단락 질문", mode: "beginner" };
@@ -439,6 +664,37 @@ describe("새 질문하기", () => {
     expect(requestBodies()[0]).toEqual({ query: "정성이 뭔가요?" });
     expect(requestBodies()[0]).not.toHaveProperty("public_question_id");
     expect(publicQuestionsAPI.submit).not.toHaveBeenCalled();
+  });
+
+  it("추천 질문의 나도 물어보기(from)로 열었으면 새 질문 요청에 공개 질문 id 를 싣는다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { q: "참사랑이 뭔가요?", from: "pq1" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(sseBody([SOURCE]))));
+    render(<AskNew />);
+    expect(screen.getByLabelText("무엇이 궁금하세요?")).toHaveValue("참사랑이 뭔가요?");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+    await waitFor(() => expect(readLiveAsks()[0]?.status).toBe("answered"));
+    expect(requestBodies()[0]).toEqual({ query: "참사랑이 뭔가요?", public_question_id: "pq1" });
+  });
+
+  it("모양이 맞지 않는 from 은 싣지 않고, 로그인 안내의 돌아올 주소에는 맞는 from 만 남긴다", async () => {
+    currentUser = { id: "u1" };
+    queryParams = { q: "질문", from: "../../x?y" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(sseBody([SOURCE]))));
+    const view = render(<AskNew />);
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+    await waitFor(() => expect(readLiveAsks()[0]?.status).toBe("answered"));
+    expect(requestBodies()[0]).toEqual({ query: "질문" });
+    view.unmount();
+
+    currentUser = null;
+    queryParams = { q: "질문", from: "pq1" };
+    render(<AskNew />);
+    expect(screen.getByRole("link", { name: "로그인하기" })).toHaveAttribute(
+      "href",
+      `/onboarding?returnTo=${encodeURIComponent("/ask/new?resume=1&from=pq1")}`,
+    );
   });
 
   it("오늘 질문을 다 썼으면 보내기를 잠그고 자정 초기화를 알린다", async () => {

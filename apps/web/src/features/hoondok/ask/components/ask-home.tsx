@@ -331,7 +331,7 @@ function BookmarksPanel({ term, showToast }: { term: string; showToast: ShowToas
   const needle = term.trim().toLowerCase();
   const all = mergeBookmarks(asks.data?.items ?? [], pubs.data?.items ?? []);
   const shown = all.filter((entry) => matches(entry.item.question, needle));
-  const focus = useListFocus(
+  const { listRef, setPlan } = useListFocus(
     shown.map((entry) => cardKey(entry.kind, entry.item.id)),
     "ask-tab-saved",
   );
@@ -368,12 +368,12 @@ function BookmarksPanel({ term, showToast }: { term: string; showToast: ShowToas
 
   function remove(entry: BookmarkEntry, index: number) {
     const key = cardKey(entry.kind, entry.item.id);
-    focus.setPlan({ kind: "removed", key, index });
+    setPlan({ kind: "removed", key, index });
     const target: BookmarkTarget = { kind: entry.kind, id: entry.item.id };
     void bookmarks
-      .toggle(target, false, { undo: { onRestore: () => focus.setPlan({ kind: "restored", key }) } })
+      .toggle(target, false, { undo: { onRestore: () => setPlan({ kind: "restored", key }) } })
       .then((isDone) => {
-        if (!isDone) focus.setPlan(null);
+        if (!isDone) setPlan(null);
       });
   }
 
@@ -397,7 +397,7 @@ function BookmarksPanel({ term, showToast }: { term: string; showToast: ShowToas
   return (
     <>
       {partial}
-      <ol className="ql-list" ref={focus.listRef}>
+      <ol className="ql-list" ref={listRef}>
         {shown.map((entry, index) => {
           const { kind, item } = entry;
           return (
@@ -449,7 +449,7 @@ function MyAsksPanel({ term, showToast }: { term: string; showToast: ShowToast }
   const [deleting, setDeleting] = useState<{ item: MyAskSummary; index: number } | null>(null);
   const needle = term.trim().toLowerCase();
   const shown = (list.data?.items ?? []).filter((item) => matches(item.question, needle));
-  const focus = useListFocus(
+  const { listRef, setPlan } = useListFocus(
     shown.map((item) => cardKey("ask", item.id)),
     "ask-tab-mine",
   );
@@ -459,7 +459,7 @@ function MyAsksPanel({ term, showToast }: { term: string; showToast: ShowToast }
 
   // 되돌릴 수 없는 작업이라 낙관적으로 빼지 않는다 — 서버가 지운 뒤 목록·상세 캐시에서 뺀다
   function handleDeleted(item: MyAskSummary, index: number) {
-    focus.setPlan({ kind: "removed", key: cardKey("ask", item.id), index });
+    setPlan({ kind: "removed", key: cardKey("ask", item.id), index });
     queryClient.setQueryData<MyAskListResponse>(ASK_LIST_KEY, (data) =>
       data ? { ...data, items: data.items.filter((entry) => entry.id !== item.id) } : data,
     );
@@ -475,7 +475,7 @@ function MyAsksPanel({ term, showToast }: { term: string; showToast: ShowToast }
   }
   return (
     <>
-      <ol className="ql-list" ref={focus.listRef}>
+      <ol className="ql-list" ref={listRef}>
         {shown.map((item, index) => (
           <QuestionCard
             key={item.id}
