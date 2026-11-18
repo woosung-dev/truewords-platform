@@ -135,6 +135,18 @@
             ],
             "title": "Answer Mode"
           },
+          "public_question_id": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Question Id"
+          },
           "query": {
             "title": "Query",
             "type": "string"
@@ -5042,6 +5054,10 @@
             "title": "Answer Mode",
             "type": "string"
           },
+          "ask_count": {
+            "title": "Ask Count",
+            "type": "integer"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -5050,6 +5066,17 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "pin_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Order"
           },
           "question": {
             "title": "Question",
@@ -5067,6 +5094,10 @@
             ],
             "title": "Reviewed At"
           },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/PublicQuestionSource"
@@ -5082,6 +5113,10 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "view_count": {
+            "title": "View Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -5092,7 +5127,11 @@
           "answer_mode",
           "status",
           "created_at",
-          "reviewed_at"
+          "reviewed_at",
+          "view_count",
+          "ask_count",
+          "score",
+          "pin_order"
         ],
         "title": "PublicQuestionAdminItem",
         "type": "object"
@@ -5128,6 +5167,23 @@
         "title": "PublicQuestionAdminListResponse",
         "type": "object"
       },
+      "PublicQuestionBookmarkListResponse": {
+        "description": "내가 담은 공개 질문 — 최근에 담은 순, 아직 공개 중인 것만. 모든 항목이 bookmarked=true.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PublicQuestionBookmarkListResponse",
+        "type": "object"
+      },
       "PublicQuestionCreate": {
         "additionalProperties": false,
         "description": "공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.",
@@ -5160,6 +5216,11 @@
             ],
             "title": "Answer Mode",
             "type": "string"
+          },
+          "bookmarked": {
+            "default": false,
+            "title": "Bookmarked",
+            "type": "boolean"
           },
           "id": {
             "title": "Id",
@@ -5194,7 +5255,7 @@
         "type": "object"
       },
       "PublicQuestionListResponse": {
-        "description": "최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).",
+        "description": "고정 질문(관리자 순서) → 인기순(조회 수 + 3 × 질문 수) → 최근 공개순. next_cursor 는 불투명 문자열이며 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).",
         "properties": {
           "items": {
             "items": {
@@ -5222,22 +5283,73 @@
         "title": "PublicQuestionListResponse",
         "type": "object"
       },
-      "PublicQuestionReview": {
+      "PublicQuestionPinsReorder": {
         "additionalProperties": false,
-        "description": "PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.",
+        "description": "PUT /pins 본문 — 현재 고정된 질문 전체를 새 순서로(앞이 위).",
         "properties": {
-          "status": {
-            "enum": [
-              "published",
-              "hidden"
-            ],
-            "title": "Status",
-            "type": "string"
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Ids",
+            "type": "array"
           }
         },
         "required": [
-          "status"
+          "ids"
         ],
+        "title": "PublicQuestionPinsReorder",
+        "type": "object"
+      },
+      "PublicQuestionPinsResponse": {
+        "description": "고정 질문 목록 — pin_order 순.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionAdminItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PublicQuestionPinsResponse",
+        "type": "object"
+      },
+      "PublicQuestionReview": {
+        "additionalProperties": false,
+        "description": "PATCH 본문. 공개(published)·숨김(hidden) 전환과 고정(pinned) 중 하나 이상.",
+        "properties": {
+          "pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "published",
+                  "hidden"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
         "title": "PublicQuestionReview",
         "type": "object"
       },
@@ -5279,9 +5391,18 @@
             "title": "Answer Mode",
             "type": "string"
           },
+          "bookmarked": {
+            "default": false,
+            "title": "Bookmarked",
+            "type": "boolean"
+          },
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "boolean"
           },
           "preview": {
             "title": "Preview",
@@ -5295,6 +5416,10 @@
           "question": {
             "title": "Question",
             "type": "string"
+          },
+          "view_count": {
+            "title": "View Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -5302,9 +5427,31 @@
           "question",
           "preview",
           "answer_mode",
-          "published_at"
+          "published_at",
+          "pinned",
+          "view_count"
         ],
         "title": "PublicQuestionSummary",
+        "type": "object"
+      },
+      "PublicQuestionViewCreate": {
+        "additionalProperties": false,
+        "description": "조회 기록 본문. 로그인한 사용자는 계정이 우선이라 viewer_id 를 무시한다. 익명은 기기별 무작위 UUID 를 보낸다.",
+        "properties": {
+          "viewer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewer Id"
+          }
+        },
+        "title": "PublicQuestionViewCreate",
         "type": "object"
       },
       "PushConfigResponse": {
@@ -12311,7 +12458,7 @@
     },
     "/admin/hoondok/questions": {
       "get": {
-        "description": "검수 목록(신청 오래된 순). `status=pending` 이 검수 대기열이다.",
+        "description": "검수 목록. 기본 oldest(신청 오래된 순), newest(신청 최신순), popular(인기도 → 신청 최신순). `status=pending` 이 검수 대기열이다.",
         "operationId": "list_public_questions_admin_admin_hoondok_questions_get",
         "parameters": [
           {
@@ -12333,6 +12480,40 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "oldest",
+              "enum": [
+                "oldest",
+                "newest",
+                "popular"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "description": "질문 문장 부분 일치(대소문자 무시)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "질문 문장 부분 일치(대소문자 무시)",
+              "title": "Q"
             }
           },
           {
@@ -12387,9 +12568,71 @@
         ]
       }
     },
+    "/admin/hoondok/questions/pins": {
+      "get": {
+        "description": "고정된 질문(pin_order 순, 최대 10개).",
+        "operationId": "list_pinned_questions_admin_hoondok_questions_pins_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionPinsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Pinned Questions",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "put": {
+        "description": "고정 순서 바꾸기. ids 는 현재 고정 집합과 정확히 같아야 한다(중복·누락·추가는 422).",
+        "operationId": "reorder_pinned_questions_admin_hoondok_questions_pins_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionPinsReorder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionPinsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reorder Pinned Questions",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/questions/{question_id}": {
       "patch": {
-        "description": "공개(published)·숨김(hidden). 404 없음, 422 그 밖의 값.",
+        "description": "공개(published)·숨김(hidden) 전환과 고정(pinned). 숨기면 고정이 풀린다.\n\n404 없음, 409 공개 중이 아닌 질문 고정·고정 10개 초과, 422 그 밖의 값·빈 본문.",
         "operationId": "review_public_question_admin_hoondok_questions__question_id__patch",
         "parameters": [
           {
@@ -15298,6 +15541,52 @@
         ]
       }
     },
+    "/hoondok/me/question-bookmarks": {
+      "get": {
+        "description": "내가 담은 추천 질문 — 아직 공개 중인 것만, 최근에 담은 순. 401 미인증.",
+        "operationId": "list_my_question_bookmarks_hoondok_me_question_bookmarks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionBookmarkListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List My Question Bookmarks",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/questions": {
       "get": {
         "description": "내 공개 신청과 상태(최근 신청순). 401 미인증.",
@@ -15628,7 +15917,7 @@
     },
     "/hoondok/questions": {
       "get": {
-        "description": "검수를 거쳐 공개된 질문 목록(최신 공개순). 인증 없음. 422 잘못된 cursor.",
+        "description": "검수를 거쳐 공개된 질문 목록 — 고정 질문 → 인기순(조회 수 + 3 × 질문 수) → 최근 공개순. 인증 없음.\n\ncursor 는 불투명 문자열이다. 숫자 offset 이 아닌 값(예전 질문 id 포함)은 422.\n로그인했으면 항목의 bookmarked 를 채운다(익명은 false).",
         "operationId": "list_public_questions_hoondok_questions_get",
         "parameters": [
           {
@@ -15712,7 +16001,7 @@
     },
     "/hoondok/questions/{question_id}": {
       "get": {
-        "description": "공개 질문 1건. published 가 아니면(검토 중·숨김·없음) 404.",
+        "description": "공개 질문 1건. published 가 아니면(검토 중·숨김·없음) 404. 로그인했으면 bookmarked 를 채운다.",
         "operationId": "get_public_question_hoondok_questions__question_id__get",
         "parameters": [
           {
@@ -15748,6 +16037,122 @@
           }
         },
         "summary": "Get Public Question",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions/{question_id}/bookmark": {
+      "delete": {
+        "description": "담기 해제(멱등). 공개가 내려갔거나 없는 질문이어도 204 — 남은 북마크를 지울 수 있다.",
+        "operationId": "delete_public_question_bookmark_hoondok_questions__question_id__bookmark_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Public Question Bookmark",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "put": {
+        "description": "추천 질문 담기(멱등). published 가 아니면 404, 401 미인증, 403 CSRF.",
+        "operationId": "put_public_question_bookmark_hoondok_questions__question_id__bookmark_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Public Question Bookmark",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions/{question_id}/views": {
+      "post": {
+        "description": "조회 1회 기록 — (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 viewer_id(기기 UUID).\n\n계정도 viewer_id 도 없으면 세지 않고 204. published 가 아니면 404, 403 CSRF, 429 요청 한도.",
+        "operationId": "record_public_question_view_hoondok_questions__question_id__views_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionViewCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Public Question View",
         "tags": [
           "hoondok"
         ]

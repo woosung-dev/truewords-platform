@@ -99,6 +99,10 @@ export type AskRequest = {
      */
     answer_mode?: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids' | null;
     /**
+     * Public Question Id
+     */
+    public_question_id?: string | null;
+    /**
      * Query
      */
     query: string;
@@ -2949,6 +2953,10 @@ export type PublicQuestionAdminItem = {
      */
     answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
     /**
+     * Ask Count
+     */
+    ask_count: number;
+    /**
      * Created At
      */
     created_at: string;
@@ -2956,6 +2964,10 @@ export type PublicQuestionAdminItem = {
      * Id
      */
     id: string;
+    /**
+     * Pin Order
+     */
+    pin_order: number | null;
     /**
      * Question
      */
@@ -2965,6 +2977,10 @@ export type PublicQuestionAdminItem = {
      */
     reviewed_at: string | null;
     /**
+     * Score
+     */
+    score: number;
+    /**
      * Sources
      */
     sources: Array<PublicQuestionSource>;
@@ -2972,6 +2988,10 @@ export type PublicQuestionAdminItem = {
      * Status
      */
     status: 'pending' | 'published' | 'hidden';
+    /**
+     * View Count
+     */
+    view_count: number;
 };
 
 /**
@@ -2994,6 +3014,18 @@ export type PublicQuestionAdminListResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * PublicQuestionBookmarkListResponse
+ *
+ * 내가 담은 공개 질문 — 최근에 담은 순, 아직 공개 중인 것만. 모든 항목이 bookmarked=true.
+ */
+export type PublicQuestionBookmarkListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionSummary>;
 };
 
 /**
@@ -3021,6 +3053,10 @@ export type PublicQuestionDetail = {
      */
     answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
     /**
+     * Bookmarked
+     */
+    bookmarked?: boolean;
+    /**
      * Id
      */
     id: string;
@@ -3041,7 +3077,7 @@ export type PublicQuestionDetail = {
 /**
  * PublicQuestionListResponse
  *
- * 최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).
+ * 고정 질문(관리자 순서) → 인기순(조회 수 + 3 × 질문 수) → 최근 공개순. next_cursor 는 불투명 문자열이며 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).
  */
 export type PublicQuestionListResponse = {
     /**
@@ -3055,15 +3091,43 @@ export type PublicQuestionListResponse = {
 };
 
 /**
+ * PublicQuestionPinsReorder
+ *
+ * PUT /pins 본문 — 현재 고정된 질문 전체를 새 순서로(앞이 위).
+ */
+export type PublicQuestionPinsReorder = {
+    /**
+     * Ids
+     */
+    ids: Array<string>;
+};
+
+/**
+ * PublicQuestionPinsResponse
+ *
+ * 고정 질문 목록 — pin_order 순.
+ */
+export type PublicQuestionPinsResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionAdminItem>;
+};
+
+/**
  * PublicQuestionReview
  *
- * PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.
+ * PATCH 본문. 공개(published)·숨김(hidden) 전환과 고정(pinned) 중 하나 이상.
  */
 export type PublicQuestionReview = {
     /**
+     * Pinned
+     */
+    pinned?: boolean | null;
+    /**
      * Status
      */
-    status: 'published' | 'hidden';
+    status?: 'published' | 'hidden' | null;
 };
 
 /**
@@ -3097,9 +3161,17 @@ export type PublicQuestionSummary = {
      */
     answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
     /**
+     * Bookmarked
+     */
+    bookmarked?: boolean;
+    /**
      * Id
      */
     id: string;
+    /**
+     * Pinned
+     */
+    pinned: boolean;
     /**
      * Preview
      */
@@ -3112,6 +3184,22 @@ export type PublicQuestionSummary = {
      * Question
      */
     question: string;
+    /**
+     * View Count
+     */
+    view_count: number;
+};
+
+/**
+ * PublicQuestionViewCreate
+ *
+ * 조회 기록 본문. 로그인한 사용자는 계정이 우선이라 viewer_id 를 무시한다. 익명은 기기별 무작위 UUID 를 보낸다.
+ */
+export type PublicQuestionViewCreate = {
+    /**
+     * Viewer Id
+     */
+    viewer_id?: string | null;
 };
 
 /**
@@ -7426,6 +7514,16 @@ export type ListPublicQuestionsAdminAdminHoondokQuestionsGetData = {
          */
         status?: 'pending' | 'published' | 'hidden' | null;
         /**
+         * Sort
+         */
+        sort?: 'oldest' | 'newest' | 'popular';
+        /**
+         * Q
+         *
+         * 질문 문장 부분 일치(대소문자 무시)
+         */
+        q?: string | null;
+        /**
          * Page
          */
         page?: number;
@@ -7454,6 +7552,47 @@ export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses = {
 };
 
 export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponse = ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses];
+
+export type ListPinnedQuestionsAdminHoondokQuestionsPinsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/questions/pins';
+};
+
+export type ListPinnedQuestionsAdminHoondokQuestionsPinsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionPinsResponse;
+};
+
+export type ListPinnedQuestionsAdminHoondokQuestionsPinsGetResponse = ListPinnedQuestionsAdminHoondokQuestionsPinsGetResponses[keyof ListPinnedQuestionsAdminHoondokQuestionsPinsGetResponses];
+
+export type ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutData = {
+    body: PublicQuestionPinsReorder;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/questions/pins';
+};
+
+export type ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutError = ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutErrors[keyof ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutErrors];
+
+export type ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionPinsResponse;
+};
+
+export type ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutResponse = ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutResponses[keyof ReorderPinnedQuestionsAdminHoondokQuestionsPinsPutResponses];
 
 export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchData = {
     body: PublicQuestionReview;
@@ -9314,6 +9453,36 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
 
+export type ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/question-bookmarks';
+};
+
+export type ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetError = ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetErrors[keyof ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetErrors];
+
+export type ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionBookmarkListResponse;
+};
+
+export type ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetResponse = ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetResponses[keyof ListMyQuestionBookmarksHoondokMeQuestionBookmarksGetResponses];
+
 export type ListMyPublicQuestionsHoondokMeQuestionsGetData = {
     body?: never;
     path?: never;
@@ -9598,6 +9767,96 @@ export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponses = {
 };
 
 export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponse = GetPublicQuestionHoondokQuestionsQuestionIdGetResponses[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetResponses];
+
+export type DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}/bookmark';
+};
+
+export type DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteError = DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteErrors[keyof DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteErrors];
+
+export type DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteResponse = DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteResponses[keyof DeletePublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkDeleteResponses];
+
+export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}/bookmark';
+};
+
+export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutError = PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutErrors[keyof PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutErrors];
+
+export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponse = PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponses[keyof PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponses];
+
+export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostData = {
+    body: PublicQuestionViewCreate;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}/views';
+};
+
+export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostError = RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors[keyof RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors];
+
+export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponse = RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses[keyof RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses];
 
 export type SearchWordsHoondokSearchGetData = {
     body?: never;
