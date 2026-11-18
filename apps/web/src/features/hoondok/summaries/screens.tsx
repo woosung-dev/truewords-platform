@@ -5,7 +5,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import type { SummaryDetail } from "@truewords/api-client-ts/types";
 import { ArrowLeft, ArrowRight, BookOpenText, ChevronRight, Info, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { type MouseEvent, useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { wordsHref, wordsSectionHref } from "../library/api";
 import { aiSummaryKey, aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
@@ -90,8 +90,19 @@ export function SummaryDetailScreen({ id }: { id: string }) {
   const item = query.data;
   // 근거 원문 미리보기 — 단락이 연결된 근거만 연다. 훅이라 이른 return 보다 앞에 둔다.
   const previewable = (item?.evidence ?? []).filter(isPreviewable);
-  const evidenceView = useEvidenceParam(previewable.length);
+  // 넓은 화면에서 패널이 열리고 닫히면 본문 폭이 바뀌어 위쪽 글이 다시 흐른다 — 보던 근거를 화면 같은 자리에 붙잡아 둔다
+  const anchor = useRef<{ el: Element; top: number } | null>(null);
+  const keepInView = (el: Element | null) => {
+    if (el) anchor.current = { el, top: el.getBoundingClientRect().top };
+  };
+  const evidenceView = useEvidenceParam(previewable.length, () => keepInView(document.querySelector(".sum-evidence li.is-open")));
   const wide = useWide();
+  const hasPanel = wide && evidenceView.open !== null;
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    if (a?.el.isConnected) window.scrollBy(0, a.el.getBoundingClientRect().top - a.top);
+  }, [hasPanel]);
   if (!item || query.isError) return <section className="sum-page"><Status pending={query.isPending} missing={query.error instanceof ApiError && query.error.status === 404} retry={() => void query.refetch()} /></section>;
   const toSource = sourceHref(item);
   const crumbs = item.group_title.split(" · ").filter(Boolean);
@@ -112,6 +123,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
     // 새 탭·새 창(보조키·가운데 버튼)은 지금처럼 원문 뷰로 간다
     if (index < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
+    keepInView(event.currentTarget.closest("li"));
     evidenceView.show(index);
   };
   const viewer = evidenceView.open === null ? null : <EvidenceViewer wide={wide} volume={item.volume} unit={unit} evidence={previewable} index={evidenceView.open} onMove={evidenceView.show} onClose={evidenceView.close} />;

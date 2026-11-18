@@ -9,7 +9,7 @@ import type { SummaryEvidence } from "@truewords/api-client-ts/types";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { libraryAPI, pageOfChunkIndex, WORDS_PAGE_SIZE, wordsHref } from "../library/api";
+import { libraryAPI, pageOfChunkIndex, wordsHref } from "../library/api";
 import { ReaderSheet } from "../library/components/reader-sheet";
 import { wordsKey } from "../query-keys";
 
@@ -39,15 +39,22 @@ export function useWide(): boolean {
   );
 }
 
-/** 열린 근거 번호(0부터)를 주소 `?ev=N`(1부터)과 맞춘다. 뒤로가기는 패널·시트만 닫는다. */
-export function useEvidenceParam(count: number) {
+/** 열린 근거 번호(0부터)를 주소 `?ev=N`(1부터)과 맞춘다. 뒤로가기는 패널·시트만 닫는다.
+ *  beforeChange 는 열림 상태가 바뀌기 직전(옛 화면이 그대로일 때) 불린다 — 스크롤 위치 보정용. */
+export function useEvidenceParam(count: number, beforeChange: () => void = () => {}) {
   const [open, setOpen] = useState<number | null>(null);
   // 이 화면에서 pushState 로 만든 기록이 있으면 닫을 때 history.back() 으로 되돌린다(기록이 쌓이지 않게).
   const pushed = useRef(false);
+  // 부모가 매 렌더 새로 만드는 콜백이라 ref 로 최신 값만 들고 있는다(popstate 구독을 다시 걸지 않게)
+  const before = useRef(beforeChange);
+  useEffect(() => {
+    before.current = beforeChange;
+  });
   useEffect(() => {
     const read = () => {
       const raw = new URLSearchParams(window.location.search).get("ev");
       const n = raw && /^\d+$/.test(raw) ? Number(raw) - 1 : -1;
+      before.current();
       setOpen(n >= 0 && n < count ? n : null);
       if (!raw) pushed.current = false;
     };
@@ -64,6 +71,7 @@ export function useEvidenceParam(count: number) {
   return {
     open,
     show(index: number) {
+      before.current();
       if (open === null) {
         window.history.pushState(null, "", urlWith(index));
         pushed.current = true;
@@ -71,6 +79,7 @@ export function useEvidenceParam(count: number) {
       setOpen(index);
     },
     close() {
+      before.current();
       setOpen(null);
       if (pushed.current) {
         pushed.current = false;
@@ -98,7 +107,7 @@ function useEvidenceChunks(volume: string, start: number, extra: number) {
   const chunks = [...(first.data?.chunks ?? []), ...(lastPage !== page ? (next.data?.chunks ?? []) : [])]
     .filter((c) => c.chunk_index >= start && c.chunk_index <= start + extra)
     .sort((a, b) => a.chunk_index - b.chunk_index);
-  const total = first.data ? first.data.total_pages * WORDS_PAGE_SIZE : Number.POSITIVE_INFINITY;
+  const total = first.data?.total_chunks ?? Number.POSITIVE_INFINITY;
   return {
     chunks,
     pending: first.isPending || (next.fetchStatus === "fetching" && chunks.length <= extra),
@@ -156,10 +165,17 @@ function EvidencePanel(props: ViewerProps) {
   // 열거나 다른 근거로 바꾸면 제목으로 포커스를 옮겨 화면 낭독기가 새 내용을 읽게 한다
   // biome-ignore lint/correctness/useExhaustiveDependencies: 근거가 바뀔 때마다 옮긴다
   useEffect(() => titleRef.current?.focus({ preventScroll: true }), [index]);
+  // 비모달이라 포커스가 본문에 있어도 Esc 로 닫는다(열린 시트·대화상자가 있으면 그쪽이 먼저 받는다)
+  useEffect(() => {
+    const onEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented && !document.querySelector("dialog[open]")) onClose();
+    };
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [onClose]);
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key === "Escape") onClose();
     // 버튼·링크 위에서만 방향키를 쓴다 — 본문 글자 선택 중의 방향키는 브라우저에 맡긴다
-    else if (event.target instanceof HTMLButtonElement || event.target === titleRef.current) {
+    if (event.target instanceof HTMLButtonElement || event.target === titleRef.current) {
       if (event.key === "ArrowLeft" && index > 0) onMove(index - 1);
       if (event.key === "ArrowRight" && index < evidence.length - 1) onMove(index + 1);
     }
