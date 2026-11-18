@@ -350,6 +350,34 @@ class PublicQuestion(SQLModel, table=True):
     status: str = Field(default="pending", max_length=16, index=True)  # PUBLIC_QUESTION_STATUSES
     created_at: datetime = Field(default_factory=utcnow)
     reviewed_at: datetime | None = Field(default=None)  # 마지막 검수(공개·숨김) 시각 — 공개 목록의 날짜
+    # 인기도 = view_count + POPULARITY_ASK_WEIGHT * ask_count. 조회는 (질문, 보는 사람, KST 날짜)당 1회만 센다.
+    view_count: int = Field(default=0, sa_column_kwargs={"server_default": text("0")})
+    ask_count: int = Field(default=0, sa_column_kwargs={"server_default": text("0")})
+    pin_order: int | None = Field(default=None)  # None = 고정 안 함, 작을수록 위. 숨김 땐 풀린다
+
+
+class PublicQuestionView(SQLModel, table=True):
+    """공개 질문 조회 중복 방지 행. viewer_key 는 sha256(user/anon id) 해시라 원본 id 를 저장하지 않는다.
+
+    day 는 KST 날짜. 오래된 행(오늘 - 2일 미만)은 새 행을 넣을 때 함께 지운다.
+    """
+
+    __tablename__ = "hoondok_public_question_views"
+    __table_args__ = (Index("ix_hoondok_public_question_views_day", "day"),)
+
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    viewer_key: str = Field(primary_key=True, max_length=64)
+    day: date = Field(primary_key=True)
+
+
+class PublicQuestionAsk(SQLModel, table=True):
+    """공개 질문을 보고 새로 물은 계정 — 계정당 질문 1회만 ask_count 에 센다."""
+
+    __tablename__ = "hoondok_public_question_asks"
+
+    question_id: str = Field(foreign_key="hoondok_public_questions.id", primary_key=True, max_length=16)
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True, index=True)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- AI 질문 계정 보관·하루 횟수 (DEC-PWA-025 2차) ------------------------------------
