@@ -4,7 +4,11 @@ import json
 import uuid
 from functools import lru_cache
 from pathlib import Path
+from app.core.config import settings
 from app.core.errors import ConflictError, DomainError, InvalidError, NotFoundError
+from app.modules.hoondok.display_text import to_display_text
+from app.modules.hoondok.evidence_text import evidence_paragraphs
+from app.modules.qdrant.filters import build_filter, field_match, field_range
 from app.modules.hoondok.summary_models import (
     SummaryUnit,
     SummaryRevision,
@@ -17,6 +21,7 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
+    SummaryEvidenceSource,
     SummaryTocItem,
     SummarySource,
     document_asset_ids,
@@ -30,6 +35,8 @@ WORKS = {
     "pyeonghwa": {"title": "평화경", "toc": "pyeonghwa-toc.json", "unit": "문단"},
 }
 STATUSES = ("draft", "review", "published", "withdrawn")
+# 근거 원문을 자를 때 읽는 청크 수 — 저장된 시작 청크 한 칸 앞부터. 실데이터 최장 근거(말씀 4개)도 6청크 안이다.
+EVIDENCE_WINDOW = 14
 
 
 @lru_cache(maxsize=None)
@@ -266,6 +273,46 @@ class SummaryService:
             ],
             next_id=following[0].id if following else None,
         )
+
+    async def evidence_source(self, unit_id, index):
+        """공개 요약 근거 한 건의 원문. 권리·공개 확인은 detail 과 같다."""
+        unit, right, payload = await self.published(unit_id)
+        evidence = payload.get("evidence", [])
+        if not 0 <= index < len(evidence) or evidence[index].get("chunk_index") is None:
+            raise NotFoundError("근거를 찾을 수 없습니다")
+        item = evidence[index]
+        start = item["chunk_index"]
+        if self.source_client is None:
+            raise DomainError(status_code=503, detail="원문을 불러올 수 없습니다")
+        try:
+            points, _ = await self.source_client.scroll(
+                settings.collection_name,
+                scroll_filter=build_filter(
+                    must=[
+                        field_match("volume", right.volume),
+                        field_range("chunk_index", gte=max(start - 1, 0), lt=start + EVIDENCE_WINDOW),
+                    ]
+                ),
+                with_payload=["text", "chunk_index"],
+                limit=EVIDENCE_WINDOW + 1,
+            )
+        except Exception:
+            raise DomainError(status_code=503, detail="원문을 불러올 수 없습니다") from None
+        texts = {
+            p.payload.get("chunk_index"): p.payload.get("text") or ""
+            for p in points
+            if isinstance(p.payload.get("chunk_index"), int)
+        }
+        if start not in texts:
+            raise NotFoundError("근거를 찾을 수 없습니다")
+        # 번호가 찍힌 원문(천성경 말씀)만 범위를 자른다. 중간 청크가 빠졌으면 자르지 않는다.
+        ordered = [texts[i] for i in sorted(texts)]
+        if paragraph_label(unit.slug) == "말씀" and sorted(texts) == list(range(min(texts), max(texts) + 1)):
+            cut = evidence_paragraphs(ordered, item["from"], item["to"])
+            if cut:
+                return SummaryEvidenceSource(paragraphs=cut, exact=True)
+        shown = to_display_text(texts.get(start - 1), texts[start])
+        return SummaryEvidenceSource(paragraphs=[p for p in shown.split("\n\n") if p], exact=False)
 
     async def audit(self, unit, audit, actor, action):
         unit.updated_at = now()

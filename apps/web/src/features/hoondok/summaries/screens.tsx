@@ -9,7 +9,7 @@ import { type MouseEvent, useEffect, useLayoutEffect, useRef, useState } from "r
 import { wordsHref, wordsSectionHref } from "../library/api";
 import { aiSummaryKey, aiSummaryListKey } from "../query-keys";
 import { summariesAPI } from "./api";
-import { EvidenceViewer, isPreviewable, rangeLabel, useEvidenceParam, useWide } from "./evidence-viewer";
+import { EvidenceViewer, previewableEvidence, rangeLabel, useEvidenceParam, useWide } from "./evidence-viewer";
 import { SummaryFigures } from "./figures";
 import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
 
@@ -89,7 +89,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
   const query = useQuery({ queryKey: aiSummaryKey(id), queryFn: ({ signal }) => summariesAPI.detail(id, signal), retry: false, staleTime: 0 });
   const item = query.data;
   // 근거 원문 미리보기 — 단락이 연결된 근거만 연다. 훅이라 이른 return 보다 앞에 둔다.
-  const previewable = (item?.evidence ?? []).filter(isPreviewable);
+  const previewable = previewableEvidence(item?.evidence ?? []);
   // 넓은 화면에서 패널이 열리고 닫히면 본문 폭이 바뀌어 위쪽 글이 다시 흐른다 — 보던 근거를 화면 같은 자리에 붙잡아 둔다
   const anchor = useRef<{ el: Element; top: number } | null>(null);
   const keepInView = (el: Element | null) => {
@@ -126,7 +126,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
     keepInView(event.currentTarget.closest("li"));
     evidenceView.show(index);
   };
-  const viewer = evidenceView.open === null ? null : <EvidenceViewer wide={wide} volume={item.volume} unit={unit} evidence={previewable} index={evidenceView.open} onMove={evidenceView.show} onClose={evidenceView.close} />;
+  const viewer = evidenceView.open === null ? null : <EvidenceViewer wide={wide} summaryId={item.id} volume={item.volume} unit={unit} evidence={previewable} index={evidenceView.open} onMove={evidenceView.show} onClose={evidenceView.close} />;
   return <article className="sum-page sum-reading" aria-labelledby="sum-title">
     <div className={wide && viewer ? "sum-layout has-ev" : "sum-layout"}>
       <div className="sum-main">
@@ -146,7 +146,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
         {/* 5. 차근히 이해하기 */}
         <section id="sum-body" aria-labelledby="sum-body-h"><h3 id="sum-body-h" className="sum-h">차근히 이해하기</h3><SummaryBody body={item.body} assets={item.assets ?? []} /></section>
         {/* 6. 근거 확인하기 */}
-        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => { const pi = previewable.findIndex((p) => p === e); return <li key={i} className={pi >= 0 && pi === evidenceView.open ? "is-open" : undefined}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} onClick={(event) => openEvidence(event, pi)} aria-label={`${unit} ${rangeLabel(e.from, e.to)} 원문에서 확인하기`}>{unit} {rangeLabel(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>; })}</ul></section>}
+        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => { const pi = previewable.findIndex((p) => p.index === i); return <li key={i} className={pi >= 0 && pi === evidenceView.open ? "is-open" : undefined}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} onClick={(event) => openEvidence(event, pi)} aria-label={`${unit} ${rangeLabel(e.from, e.to)} 원문에서 확인하기`}>{unit} {rangeLabel(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>; })}</ul></section>}
         {/* 7. 되새길 물음 */}
         {item.reflection_questions.length > 0 && <section id="sum-questions" className="sum-reflection" aria-labelledby="sum-questions-h"><h3 id="sum-questions-h">되새길 물음</h3><ul>{item.reflection_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></section>}
         {/* 8. 원문과 함께 읽기 */}

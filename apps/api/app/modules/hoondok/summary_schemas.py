@@ -450,3 +450,11 @@ class SummaryDetail(SummaryListItem):
     source: SummaryPublicSource
     images: list[SummaryPublicImage]
     next_id: uuid.UUID | None = None
+
+
+class SummaryEvidenceSource(BaseModel):
+    """근거 한 건의 원문 미리보기. exact 면 말씀 from–to 만 정확히 자른 문단이고,
+    아니면(번호 없는 원문 등) 근거가 시작하는 원문 단락이다."""
+
+    paragraphs: list[str]
+    exact: bool

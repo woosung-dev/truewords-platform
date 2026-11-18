@@ -102,7 +102,6 @@
 [data-app="hoondok"] .sum-ev__skel { display: grid; gap: 10px; padding: 4px 0 14px; }
 [data-app="hoondok"] .sum-ev__skel i { display: block; height: 14px; border-radius: var(--r-xs); background: var(--surface-2); }
 [data-app="hoondok"] .sum-ev__skel i:last-child { width: 60%; }
-[data-app="hoondok"] .sum-ev__more { min-height: 44px; padding: 0; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 [data-app="hoondok"] .sum-ev__open { display: flex; align-items: center; gap: 2px; min-height: 44px; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
 [data-app="hoondok"] .sum-ev__nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 [data-app="hoondok"] .sum-ev__nav button { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 6px; color: var(--ink); font-size: var(--fs-sm); font-weight: 600; }

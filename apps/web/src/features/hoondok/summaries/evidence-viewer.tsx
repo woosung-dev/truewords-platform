@@ -2,21 +2,23 @@
 
 // 근거 원문 미리보기 — 요약 화면을 떠나지 않고 근거 단락을 본다.
 // 넓은 화면(1024px~)은 본문 옆 비모달 패널, 좁은 화면은 하단 시트(ReaderSheet)다. 내용은 둘이 같다.
-// 근거의 말씀 번호(from–to)와 원문 단락(chunk)은 1:1 이 아니다 — chunk_index 는 "말씀 from 이 시작하는 단락"뿐이라
-// 시작 단락만 보이고 "다음 단락"으로 이어 본다. 단락에 말씀 번호를 붙이지 않는다(틀린 번호를 보일 수 있다).
+// 원문은 서버가 잘라 준다(API-HD: /hoondok/ai-summaries/{id}/evidence/{n}). 번호가 찍힌 천성경은 말씀 from–to 만(exact),
+// 번호가 없는 평화경은 근거가 시작하는 원문 단락이라 "근처"라고 알린다.
 import { useQuery } from "@tanstack/react-query";
 import type { SummaryEvidence } from "@truewords/api-client-ts/types";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { libraryAPI, pageOfChunkIndex, wordsHref } from "../library/api";
+import { wordsHref } from "../library/api";
 import { ReaderSheet } from "../library/components/reader-sheet";
-import { wordsKey } from "../query-keys";
+import { aiSummaryKey } from "../query-keys";
+import { summariesAPI } from "./api";
 
-/** 미리보기로 열 수 있는 근거 — 단락 위치가 연결된 것만. 나머지는 지금처럼 원문 뷰로 이동한다. */
-export type PreviewableEvidence = SummaryEvidence & { chunk_index: number; chunk_id: string };
-export function isPreviewable(e: SummaryEvidence): e is PreviewableEvidence {
-  return e.chunk_index != null && Boolean(e.chunk_id);
+/** 미리보기로 열 수 있는 근거 — 단락 위치가 연결된 것만. 나머지는 지금처럼 원문 뷰로 이동한다.
+ *  index 는 요약의 근거 목록 전체에서의 순번(0부터)으로, 원문 API 경로에 쓴다. */
+export type PreviewableEvidence = SummaryEvidence & { chunk_index: number; chunk_id: string; index: number };
+export function previewableEvidence(evidence: SummaryEvidence[]): PreviewableEvidence[] {
+  return evidence.flatMap((e, index) => (e.chunk_index != null && e.chunk_id ? [{ ...e, chunk_index: e.chunk_index, chunk_id: e.chunk_id, index }] : []));
 }
 
 export function rangeLabel(from: number, to: number) {
@@ -89,34 +91,8 @@ export function useEvidenceParam(count: number, beforeChange: () => void = () =>
   };
 }
 
-/** 근거 시작 단락부터 extra 개 더. 이어 보기가 페이지(20단락) 경계를 넘으면 다음 페이지도 읽는다. */
-function useEvidenceChunks(volume: string, start: number, extra: number) {
-  const page = pageOfChunkIndex(start);
-  const lastPage = pageOfChunkIndex(start + extra);
-  const first = useQuery({
-    queryKey: wordsKey(volume, page, {}),
-    queryFn: ({ signal }) => libraryAPI.words(volume, page, {}, signal),
-    retry: false,
-  });
-  const next = useQuery({
-    queryKey: wordsKey(volume, lastPage, {}),
-    queryFn: ({ signal }) => libraryAPI.words(volume, lastPage, {}, signal),
-    enabled: lastPage !== page && first.data !== undefined && lastPage <= first.data.total_pages,
-    retry: false,
-  });
-  const chunks = [...(first.data?.chunks ?? []), ...(lastPage !== page ? (next.data?.chunks ?? []) : [])]
-    .filter((c) => c.chunk_index >= start && c.chunk_index <= start + extra)
-    .sort((a, b) => a.chunk_index - b.chunk_index);
-  const total = first.data?.total_chunks ?? Number.POSITIVE_INFINITY;
-  return {
-    chunks,
-    pending: first.isPending || (next.fetchStatus === "fetching" && chunks.length <= extra),
-    error: first.isError,
-    hasMore: start + extra + 1 < total && !next.isError,
-  };
-}
-
 type ViewerProps = {
+  summaryId: string;
   volume: string;
   unit: string;
   evidence: PreviewableEvidence[];
@@ -125,22 +101,23 @@ type ViewerProps = {
   onClose: () => void;
 };
 
-function EvidenceContent({ volume, unit, evidence, index, onMove }: Omit<ViewerProps, "onClose">) {
+function EvidenceContent({ summaryId, volume, unit, evidence, index, onMove }: Omit<ViewerProps, "onClose">) {
   const item = evidence[index];
-  // 다른 근거로 넘기면 부모가 key 를 바꿔 이어 보기를 처음으로 되돌린다
-  const [extra, setExtra] = useState(0);
-  const { chunks, pending, error, hasMore } = useEvidenceChunks(volume, item.chunk_index, extra);
-  const href = wordsHref(volume, item.chunk_id);
+  const source = useQuery({
+    queryKey: [...aiSummaryKey(summaryId), "evidence", item.index],
+    queryFn: ({ signal }) => summariesAPI.evidence(summaryId, item.index, signal),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
   return <>
     <p className="sum-ev__claim">{item.claim}</p>
-    <p className="sum-ev__note">{unit} {item.from}부터 이어지는 원문이에요.</p>
-    <div className="sum-ev__text" aria-busy={pending}>
-      {error ? <p className="sum-ev__err" role="status">원문을 불러오지 못했어요. 원문 뷰에서 확인해 주세요.</p>
-        : chunks.map((c) => <p key={c.chunk_id}>{c.display_text}</p>)}
-      {pending && !error && <span className="sum-ev__skel" aria-label="원문을 불러오고 있어요"><i /><i /><i /></span>}
+    {source.data && !source.data.exact && <p className="sum-ev__note">{unit} {item.from} 근처 원문이에요. 정확한 범위는 원문에서 확인해 주세요.</p>}
+    <div className="sum-ev__text" aria-busy={source.isPending}>
+      {source.isError ? <p className="sum-ev__err" role="status">원문을 불러오지 못했어요. 원문 뷰에서 확인해 주세요.</p>
+        : source.data?.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+      {source.isPending && <span className="sum-ev__skel" aria-label="원문을 불러오고 있어요"><i /><i /><i /></span>}
     </div>
-    {!error && !pending && hasMore && <button type="button" className="sum-ev__more" onClick={() => setExtra((n) => n + 1)}>다음 단락 이어 보기</button>}
-    <Link className="sum-ev__open" href={href}>원문에서 앞뒤 읽기 <ChevronRight size={16} aria-hidden="true" /></Link>
+    <Link className="sum-ev__open" href={wordsHref(volume, item.chunk_id)}>원문에서 앞뒤 읽기 <ChevronRight size={16} aria-hidden="true" /></Link>
     {evidence.length > 1 && <nav className="sum-ev__nav" aria-label="근거 넘기기">
       <button type="button" onClick={() => onMove(index - 1)} disabled={index === 0}><ChevronLeft size={18} aria-hidden="true" />이전 근거</button>
       <span>{index + 1} / {evidence.length}</span>

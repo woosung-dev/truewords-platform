@@ -3,16 +3,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import type { SummaryDetail } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { libraryAPI } from "../library/api";
 import { summariesAPI } from "./api";
 import { SummaryMarks } from "./marks";
 import { AI_NOTICE, readingMinutes, SummaryDetailScreen, SummaryListScreen } from "./screens";
 
-vi.mock("./api", () => ({ summariesAPI: { list: vi.fn(), detail: vi.fn() } }));
-vi.mock("../library/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../library/api")>();
-  return { ...actual, libraryAPI: { ...actual.libraryAPI, words: vi.fn() } };
-});
+vi.mock("./api", () => ({ summariesAPI: { list: vi.fn(), detail: vi.fn(), evidence: vi.fn() } }));
 
 function wrap(node: ReactNode) {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{node}</QueryClientProvider>);
@@ -94,7 +89,7 @@ it("근거에 단락이 연결돼 있으면 그 단락으로, 없으면 장 첫�
   expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
 });
 
-it("근거를 누르면 요약을 떠나지 않고 시작 단락을 시트로 보여주고, 닫으면 주소를 되돌린다", async () => {
+it("근거를 누르면 요약을 떠나지 않고 서버가 자른 원문을 시트로 보여주고, 닫으면 주소를 되돌린다", async () => {
   window.history.replaceState(null, "", "/summaries/one");
   vi.mocked(summariesAPI.detail).mockResolvedValue({
     ...detail,
@@ -104,8 +99,8 @@ it("근거를 누르면 요약을 떠나지 않고 시작 단락을 시트로 �
       { claim: "둘째 근거", from: 10, to: 10, chunk_index: 18, chunk_id: "c-18" },
     ],
   });
-  const chunks = Array.from({ length: 20 }, (_, i) => ({ chunk_id: `c-${i}`, chunk_index: i, display_text: `단락 본문 ${i}`, text: "" }));
-  vi.mocked(libraryAPI.words).mockResolvedValue({ authority_grade: "O1", body: "", chunks, page: 1, page_size: 20, total_chunks: 40, total_pages: 2, volume: "천성경.pdf", work_title: "천성경" });
+  vi.mocked(summariesAPI.evidence).mockImplementation(async (_id, index) =>
+    index === 0 ? { exact: true, paragraphs: ["5 첫 말씀 (1-1, 70.1.1)", "6 둘째 말씀 (1-2, 70.1.1)"] } : { exact: false, paragraphs: ["근처 단락"] });
   wrap(<SummaryDetailScreen id="one" />);
   const link = await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" });
   // 보조키 클릭은 가로채지 않는다(새 탭 열기)
@@ -114,15 +109,15 @@ it("근거를 누르면 요약을 떠나지 않고 시작 단락을 시트로 �
   fireEvent.click(link);
   const sheet = await screen.findByRole("dialog", { name: "말씀 5–7" });
   expect(window.location.search).toBe("?ev=1");
-  expect(await within(sheet).findByText("단락 본문 13")).toBeInTheDocument();
-  expect(within(sheet).queryByText("단락 본문 14")).not.toBeInTheDocument();
-  expect(vi.mocked(libraryAPI.words)).toHaveBeenCalledWith("천성경.pdf", 1, {}, expect.anything());
-  fireEvent.click(within(sheet).getByRole("button", { name: "다음 단락 이어 보기" }));
-  expect(await within(sheet).findByText("단락 본문 14")).toBeInTheDocument();
+  expect(await within(sheet).findByText("6 둘째 말씀 (1-2, 70.1.1)")).toBeInTheDocument();
+  expect(within(sheet).queryByText(/근처 원문이에요/)).not.toBeInTheDocument();
   // 단락 없는 근거는 건너뛰고 다음 근거로 넘긴다
   fireEvent.click(within(sheet).getByRole("button", { name: "다음 근거" }));
   expect(await screen.findByRole("dialog", { name: "말씀 10" })).toBeInTheDocument();
-  expect(await screen.findByText("단락 본문 18")).toBeInTheDocument();
+  // 원문 API 는 요약 근거 목록 전체 순번(단락 없는 근거 포함)으로 부른다
+  expect(await screen.findByText("근처 단락")).toBeInTheDocument();
+  expect(vi.mocked(summariesAPI.evidence)).toHaveBeenLastCalledWith("one", 2, expect.anything());
+  expect(screen.getByText("말씀 10 근처 원문이에요. 정확한 범위는 원문에서 확인해 주세요.")).toBeInTheDocument();
   expect(window.location.search).toBe("?ev=2");
   fireEvent.click(screen.getByRole("button", { name: "닫기" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
