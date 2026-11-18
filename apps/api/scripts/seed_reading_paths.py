@@ -33,7 +33,7 @@ from sqlmodel import select  # noqa: E402
 
 from app.core.common.clock import utcnow  # noqa: E402
 from app.core.config import settings  # noqa: E402
-from app.modules.hoondok.display_text import PAGE_SIZE, to_display_text  # noqa: E402
+from app.modules.hoondok.reading.display_text import PAGE_SIZE, to_display_text  # noqa: E402
 from app.modules.hoondok.models import (  # noqa: E402
     PATH_MINUTES_TIERS,
     ContentRight,

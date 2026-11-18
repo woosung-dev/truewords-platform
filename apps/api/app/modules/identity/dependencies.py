@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.modules.admin.auth import decode_access_token
-from app.modules.hoondok.cards_repository import CardRepository
-from app.modules.hoondok.asks_repository import AskRepository
+from app.modules.hoondok.cards.cards_repository import CardRepository
+from app.modules.hoondok.ask.asks_repository import AskRepository
 from app.modules.hoondok.dependencies import (
     get_ask_repository,
     get_card_repository,
@@ -20,11 +20,11 @@ from app.modules.hoondok.dependencies import (
     get_path_repository,
     get_public_question_repository,
 )
-from app.modules.hoondok.library_repository import LibraryRepository
-from app.modules.hoondok.notifications_repository import NotificationRepository
-from app.modules.hoondok.paths_repository import PathRepository
-from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
-from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
+from app.modules.hoondok.reading.library_repository import LibraryRepository
+from app.modules.hoondok.notify.notifications_repository import NotificationRepository
+from app.modules.hoondok.practice.paths_repository import PathRepository
+from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.practice.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.service import AUDIENCE, IdentityService, UserDataPurger

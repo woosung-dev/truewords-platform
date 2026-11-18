@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.main import app
 from app.modules.hoondok.dependencies import get_notification_repository
 from app.modules.hoondok.models import NotificationPreference, PushSubscription
-from app.modules.hoondok.notifications_repository import NotificationRepository
+from app.modules.hoondok.notify.notifications_repository import NotificationRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.service import IdentityService
@@ -337,7 +337,7 @@ async def test_preference_read_time_persists_as_time_column(client: TestClient):
 
 
 def test_client_errors_accept_push_subscribe_kind(client: TestClient):
-    from app.modules.hoondok.journey_schemas import ClientErrorInput
+    from app.modules.hoondok.reading.journey_schemas import ClientErrorInput
 
     parsed = ClientErrorInput(kind="push_subscribe", path="/hoondok/settings")
     assert parsed.kind == "push_subscribe"
@@ -355,7 +355,7 @@ async def test_account_deletion_purges_notification_rows():
         get_mission_repository,
         get_path_repository,
     )
-    from app.modules.hoondok.library_repository import LibraryRepository
+    from app.modules.hoondok.reading.library_repository import LibraryRepository
     from app.modules.hoondok.models import (
         ClientErrorEvent,
         JeongseongPeriod,
@@ -365,7 +365,7 @@ async def test_account_deletion_purges_notification_rows():
         PassageMark,
         ReadingPosition,
     )
-    from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
+    from app.modules.hoondok.practice.repository import JeongseongRepository, MissionLogRepository
     from app.modules.identity.repository import UserRepository
     from app.modules.identity.schemas import SignupRequest
 

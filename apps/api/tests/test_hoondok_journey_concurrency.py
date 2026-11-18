@@ -14,15 +14,15 @@ from sqlalchemy import delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import select
 
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading.journey_service import JourneyService
 from app.modules.hoondok.models import (
     ClientErrorEvent,
     ContentRight,
     JeongseongPeriod,
     JeongseongReading,
 )
-from app.modules.hoondok.repository import JeongseongRepository
+from app.modules.hoondok.practice.repository import JeongseongRepository
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.service import IdentityService

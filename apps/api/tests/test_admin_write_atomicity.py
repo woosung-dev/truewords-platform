@@ -20,23 +20,23 @@ from app.modules.chatbot.repository import ChatbotRepository
 from app.modules.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate
 from app.modules.chatbot.service import ChatbotService
 from app.modules.chatbot.models import ChatbotConfig
-from app.modules.hoondok.cards_repository import CardRepository
-from app.modules.hoondok.cards_service import CardAdminService
-from app.modules.hoondok.cards_schemas import CardAdminCreate, CardAdminUpdate
-from app.modules.hoondok.journey_repository import JourneyRepository
-from app.modules.hoondok.journey_service import JourneyService
-from app.modules.hoondok.journey_schemas import ContentRightInput
-from app.modules.hoondok.library_repository import LibraryRepository
-from app.modules.hoondok.library_service import LibraryService
-from app.modules.hoondok.library_schemas import BulkRightsInput
+from app.modules.hoondok.cards.cards_repository import CardRepository
+from app.modules.hoondok.cards.cards_service import CardAdminService
+from app.modules.hoondok.cards.cards_schemas import CardAdminCreate, CardAdminUpdate
+from app.modules.hoondok.reading.journey_repository import JourneyRepository
+from app.modules.hoondok.reading.journey_service import JourneyService
+from app.modules.hoondok.reading.journey_schemas import ContentRightInput
+from app.modules.hoondok.reading.library_repository import LibraryRepository
+from app.modules.hoondok.reading.library_service import LibraryService
+from app.modules.hoondok.reading.library_schemas import BulkRightsInput
 from app.modules.hoondok.models import (
     ContentRight,
     DailyReading,
     WordCard,
 )
-from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository
-from app.modules.hoondok.schemas import DailyReadingAdminCreate, DailyReadingAdminUpdate
-from app.modules.hoondok.service import DailyReadingAdminService
+from app.modules.hoondok.practice.repository import DailyReadingRepository, JeongseongRepository
+from app.modules.hoondok.practice.schemas import DailyReadingAdminCreate, DailyReadingAdminUpdate
+from app.modules.hoondok.practice.service import DailyReadingAdminService
 
 
 @pytest.fixture(scope="module")

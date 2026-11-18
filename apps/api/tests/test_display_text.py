@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.modules.hoondok.display_text import to_display_text
+from app.modules.hoondok.reading.display_text import to_display_text
 
 FIXTURE = Path(__file__).parent / "fixtures" / "hoondok_cheonseong_p1_chunks.json"
 # 실측 PDF 줄 폭(~50자)에 맞춘 줄 — 짧은 줄 규칙이 걸리지 않게 한다.

@@ -22,7 +22,7 @@ from app.core.common.database import async_session_factory, init_db
 from app.core.config import settings
 from app.modules.hoondok.models import ContentRight
 from app.modules.hoondok.summary_models import SummaryAsset, SummaryRevision, SummaryUnit
-from app.modules.hoondok.summary_schemas import SummaryInput
+from app.modules.hoondok.content_admin.summary_schemas import SummaryInput
 
 CONTENT = Path(__file__).resolve().parent.parent / "content/ai-summaries"
 WORK_TITLE = "천성경"

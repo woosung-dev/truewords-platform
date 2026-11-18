@@ -15,9 +15,9 @@ from app.core.common.clock import today_kst
 from app.main import app
 from app.modules.hoondok.dependencies import get_together_service
 from app.modules.hoondok.models import MissionLog
-from app.modules.hoondok.repository import MissionLogRepository
-from app.modules.hoondok.schemas import TogetherTodayResponse
-from app.modules.hoondok.together_service import TogetherService, clear_together_cache
+from app.modules.hoondok.practice.repository import MissionLogRepository
+from app.modules.hoondok.practice.schemas import TogetherTodayResponse
+from app.modules.hoondok.practice.together_service import TogetherService, clear_together_cache
 from app.modules.identity.models import User
 
 TODAY = date(2026, 9, 23)

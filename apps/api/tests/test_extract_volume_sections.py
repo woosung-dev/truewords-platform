@@ -6,7 +6,7 @@
 
 import pytest
 
-from app.modules.hoondok.section_rules import (
+from app.modules.hoondok.reading.section_rules import (
     clean_title,
     extract_sections,
     normalize_spoken_on,

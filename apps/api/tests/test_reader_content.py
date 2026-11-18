@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.modules.hoondok.models import ContentRight
-from app.modules.hoondok.reading_content import ReaderContent
+from app.modules.hoondok.reading.reading_content import ReaderContent
 
 
 def reader():

@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import get_mission_service
-from app.modules.hoondok.service import MissionService
+from app.modules.hoondok.practice.service import MissionService
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.service import IdentityService
