@@ -160,7 +160,7 @@ class PublicQuestionRepository:
         query = (
             select(PublicQuestion)
             .where(PublicQuestion.pin_order.is_not(None))  # type: ignore[union-attr]
-            .order_by(PublicQuestion.pin_order, PublicQuestion.id)
+            .order_by(PublicQuestion.pin_order, PublicQuestion.id)  # type: ignore[arg-type]
         )
         if lock:
             query = query.with_for_update()

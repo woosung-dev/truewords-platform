@@ -1418,18 +1418,11 @@ export const putPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPut = <T
 /**
  * Record Public Question View
  *
- * 조회 1회 기록 — (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 viewer_id(기기 UUID).
+ * 조회 1회 기록 — 본문 없음. (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 클라이언트 IP(HMAC 해시).
  *
- * 계정도 viewer_id 도 없으면 세지 않고 204. published 가 아니면 404, 403 CSRF, 429 요청 한도.
+ * 조회 전용 요청 한도(IP당 분당 60회)를 따로 쓴다. published 가 아니면 404, 403 CSRF, 429 요청 한도.
  */
-export const recordPublicQuestionViewHoondokQuestionsQuestionIdViewsPost = <ThrowOnError extends boolean = false>(options: Options<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostData, ThrowOnError>): RequestResult<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses, RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors, ThrowOnError> => (options.client ?? client).post<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses, RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors, ThrowOnError>({
-    url: '/hoondok/questions/{question_id}/views',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const recordPublicQuestionViewHoondokQuestionsQuestionIdViewsPost = <ThrowOnError extends boolean = false>(options: Options<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostData, ThrowOnError>): RequestResult<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses, RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors, ThrowOnError> => (options.client ?? client).post<RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostResponses, RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostErrors, ThrowOnError>({ url: '/hoondok/questions/{question_id}/views', ...options });
 
 /**
  * Search Words

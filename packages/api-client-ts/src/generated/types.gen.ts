@@ -3191,18 +3191,6 @@ export type PublicQuestionSummary = {
 };
 
 /**
- * PublicQuestionViewCreate
- *
- * 조회 기록 본문. 로그인한 사용자는 계정이 우선이라 viewer_id 를 무시한다. 익명은 기기별 무작위 UUID 를 보낸다.
- */
-export type PublicQuestionViewCreate = {
-    /**
-     * Viewer Id
-     */
-    viewer_id?: string | null;
-};
-
-/**
  * PushConfigResponse
  *
  * API-HD-019 공개. VAPID 미설정이면 enabled=false·public_key=null — 비밀 키는 절대 내지 않는다.
@@ -9829,7 +9817,7 @@ export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutRespon
 export type PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponse = PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponses[keyof PutPublicQuestionBookmarkHoondokQuestionsQuestionIdBookmarkPutResponses];
 
 export type RecordPublicQuestionViewHoondokQuestionsQuestionIdViewsPostData = {
-    body: PublicQuestionViewCreate;
+    body?: never;
     path: {
         /**
          * Question Id

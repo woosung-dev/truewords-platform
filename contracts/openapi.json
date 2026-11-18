@@ -5434,26 +5434,6 @@
         "title": "PublicQuestionSummary",
         "type": "object"
       },
-      "PublicQuestionViewCreate": {
-        "additionalProperties": false,
-        "description": "조회 기록 본문. 로그인한 사용자는 계정이 우선이라 viewer_id 를 무시한다. 익명은 기기별 무작위 UUID 를 보낸다.",
-        "properties": {
-          "viewer_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Viewer Id"
-          }
-        },
-        "title": "PublicQuestionViewCreate",
-        "type": "object"
-      },
       "PushConfigResponse": {
         "description": "API-HD-019 공개. VAPID 미설정이면 enabled=false·public_key=null — 비밀 키는 절대 내지 않는다.",
         "properties": {
@@ -16114,7 +16094,7 @@
     },
     "/hoondok/questions/{question_id}/views": {
       "post": {
-        "description": "조회 1회 기록 — (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 viewer_id(기기 UUID).\n\n계정도 viewer_id 도 없으면 세지 않고 204. published 가 아니면 404, 403 CSRF, 429 요청 한도.",
+        "description": "조회 1회 기록 — 본문 없음. (질문, 조회자, KST 날짜)당 한 번만 센다. 로그인 계정이 우선, 익명은 클라이언트 IP(HMAC 해시).\n\n조회 전용 요청 한도(IP당 분당 60회)를 따로 쓴다. published 가 아니면 404, 403 CSRF, 429 요청 한도.",
         "operationId": "record_public_question_view_hoondok_questions__question_id__views_post",
         "parameters": [
           {
@@ -16127,16 +16107,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublicQuestionViewCreate"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "204": {
             "description": "Successful Response"
