@@ -35,7 +35,15 @@ from app.modules.hoondok.ask.asks_repository import AskRepository
 from app.modules.hoondok.ask.asks_service import AskService, next_reset
 from app.modules.hoondok.dependencies import get_ask_chat_service, get_ask_repository, get_public_question_repository
 from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
-from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, PublicQuestion
+from app.modules.hoondok.models import (
+    AskThread,
+    AskTurn,
+    AskUsage,
+    PublicQuestion,
+    PublicQuestionAsk,
+    PublicQuestionBookmark,
+    PublicQuestionView,
+)
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
@@ -52,6 +60,9 @@ TABLES = [
     AnswerFeedback,
     MessageReaction,
     PublicQuestion,
+    PublicQuestionView,
+    PublicQuestionAsk,
+    PublicQuestionBookmark,
     AskThread,
     AskTurn,
     AskUsage,
@@ -478,3 +489,82 @@ async def test_delete_for_user_purges_asks(ctx: TestClient):
     assert me.id not in (await session.execute(select(AskUsage.user_id))).scalars().all()
     assert all(t.user_id != me.id for t in (await session.execute(select(AskTurn))).scalars().all())
     assert all(t.user_id != me.id for t in (await session.execute(select(AskThread))).scalars().all())
+
+
+# --- 공개 질문 질문 수(ask_count) -----------------------------------------------------
+
+
+async def add_public(ctx: TestClient, status: str = "published") -> str:
+    """공개 질문 한 건을 직접 넣는다(작성자는 별도 계정)."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    author = await ctx.users.create(User(email=f"author-{uuid.uuid4().hex[:6]}@example.com", display_name="작성"))  # type: ignore[attr-defined]
+    row = PublicQuestion(
+        id=uuid.uuid4().hex[:12],
+        user_id=author.id,
+        message_id=uuid.uuid4(),
+        question="공개 질문",
+        answer_md="답",
+        sources=[],
+        answer_mode="standard",
+        status=status,
+    )
+    session.add(row)
+    await session.commit()
+    return row.id
+
+
+async def ask_count(ctx: TestClient, question_id: str) -> int:
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    session.expire_all()
+    return (await session.get(PublicQuestion, question_id)).ask_count  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_public_question_ask_count_once_per_user(ctx: TestClient):
+    qid = await add_public(ctx)
+    await login(ctx, "a@example.com")
+    assert ask(ctx, public_question_id=qid).status_code == 200
+    assert await ask_count(ctx, qid) == 1
+    assert ask(ctx, public_question_id=qid).status_code == 200  # 같은 계정의 새 대화는 다시 세지 않는다
+    assert await ask_count(ctx, qid) == 1
+    await login(ctx, "b@example.com")
+    assert ask(ctx, public_question_id=qid).status_code == 200
+    assert await ask_count(ctx, qid) == 2
+
+
+@pytest.mark.asyncio
+async def test_public_question_ask_count_ignores_follow_up(ctx: TestClient):
+    qid = await add_public(ctx)
+    await login(ctx)
+    sid = sources_of(ask(ctx))["session_id"]
+    assert ask(ctx, session_id=sid, public_question_id=qid).status_code == 200
+    assert await ask_count(ctx, qid) == 0
+
+
+@pytest.mark.asyncio
+async def test_public_question_ask_count_ignores_invalid_or_unpublished(ctx: TestClient):
+    pending = await add_public(ctx, "pending")
+    hidden = await add_public(ctx, "hidden")
+    await login(ctx)
+    for bad in ("missing", pending, hidden):
+        assert ask(ctx, public_question_id=bad).status_code == 200
+    assert await ask_count(ctx, pending) == 0 and await ask_count(ctx, hidden) == 0
+    assert ask(ctx, public_question_id="x" * 17).status_code == 422  # 길이 제한
+
+
+@pytest.mark.asyncio
+async def test_public_question_ask_count_not_when_ask_fails(ctx: TestClient, monkeypatch):
+    from app.modules.search.exceptions import SearchFailedError
+
+    qid = await add_public(ctx)
+    await login(ctx)
+    ctx.chat.fail_after_session = SearchFailedError("검색 실패")  # type: ignore[attr-defined]
+    assert ask(ctx, public_question_id=qid).status_code == 503
+    ctx.chat.fail_after_session = None  # type: ignore[attr-defined]
+
+    async def broken(self, turn):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(AskRepository, "record_turn", broken)
+    assert ask(ctx, public_question_id=qid).status_code == 200  # 기록 실패 → 횟수도 되돌림
+    assert await ask_count(ctx, qid) == 0

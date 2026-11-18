@@ -17,7 +17,12 @@ from app.modules.admin.repository import AdminRepository
 from app.modules.admin.service import AdminService
 from app.modules.chat.models import AnswerCitation, MessageRole, ResearchSession, SessionMessage
 from app.modules.hoondok.dependencies import get_public_question_admin_service, get_public_question_service
-from app.modules.hoondok.models import PublicQuestion
+from app.modules.hoondok.models import (
+    PublicQuestion,
+    PublicQuestionAsk,
+    PublicQuestionBookmark,
+    PublicQuestionView,
+)
 from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.ask.public_questions_service import (
     PublicQuestionAdminService,
@@ -47,6 +52,9 @@ async def ctx():
                 SessionMessage.__table__,
                 AnswerCitation.__table__,
                 PublicQuestion.__table__,
+                PublicQuestionView.__table__,
+                PublicQuestionAsk.__table__,
+                PublicQuestionBookmark.__table__,
                 AdminAuditLog.__table__,
             ],
         )
@@ -322,11 +330,14 @@ async def test_admin_publish_makes_it_public_without_author(ctx: TestClient):
     listed = ctx.get("/hoondok/questions").json()
     assert [i["id"] for i in listed["items"]] == [qid]
     item = listed["items"][0]
-    assert set(item) == {"id", "question", "preview", "answer_mode", "published_at"}
+    assert set(item) == {
+        "id", "question", "preview", "answer_mode", "published_at", "pinned", "view_count", "bookmarked",
+    }
+    assert item["pinned"] is False and item["view_count"] == 0 and item["bookmarked"] is False
     assert item["preview"].startswith("짧게 말하면 참사랑은")  # 마크다운 기호 제거
 
     detail = ctx.get(f"/hoondok/questions/{qid}").json()
-    assert set(detail) == {"id", "question", "answer_md", "sources", "answer_mode", "published_at"}
+    assert set(detail) == {"id", "question", "answer_md", "sources", "answer_mode", "published_at", "bookmarked"}
     assert detail["sources"][0] == {"source": "A", "volume": "말씀선집 001권", "text": "근거 0"}
 
     me = ctx.get("/hoondok/me/questions").json()["items"]
@@ -352,7 +363,7 @@ async def test_public_list_search_and_cursor(ctx: TestClient):
         ids.append(qid)
 
     first = ctx.get("/hoondok/questions?limit=2").json()
-    assert len(first["items"]) == 2 and first["next_cursor"] == first["items"][-1]["id"]
+    assert len(first["items"]) == 2 and first["next_cursor"] == "2"
     second = ctx.get(f"/hoondok/questions?limit=2&cursor={first['next_cursor']}").json()
     assert len(second["items"]) == 1 and second["next_cursor"] is None
     all_ids = [i["id"] for i in first["items"] + second["items"]]
@@ -400,3 +411,393 @@ def test_make_preview_strips_markdown_and_truncates():
     assert make_preview("## 제목\n**굵게** _기울임_") == "제목 굵게 기울임"
     long = make_preview("가" * 200)
     assert long.endswith("…") and len(long) == 121
+
+
+# --- 인기도·고정·목록 순서 ---------------------------------------------------------
+
+
+async def make_published(ctx: TestClient, text: str, minutes: int = 0) -> str:
+    qid = submit(ctx, await add_answer(ctx, question=text, minutes=minutes)).json()["id"]
+    assert publish(ctx, qid).status_code == 200
+    return qid
+
+
+async def set_counts(ctx: TestClient, qid: str, *, views: int = 0, asks: int = 0) -> None:
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    row = await session.get(PublicQuestion, qid)
+    row.view_count, row.ask_count = views, asks  # type: ignore[union-attr]
+    await session.commit()
+
+
+def public_ids(ctx: TestClient, **params) -> list[str]:
+    return [i["id"] for i in ctx.get("/hoondok/questions", params=params).json()["items"]]
+
+
+def pin(ctx: TestClient, qid: str, pinned: bool = True):
+    return ctx.patch(f"/admin/hoondok/questions/{qid}", json={"pinned": pinned}, headers=XHR)
+
+
+@pytest.mark.asyncio
+async def test_public_order_pinned_then_popularity_then_recency(ctx: TestClient):
+    await login(ctx)
+    old = await make_published(ctx, "가", 0)
+    mid = await make_published(ctx, "나", 1)
+    new = await make_published(ctx, "다", 2)
+    hot = await make_published(ctx, "라", 3)
+    tie = await make_published(ctx, "마", 4)
+    await set_counts(ctx, hot, views=1, asks=2)  # 점수 7
+    await set_counts(ctx, old, views=5)  # 점수 5
+    await set_counts(ctx, mid, asks=1)  # 점수 3
+    # 점수 0 인 new·tie 는 최근 공개순 (tie 가 나중에 공개)
+    assert public_ids(ctx) == [hot, old, mid, tie, new]
+    assert pin(ctx, new).status_code == 200  # 고정은 점수와 무관하게 맨 앞
+    assert pin(ctx, old).status_code == 200
+    assert public_ids(ctx) == [new, old, hot, mid, tie]
+    items = ctx.get("/hoondok/questions").json()["items"]
+    assert [i["pinned"] for i in items] == [True, True, False, False, False]
+    assert items[1]["view_count"] == 5
+
+
+@pytest.mark.asyncio
+async def test_cursor_paging_has_no_gaps(ctx: TestClient):
+    await login(ctx)
+    ids = [await make_published(ctx, f"질문 {n}", n) for n in range(7)]
+    await set_counts(ctx, ids[2], views=9)
+    pin(ctx, ids[5])
+    expected = public_ids(ctx, limit=50)
+    assert len(expected) == 7
+    seen: list[str] = []
+    cursor = None
+    pages = 0
+    while True:
+        params = {"limit": 3, **({"cursor": cursor} if cursor else {})}
+        body = ctx.get("/hoondok/questions", params=params).json()
+        seen += [i["id"] for i in body["items"]]
+        pages += 1
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+    assert seen == expected and pages == 3
+    for bad in ("abc", "-1", "1.5", "１"):
+        assert ctx.get("/hoondok/questions", params={"cursor": bad}).status_code == 422
+
+
+# --- 조회 기록 ---------------------------------------------------------------------
+
+
+def view(ctx: TestClient, qid: str, viewer_id=None, headers=XHR):
+    body = {"viewer_id": str(viewer_id)} if viewer_id else {}
+    return ctx.post(f"/hoondok/questions/{qid}/views", json=body, headers=headers)
+
+
+async def views_of(ctx: TestClient, qid: str) -> int:
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    session.expire_all()
+    return (await session.get(PublicQuestion, qid)).view_count  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_view_counts_once_per_viewer_per_day(ctx: TestClient):
+    await login(ctx)
+    qid = await make_published(ctx, "조회")
+    ctx.cookies.clear()
+    anon = uuid.uuid4()
+    assert view(ctx, qid, anon).status_code == 204
+    assert view(ctx, qid, anon).status_code == 204
+    assert await views_of(ctx, qid) == 1
+    assert view(ctx, qid, uuid.uuid4()).status_code == 204  # 다른 익명
+    assert await views_of(ctx, qid) == 2
+    assert view(ctx, qid).status_code == 204  # 식별자 없음 → 세지 않는다
+    assert await views_of(ctx, qid) == 2
+
+    user = await login(ctx, "viewer@example.com")
+    user_id = str(user.id)
+    assert view(ctx, qid, anon).status_code == 204  # 로그인 계정이 우선 — 익명과 별개로 1
+    assert view(ctx, qid, uuid.uuid4()).status_code == 204  # viewer_id 가 달라도 같은 계정
+    assert await views_of(ctx, qid) == 3
+    rows = (await ctx.session.execute(select(PublicQuestionView))).scalars().all()  # type: ignore[attr-defined]
+    assert all(len(r.viewer_key) == 64 and user_id not in r.viewer_key for r in rows)
+    assert str(anon) not in {r.viewer_key for r in rows}
+
+
+@pytest.mark.asyncio
+async def test_view_counts_again_next_day_and_prunes_old_rows(ctx: TestClient):
+    from datetime import date
+
+    await login(ctx)
+    qid = await make_published(ctx, "조회")
+    repo = PublicQuestionRepository(ctx.session)  # type: ignore[attr-defined]
+    day = date(2026, 11, 10)
+    assert await repo.record_view(qid, "k" * 64, day - timedelta(days=3))
+    assert await repo.record_view(qid, "k" * 64, day - timedelta(days=2))
+    assert await repo.record_view(qid, "k" * 64, day)  # 다음 날은 다시 센다
+    assert not await repo.record_view(qid, "k" * 64, day)
+    days = {r.day for r in (await ctx.session.execute(select(PublicQuestionView))).scalars().all()}  # type: ignore[attr-defined]
+    assert days == {day - timedelta(days=2), day}  # 오늘 - 2일 미만은 지워진다
+
+
+@pytest.mark.asyncio
+async def test_view_404_and_csrf(ctx: TestClient):
+    await login(ctx)
+    pending = submit(ctx, await add_answer(ctx)).json()["id"]
+    hidden = await make_published(ctx, "숨김", 1)
+    ctx.patch(f"/admin/hoondok/questions/{hidden}", json={"status": "hidden"}, headers=XHR)
+    published = await make_published(ctx, "공개", 2)
+    ctx.cookies.clear()
+    anon = uuid.uuid4()
+    for qid in (pending, hidden, "missing"):
+        assert view(ctx, qid, anon).status_code == 404
+    assert view(ctx, published, anon, headers={}).status_code == 403
+    assert ctx.post(f"/hoondok/questions/{published}/views", json={"x": 1}, headers=XHR).status_code == 422
+    assert await views_of(ctx, published) == 0
+
+
+# --- 북마크 ------------------------------------------------------------------------
+
+
+def bookmark(ctx: TestClient, qid: str, method: str = "put", headers=XHR):
+    return ctx.request(method, f"/hoondok/questions/{qid}/bookmark", headers=headers)
+
+
+@pytest.mark.asyncio
+async def test_bookmark_is_idempotent_and_listed_newest_first(ctx: TestClient):
+    await login(ctx)
+    first = await make_published(ctx, "첫째", 0)
+    second = await make_published(ctx, "둘째", 1)
+    assert bookmark(ctx, first).status_code == 204
+    assert bookmark(ctx, first).status_code == 204  # 멱등
+    assert bookmark(ctx, second).status_code == 204
+    assert len((await ctx.session.execute(select(PublicQuestionBookmark))).all()) == 2  # type: ignore[attr-defined]
+    listed = ctx.get("/hoondok/me/question-bookmarks").json()["items"]
+    assert [i["id"] for i in listed] == [second, first]
+    assert all(i["bookmarked"] for i in listed)
+    assert bookmark(ctx, first, "delete").status_code == 204
+    assert bookmark(ctx, first, "delete").status_code == 204  # 멱등
+    assert bookmark(ctx, "missing", "delete").status_code == 204
+    assert [i["id"] for i in ctx.get("/hoondok/me/question-bookmarks?limit=1").json()["items"]] == [second]
+    assert ctx.get("/hoondok/me/question-bookmarks?limit=101").status_code == 422
+    # 인기도에는 영향이 없다
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    session.expire_all()
+    row = await session.get(PublicQuestion, second)
+    assert (row.view_count, row.ask_count) == (0, 0)  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_bookmark_requires_login_csrf_and_published(ctx: TestClient):
+    await login(ctx)
+    pending = submit(ctx, await add_answer(ctx)).json()["id"]
+    live = await make_published(ctx, "공개", 1)
+    assert bookmark(ctx, pending).status_code == 404
+    assert bookmark(ctx, "missing").status_code == 404
+    assert bookmark(ctx, live, headers={}).status_code == 403
+    assert bookmark(ctx, live, "delete", headers={}).status_code == 403
+    assert bookmark(ctx, live).status_code == 204
+    ctx.cookies.clear()
+    assert bookmark(ctx, live).status_code == 401
+    assert bookmark(ctx, live, "delete").status_code == 401
+    assert ctx.get("/hoondok/me/question-bookmarks").status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_bookmark_list_drops_unpublished_and_stale_can_be_removed(ctx: TestClient):
+    await login(ctx)
+    qid = await make_published(ctx, "공개")
+    assert bookmark(ctx, qid).status_code == 204
+    ctx.patch(f"/admin/hoondok/questions/{qid}", json={"status": "hidden"}, headers=XHR)
+    assert ctx.get("/hoondok/me/question-bookmarks").json() == {"items": []}
+    assert bookmark(ctx, qid).status_code == 404
+    assert bookmark(ctx, qid, "delete").status_code == 204  # 내려간 뒤에도 해제 가능
+    assert (await ctx.session.execute(select(PublicQuestionBookmark))).first() is None  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_bookmarked_flag_is_per_user(ctx: TestClient):
+    owner = await login(ctx, "owner@example.com")
+    qid = await make_published(ctx, "공개")
+    other_qid = await make_published(ctx, "다른", 1)
+    assert bookmark(ctx, qid).status_code == 204
+    flags = {i["id"]: i["bookmarked"] for i in ctx.get("/hoondok/questions").json()["items"]}
+    assert flags == {qid: True, other_qid: False}
+    assert ctx.get(f"/hoondok/questions/{qid}").json()["bookmarked"] is True
+    assert ctx.get(f"/hoondok/questions/{other_qid}").json()["bookmarked"] is False
+
+    await login(ctx, "other@example.com")
+    assert not any(i["bookmarked"] for i in ctx.get("/hoondok/questions").json()["items"])
+    assert ctx.get(f"/hoondok/questions/{qid}").json()["bookmarked"] is False
+    ctx.cookies.clear()
+    assert not any(i["bookmarked"] for i in ctx.get("/hoondok/questions").json()["items"])
+    assert ctx.get(f"/hoondok/questions/{qid}").json()["bookmarked"] is False
+    assert owner.id
+
+
+# --- 삭제 시 자식 행 -----------------------------------------------------------------
+
+
+async def add_children(ctx: TestClient, qid: str, user: User) -> None:
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    from app.modules.hoondok.ask.public_questions_repository import viewer_key
+
+    repo = PublicQuestionRepository(session)
+    await repo.record_view(qid, viewer_key("u", user.id), BASE.date())
+    await repo.record_ask(qid, user.id)
+    await repo.add_bookmark(qid, user.id)
+
+
+async def child_rows(ctx: TestClient) -> int:
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    total = 0
+    for model in (PublicQuestionView, PublicQuestionAsk, PublicQuestionBookmark):
+        total += len((await session.execute(select(model))).all())
+    return total
+
+
+@pytest.mark.asyncio
+async def test_withdraw_deletes_child_rows(ctx: TestClient):
+    owner = await login(ctx, "owner@example.com")
+    qid = await make_published(ctx, "공개")
+    reader = await ctx.users.create(User(email="reader2@example.com", display_name="독자"))  # type: ignore[attr-defined]
+    await add_children(ctx, qid, reader)
+    assert await child_rows(ctx) == 3
+    ctx.cookies.set(COOKIE_NAME, IdentityService.issue_token(owner))
+    assert ctx.delete(f"/hoondok/me/questions/{qid}", headers=XHR).status_code == 204
+    assert await child_rows(ctx) == 0
+
+
+@pytest.mark.asyncio
+async def test_account_purge_removes_children_of_own_and_others(ctx: TestClient):
+    owner = await login(ctx, "owner@example.com")
+    mine = await make_published(ctx, "내 질문")
+    reader = await ctx.users.create(User(email="reader3@example.com", display_name="독자"))  # type: ignore[attr-defined]
+    keeper = await ctx.users.create(User(email="keeper@example.com", display_name="유지"))  # type: ignore[attr-defined]
+    # reader 가 owner 의 질문에, owner 가 reader 의 질문에 남긴 행
+    await add_children(ctx, mine, reader)
+    await add_children(ctx, mine, keeper)
+    theirs = PublicQuestion(
+        id="theirs000001", user_id=reader.id, message_id=uuid.uuid4(), question="q", answer_md="a",
+        sources=[], answer_mode="standard", status="published",
+    )
+    ctx.session.add(theirs)  # type: ignore[attr-defined]
+    await ctx.session.commit()  # type: ignore[attr-defined]
+    await add_children(ctx, theirs.id, owner)
+
+    repo = PublicQuestionRepository(ctx.session)  # type: ignore[attr-defined]
+    await repo.delete_for_user(owner.id)  # owner 삭제: 내 질문과 그 자식, 내가 남긴 행
+    await ctx.session.commit()  # type: ignore[attr-defined]
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    for model in (PublicQuestionView, PublicQuestionAsk, PublicQuestionBookmark):
+        assert (await session.execute(select(model).where(model.question_id == mine))).first() is None
+        assert (await session.execute(select(model).where(model.question_id == theirs.id))).first() is None
+
+    await repo.delete_for_user(reader.id)  # reader 삭제 → 남은 자식 모두 제거
+    await ctx.session.commit()  # type: ignore[attr-defined]
+    assert await child_rows(ctx) == 0
+
+
+# --- admin 고정·정렬 ----------------------------------------------------------------
+
+
+def admin_get(ctx: TestClient, **params):
+    return ctx.get("/admin/hoondok/questions", params=params).json()
+
+
+@pytest.mark.asyncio
+async def test_admin_pin_rules(ctx: TestClient):
+    await login(ctx)
+    pending = submit(ctx, await add_answer(ctx)).json()["id"]
+    assert pin(ctx, pending).status_code == 409  # 공개 중이 아니면 고정 불가
+    both = ctx.patch(f"/admin/hoondok/questions/{pending}", json={"status": "hidden", "pinned": True}, headers=XHR)
+    assert both.status_code == 409
+    publish_and_pin = ctx.patch(
+        f"/admin/hoondok/questions/{pending}", json={"status": "published", "pinned": True}, headers=XHR
+    )
+    assert publish_and_pin.status_code == 200 and publish_and_pin.json()["pin_order"] == 0
+    assert ctx.patch(f"/admin/hoondok/questions/{pending}", json={}, headers=XHR).status_code == 422
+    assert ctx.patch(f"/admin/hoondok/questions/{pending}", json={"pinned": True, "x": 1}, headers=XHR).status_code == 422
+    assert pin(ctx, "missing").status_code == 404
+
+    ids = [pending] + [await make_published(ctx, f"고정 {n}", n + 1) for n in range(9)]
+    for qid in ids[1:]:
+        assert pin(ctx, qid).status_code == 200
+    assert pin(ctx, ids[3]).json()["pin_order"] == 3  # 이미 고정 → 그대로
+    extra = await make_published(ctx, "열한째", 20)
+    assert pin(ctx, extra).status_code == 409  # 최대 10개
+    assert [i["id"] for i in ctx.get("/admin/hoondok/questions/pins").json()["items"]] == ids
+
+
+@pytest.mark.asyncio
+async def test_admin_hide_unpins_and_unpin_renumbers(ctx: TestClient):
+    await login(ctx)
+    ids = [await make_published(ctx, f"질문 {n}", n) for n in range(4)]
+    for qid in ids:
+        pin(ctx, qid)
+    hidden = ctx.patch(f"/admin/hoondok/questions/{ids[1]}", json={"status": "hidden"}, headers=XHR)
+    assert hidden.json()["pin_order"] is None
+    pins = ctx.get("/admin/hoondok/questions/pins").json()["items"]
+    assert [(p["id"], p["pin_order"]) for p in pins] == [(ids[0], 0), (ids[2], 1), (ids[3], 2)]
+    assert pin(ctx, ids[0], False).json()["pin_order"] is None
+    pins = ctx.get("/admin/hoondok/questions/pins").json()["items"]
+    assert [(p["id"], p["pin_order"]) for p in pins] == [(ids[2], 0), (ids[3], 1)]
+    assert pin(ctx, ids[0], False).status_code == 200  # 이미 해제 → 그대로
+    # 다시 공개해도 자동으로 고정되지 않는다
+    ctx.patch(f"/admin/hoondok/questions/{ids[1]}", json={"status": "published"}, headers=XHR)
+    assert ids[1] not in [p["id"] for p in ctx.get("/admin/hoondok/questions/pins").json()["items"]]
+    assert pin(ctx, ids[1]).json()["pin_order"] == 2  # max + 1
+
+
+@pytest.mark.asyncio
+async def test_admin_reorder_pins(ctx: TestClient):
+    await login(ctx)
+    ids = [await make_published(ctx, f"질문 {n}", n) for n in range(3)]
+    outsider = await make_published(ctx, "고정 안 함", 9)
+    for qid in ids:
+        pin(ctx, qid)
+
+    def put(body):
+        return ctx.put("/admin/hoondok/questions/pins", json=body, headers=XHR)
+
+    for bad in (ids[:2], ids + [outsider], [ids[0], ids[0], ids[1]], ids[:2] + ["missing"]):
+        assert put({"ids": bad}).status_code == 422
+    assert put({"ids": ids, "x": 1}).status_code == 422
+    assert put({"ids": [f"x{n}" for n in range(11)]}).status_code == 422
+    assert ctx.put("/admin/hoondok/questions/pins", json={"ids": ids}).status_code == 403
+    res = put({"ids": [ids[2], ids[0], ids[1]]})
+    assert res.status_code == 200
+    assert [(i["id"], i["pin_order"]) for i in res.json()["items"]] == [(ids[2], 0), (ids[0], 1), (ids[1], 2)]
+    assert public_ids(ctx)[:3] == [ids[2], ids[0], ids[1]]
+    audit = (await ctx.session.execute(select(AdminAuditLog).where(AdminAuditLog.action == "public_question.reorder_pins"))).scalars().all()  # type: ignore[attr-defined]
+    assert len(audit) == 1 and audit[0].changes == {"ids": [ids[2], ids[0], ids[1]]}
+
+
+@pytest.mark.asyncio
+async def test_admin_pin_writes_audit_with_slug_and_changes(ctx: TestClient):
+    await login(ctx)
+    qid = await make_published(ctx, "감사")
+    pin(ctx, qid)
+    ctx.patch(f"/admin/hoondok/questions/{qid}", json={"status": "hidden"}, headers=XHR)
+    audit = (await ctx.session.execute(select(AdminAuditLog).order_by(AdminAuditLog.created_at))).scalars().all()  # type: ignore[attr-defined]
+    changes = [a.changes for a in audit]
+    assert {"id": qid, "status": "published"} in changes
+    assert {"id": qid, "pinned": True} in changes
+    assert {"id": qid, "status": "hidden", "pinned": False} in changes
+
+
+@pytest.mark.asyncio
+async def test_admin_list_sort_and_search(ctx: TestClient):
+    await login(ctx)
+    a = await make_published(ctx, "참사랑 하나", 0)
+    b = await make_published(ctx, "축복 둘", 1)
+    c = await make_published(ctx, "참부모 셋", 2)
+    await set_counts(ctx, a, views=1)
+    await set_counts(ctx, b, asks=1)  # 점수 3
+    assert [i["id"] for i in admin_get(ctx)["items"]] == [a, b, c]  # 기본 oldest
+    assert [i["id"] for i in admin_get(ctx, sort="newest")["items"]] == [c, b, a]
+    popular = admin_get(ctx, sort="popular")["items"]
+    assert [i["id"] for i in popular] == [b, a, c]
+    assert (popular[0]["view_count"], popular[0]["ask_count"], popular[0]["score"]) == (0, 1, 3)
+    assert popular[0]["pin_order"] is None and "user_id" not in popular[0]
+    found = admin_get(ctx, q="참")
+    assert {i["id"] for i in found["items"]} == {a, c} and found["total"] == 2
+    assert admin_get(ctx, q="%")["items"] == []
+    assert ctx.get("/admin/hoondok/questions", params={"sort": "bogus"}).status_code == 422
+    assert ctx.get("/admin/hoondok/questions", params={"q": "x" * 101}).status_code == 422

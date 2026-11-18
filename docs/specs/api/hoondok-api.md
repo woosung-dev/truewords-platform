@@ -60,8 +60,8 @@
 | `API-HD-054` | GET | `/hoondok/cards` | 없음(공개) | HD-012 |
 | `API-HD-055` | POST · GET | `/hoondok/me/questions` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
 | `API-HD-056` | DELETE | `/hoondok/me/questions/{question_id}` | `hoondok_token` + `X-Requested-With` | DEC-PWA-025 |
-| `API-HD-057` | GET | `/hoondok/questions?q=&cursor=&limit=` · `/hoondok/questions/{question_id}` | 없음(공개) | DEC-PWA-025 |
-| `API-HD-058` | GET · PATCH | `/admin/hoondok/questions` · `/admin/hoondok/questions/{question_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-057` | GET | `/hoondok/questions?q=&cursor=&limit=` · `/hoondok/questions/{question_id}` | 없음(공개, 로그인했으면 `bookmarked` 를 채움) | DEC-PWA-025 |
+| `API-HD-058` | GET · PATCH | `/admin/hoondok/questions?status=&sort=&q=` · `/admin/hoondok/questions/{question_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
 | `API-HD-059` | POST | `/hoondok/ask/stream` (SSE) | `hoondok_token` + `X-Requested-With` + 하루 횟수 | DEC-PWA-025 |
 | `API-HD-060` | GET · PATCH · DELETE | `/hoondok/me/asks` · `/hoondok/me/asks/{session_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
 | `API-HD-061` | GET | `/hoondok/me/asks/quota` | `hoondok_token` | DEC-PWA-025 |
@@ -72,6 +72,9 @@
 | `API-HD-066` | POST · GET | `/hoondok/auth/oauth/{provider}/start` · `/hoondok/auth/oauth/{provider}/callback` | start 는 없음(연결은 `hoondok_token`) + `X-Requested-With` / callback 은 흐름 쿠키 `hoondok_oauth` + `state` | 구글 로그인 |
 | `API-HD-067` | DELETE | `/hoondok/auth/identities/{identity_id}` | `hoondok_token` + `X-Requested-With` | 구글 로그인 |
 | `API-HD-068` | PATCH | `/hoondok/auth/me` | `hoondok_token` + `X-Requested-With` | 구글 로그인 |
+| `API-HD-069` | POST | `/hoondok/questions/{question_id}/views` | 없음(로그인했으면 계정 우선) + `X-Requested-With` + IP 요청 한도 | DEC-PWA-025 |
+| `API-HD-070` | PUT · DELETE · GET | `/hoondok/questions/{question_id}/bookmark` · `/hoondok/me/question-bookmarks?limit=` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-071` | GET · PUT | `/admin/hoondok/questions/pins` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
 
 공통 규칙:
 
@@ -395,9 +398,10 @@ AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독
 
 ### API-HD-059 `POST /hoondok/ask/stream`
 
-- 요청 `{ query, session_id?, answer_mode? }`. 봇(`chatbot_id`)은 서버가 정한다(`HOONDOK_ASK_CHATBOT_ID = "all"`). `session_id` 가 있으면 이어 묻기이며, 이 계정의 AI 질문 대화가 아니면(남의 것·시연 챗 세션·없는 id) 403 `SESSION_FORBIDDEN`. `answer_mode` 가 없으면 서버가 자동으로 고른다.
+- 요청 `{ query, session_id?, answer_mode?, public_question_id? }`. 봇(`chatbot_id`)은 서버가 정한다(`HOONDOK_ASK_CHATBOT_ID = "all"`). `session_id` 가 있으면 이어 묻기이며, 이 계정의 AI 질문 대화가 아니면(남의 것·시연 챗 세션·없는 id) 403 `SESSION_FORBIDDEN`. `answer_mode` 가 없으면 서버가 자동으로 고른다.
 - 응답은 `/chat/stream` 과 같은 SSE 이벤트 계약(`chunk` → `sources` → `done`)이다. 답은 기존 RAG·safety·출력 필터 파이프라인을 그대로 지난다. `sources` 이벤트의 `answer_mode` 는 실제 적용된 모드다.
 - **하루 횟수**: KST 자정 기준 하루 5회(`HOONDOK_ASK_DAILY_LIMIT`, 기본 5), 이어 묻기도 1회로 센다. 초과는 429 `ASK_DAILY_LIMIT` — `ErrorResponse.details{limit, used, remaining, resets_at}` + `Retry-After` 헤더. 빈 질문·1000자 초과·차단 패턴(400 `INPUT_BLOCKED`)은 차감 전에 거절하고, 첫 이벤트 전에 실패하면(4xx·5xx) 차감을 되돌린다.
+- `public_question_id`(공개 질문 slug, 16자 이하): 새 대화(`session_id` 없음)의 답이 계정에 기록되면 그 공개 질문의 `ask_count` 를 계정당 1회 올린다. 이어 묻기·답 전 실패·기록 실패(차감 취소)·없는/비공개 id 는 세지 않고 질문 흐름도 막지 않는다.
 - **공유 캐시 미사용**: 비공개 질문이라 공유 시맨틱 캐시에 저장·조회하지 않는다. 로그에는 질문 원문 대신 지문만 남긴다.
 - 웹은 `sources` 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다(AC-017-01·04, 서버는 이 게이트를 알지 못한다). `sources` 항목은 표시명·권·본문만 주고 화자·판본·권위 등급은 주지 않는다(AC-017-02).
 - 오류: 401 미인증 · 400 `INPUT_BLOCKED` · 403 `SESSION_FORBIDDEN` · 429 `ASK_DAILY_LIMIT`·`RATE_LIMIT_EXCEEDED`.
@@ -681,12 +685,15 @@ API-HD-045 규칙:
 - 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
 - limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.
 
-## DEC-PWA-025 — 공개 질문 (API-HD-055~058)
+## DEC-PWA-025 — 공개 질문 (API-HD-055~058·069~071)
 
 - `API-HD-055` POST `{message_id}` → 201 `MyPublicQuestionItem`(status `pending`). 질문·답·근거(인용 상위 3건)는 서버가 `session_messages`·`answer_citations` 에서 복사한다. 409: 마음 돌봄(pastoral)·모드 미기록(meta·캐시 답)·`persona_overridden`·`crisis_trigger`·근거 0건(`NO_EVIDENCE`)·세션 첫 답이 아님(`NOT_FIRST_ANSWER`)·다른 사용자가 이미 신청. 본인 재신청은 기존 항목을 201로 돌려준다(멱등). GET 은 내 신청 목록(최근순).
 - `API-HD-056` 본인 것만 실제 삭제(남의 것·없음 404). 같은 답을 다시 신청할 수 있다.
-- `API-HD-057` published 만. 목록은 공개 시각 최신순 `{items[{id, question, preview, answer_mode, published_at}], next_cursor}`, `q` 는 질문 부분 일치(100자 이하), `limit` 기본 20·최대 50. 상세는 `answer_md`·`sources[{source, volume, text}]` 포함, 아니면 404. 작성자 정보는 어떤 응답에도 없다.
-- `API-HD-058` 목록(`status`·`page`·`page_size`, 신청 오래된 순)·PATCH `{status: published|hidden}`, 변경마다 `log_audit`. 계정 삭제 시 그 사용자의 공개 질문도 지운다.
+- `API-HD-057` published 만. 목록은 `{items[{id, question, preview, answer_mode, published_at, pinned, view_count, bookmarked}], next_cursor}`. **정렬**: 고정(`pin_order` 작은 순) → 인기도(`view_count + 3 × ask_count`, 북마크는 반영하지 않음) → 공개 시각 최신 → id 내림차순. `next_cursor` 는 불투명 문자열(offset)이며 숫자가 아닌 cursor(예전 질문 id 포함)는 422. `q` 는 질문 부분 일치(100자 이하), `limit` 기본 20·최대 50. 상세는 `answer_md`·`sources[{source, volume, text}]`·`bookmarked` 포함, 아니면 404. `bookmarked` 는 로그인한 내가 담았는가(익명 false, 목록은 페이지당 1쿼리). 작성자 정보는 어떤 응답에도 없다.
+- `API-HD-058` 목록(`status`·`q`(100자 이하)·`sort=oldest|newest|popular`·`page`·`page_size`, 기본 oldest = 신청 오래된 순, popular = 인기도 → 신청 최신순). 항목은 `view_count`·`ask_count`·`score`·`pin_order`(null = 고정 안 함) 포함. PATCH `{status?: published|hidden, pinned?: bool}`(둘 중 하나 이상, 다른 필드 422): 상태를 먼저 적용하고 숨기면 고정이 풀린다. 고정은 최종 상태가 published 일 때만, 최대 10개(`MAX_PINNED`)이며 어기면 409. 새 고정은 `max(pin_order)+1`, 해제하면 남은 고정을 0..n-1 로 다시 매긴다. 변경마다 `log_audit`(changes 에 slug·바뀐 필드). 계정 삭제·본인 삭제 시 공개 질문의 조회·질문·북마크 자식 행을 먼저 지운다(DB cascade 에 기대지 않음).
+- `API-HD-069` POST `{viewer_id?: uuid}` → 204. 질문·조회자·KST 날짜당 1회만 `view_count` 를 올린다(동시 요청도 한 번). 로그인 계정이 우선이고 익명은 기기별 무작위 `viewer_id`. 계정도 `viewer_id` 도 없으면 세지 않고 204. 조회자 키는 `sha256("u:{user_id}" | "a:{viewer_id}")` 만 저장하고, 오늘 − 2일보다 오래된 행은 새 행을 넣을 때 지운다. published 가 아니면 404.
+- `API-HD-070` `PUT …/bookmark` 204(멱등, published 아니면 404)·`DELETE …/bookmark` 204(멱등, 공개가 내려갔거나 없어도 204)·`GET /hoondok/me/question-bookmarks?limit=`(1~100, 기본 100) `{items[PublicQuestionSummary]}` 아직 published 인 것만 최근에 담은 순, 모두 `bookmarked=true`. 401 미인증 · 403 CSRF.
+- `API-HD-071` `GET /admin/hoondok/questions/pins` `{items[PublicQuestionAdminItem]}`(`pin_order` 순). `PUT` `{ids: string[≤10]}` 은 현재 고정 집합과 정확히 같아야 하며(중복·누락·추가 422) 순서대로 `pin_order = 0..n-1`, 감사 기록 1건(`public_question.reorder_pins`, target = 맨 위 질문의 message_id, changes `{ids}`).
 - 신청자는 답이 달린 대화의 소유자(API-HD-059 로 계정에 묶인 세션)여야 한다. 남의 답·익명·시연 챗 답은 없는 답과 같은 404.
 
 ## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)
