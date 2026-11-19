@@ -93,7 +93,9 @@
 | `truewords.<zone>` | `http://web:3000` (canonical, 2026-09-06 추가. 구 `app.<zone>` route·DNS 는 같은 날 **삭제** — 실사용자 없어 301 생략) |
 | `truewords-admin.<zone>` | `http://admin:3000` (2026-09-06 등록) |
 | `api.<zone>` | `http://backend:8080` |
-| `vdb.<zone>` | `http://qdrant:6333` |
+| `vdb.<zone>` | `http://qdrant:6333` (Cloudflare Access 서비스 토큰 필수, 아래 참고) |
+
+> `vdb.<zone>` 은 Qdrant API 키에 더해 Cloudflare Access 앱 `truewords-vdb` 로 막는다. 정책은 서비스 토큰 `truewords-gha-cache-cleanup` 하나만 허용하는 `Service Auth` 다. 브라우저·사람 로그인은 허용하지 않는다. 이 경로를 쓰는 곳은 GHA `cache-cleanup.yml` 뿐이고 저장소 Secret `CF_ACCESS_CLIENT_ID`·`CF_ACCESS_CLIENT_SECRET` 으로 헤더를 보낸다. VM 안의 `make cron-cache-cleanup` 은 `http://qdrant:6333` 을 직접 쓰므로 영향이 없다. 로컬에서 `vdb.<zone>` 을 호출할 때는 `CF-Access-Client-Id`·`CF-Access-Client-Secret` 헤더를 함께 보낸다. 토큰을 교체하면 Secret 두 개를 같이 갱신한다.
 
 > 현행 Zero Trust UI 에서는 이 화면이 **Networks → Tunnels & Mesh → `truewords-oracle` → `Published application routes`** 다 (구 "Public Hostnames"). Service Type 은 `HTTP` 여야 한다 — 컨테이너가 평문이라 `HTTPS` 로 두면 502 다. Path 는 비운다. 값을 넣으면 그 경로만 라우팅되어 `/login` 과 정적 자산이 404 가 된다. DNS 레코드(proxied CNAME)는 저장 시 자동 생성된다.
 
