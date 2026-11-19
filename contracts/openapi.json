@@ -2867,6 +2867,7 @@
           "comment": {
             "anyOf": [
               {
+                "maxLength": 1000,
                 "type": "string"
               },
               {
@@ -13281,7 +13282,7 @@
     },
     "/api/sources/chunks/{chunk_id}": {
       "get": {
-        "description": "단일 청크 원문 조회 (P0-B 인용 원문보기 모달, chatbot ACL 적용).\n\nArgs:\n    chunk_id: Qdrant point id.\n    chatbot_id: 호출 컨텍스트가 된 챗봇 id — ACL 검증 키.\n\nReturns:\n    본문 + 4중 메타 + UI 표기 레이블.\n\nRaises:\n    404: 청크 미존재 또는 chatbot 미존재.\n    403: 청크가 chatbot 의 허용 source 집합 밖.",
+        "description": "단일 청크 원문 조회 (P0-B 인용 원문보기 모달, chatbot ACL 적용).\n\nArgs:\n    chunk_id: Qdrant point id.\n    chatbot_id: 호출 컨텍스트가 된 챗봇 id — ACL 검증 키.\n\nReturns:\n    본문 + 4중 메타 + UI 표기 레이블.\n\nRaises:\n    404: 청크 미존재 또는 chatbot 미존재.\n    403: 청크가 chatbot 의 허용 source 집합 밖, 또는 권에 원문 공개 권리 없음.",
         "operationId": "get_chunk_api_sources_chunks__chunk_id__get",
         "parameters": [
           {
@@ -16299,6 +16300,16 @@
               }
             },
             "description": "로그인 필요"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "X-Requested-With 헤더 없음 — 다른 사이트에서 온 요청"
           },
           "404": {
             "content": {

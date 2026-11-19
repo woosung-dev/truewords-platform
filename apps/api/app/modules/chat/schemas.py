@@ -77,7 +77,8 @@ class ChatResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     message_id: uuid.UUID
     feedback_type: FeedbackType
-    comment: str | None = None
+    # 인증 없는 쓰기라 길이를 묶는다.
+    comment: str | None = Field(default=None, max_length=1000)
 
 
 class FeedbackResponse(BaseModel):

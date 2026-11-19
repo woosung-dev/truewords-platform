@@ -24,6 +24,13 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("fetchVoiceAudio", () => {
+  it("다른 사이트 요청과 구분되도록 X-Requested-With 헤더를 붙인다", async () => {
+    vi.mocked(hoondokFetch).mockResolvedValueOnce(mp3());
+    await fetchVoiceAudio(URL_);
+    const init = vi.mocked(hoondokFetch).mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get("X-Requested-With")).toBe("XMLHttpRequest");
+  });
+
   it("요청 빈도 제한이면 잠깐 기다렸다 다시 받는다", async () => {
     vi.mocked(hoondokFetch).mockResolvedValueOnce(json(429, "RATE_LIMIT_EXCEEDED")).mockResolvedValueOnce(mp3());
     const pending = fetchVoiceAudio(URL_);
