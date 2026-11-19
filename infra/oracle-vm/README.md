@@ -673,7 +673,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 
 **이제 `ops-check.sh` 의 `gemini-key` 가 매일 이 키를 실제로 찔러 본다.** 키가 죽으면 나머지 검사는 전부 초록이므로(`/health` 도 200) 그 전에는 확인 장치가 아예 없었다. 즉시 확인은 `make gemini-check`. 상세: [운영 불변식 점검 §`gemini-key`](#gemini-key--유일한-외부-의존-감시)
 
-확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md)
+확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/runbooks/2026-07-30-gcp-neon-residual-audit.md)
 
 ## 보안 체크리스트
 

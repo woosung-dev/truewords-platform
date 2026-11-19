@@ -10,7 +10,7 @@
 | 개발·배포·복구 | [환경 설정](runbooks/environment-setup.md), [CI/CD](runbooks/ci-cd-pipeline.md), [훈독 롤아웃](runbooks/hoondok-pwa-rollout.md), [Oracle VM](../infra/oracle-vm/README.md) |
 | 남은 결정·운영 작업 | [TODO](TODO.md) |
 
-`plans/active/`의 기존 계획은 진행 중인 트랙의 범위와 인수 조건을 확인할 때만 사용한다. `plans/completed/`, `archive/`, 오래된 `research/` 자료는 당시의 기록이며 현재 운영 상태나 테스트 결과를 뜻하지 않는다. 과거 기록은 필요한 근거가 남은 것만 유지하고, 제거한 자료는 Git 이력에서 찾는다.
+`plans/active/`의 기존 계획은 진행 중인 트랙의 범위와 인수 조건을 확인할 때만 사용한다. `plans/completed/`, 오래된 `research/` 자료는 당시의 기록이며 현재 운영 상태나 테스트 결과를 뜻하지 않는다. 보관 문서(`archive/`)는 저장소에 두지 않는다. 과거 기록은 필요한 근거가 남은 것만 유지하고, 제거한 자료는 Git 이력에서 찾는다(`archive/`가 마지막으로 있던 커밋: `318ad53b`).
 
 문서를 새로 쓸 때는 **코드·테스트·이슈로 설명할 수 없는 정보만** 추가한다. 코드 변경마다 문서를 의무적으로 갱신하지 않는다. 현재 계약이나 운영 절차가 바뀌면 그 소유 문서만 수정한다.
 

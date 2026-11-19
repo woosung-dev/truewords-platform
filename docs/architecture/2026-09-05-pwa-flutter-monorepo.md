@@ -112,7 +112,6 @@ repo/
 │   ├── plans/{active,completed}/
 │   ├── runbooks/
 │   ├── research/
-│   ├── archive/
 │   └── TODO.md
 ├── tooling/{codegen,checks}/
 ├── tests/e2e/

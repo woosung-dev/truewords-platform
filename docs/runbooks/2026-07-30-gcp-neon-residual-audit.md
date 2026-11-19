@@ -2,7 +2,7 @@
 
 - **작성일**: 2026-07-30
 - **성격**: 조사 기록 + 삭제 실행 결과. **사용자 승인 후 2건 삭제 완료** (§실행 결과)
-- **관련**: [Oracle 이전 ADR](../../adr/2026-07-25-gcp-to-oracle-migration.md) · [GCP 계정 마이그레이션](../../adr/61-gcp-account-migration-jetaime.md)
+- **관련**: [Oracle 이전 ADR](../adr/2026-07-25-gcp-to-oracle-migration.md) · [GCP 계정 마이그레이션](../adr/61-gcp-account-migration-jetaime.md)
 
 ## 조사 동기
 
