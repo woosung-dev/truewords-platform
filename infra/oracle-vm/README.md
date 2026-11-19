@@ -320,7 +320,7 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 
-ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 최신 실행 결과는 [전환 계획 §5](../../docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다.
+ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 당시 실행 결과는 완료 후 삭제한 전환 계획 §5에 있다(Git 이력 `318ad53b`의 `docs/plans/completed/2026-09-05-monorepo-migration.md`).
 
 격리 fixture에서 직접 API와 Docker web의 `Accept-Encoding: identity`는 250ms 간격으로 SSE를 전달했지만, web의 gzip 요청은 784ms에 `done`까지 한꺼번에 전달했다. Next 기본 gzip 압축의 버퍼링으로 확인했고, 대응은 API SSE 응답의 `Cache-Control: no-cache, no-transform`이다. 해당 응답만 압축에서 제외하여 일반 페이지 압축을 유지한다. `X-Accel-Buffering: no`만으로는 Next 압축을 해제하지 못한다.
 
