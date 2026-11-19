@@ -71,6 +71,9 @@ jobs:
           # repo Settings → Secrets and variables → Actions 에 등록 필요.
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+          # vdb.<zone> 앞의 Cloudflare Access 서비스 토큰. 없으면 Access 가 403 을 돌려준다.
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           CACHE_COLLECTION_NAME: ${{ vars.CACHE_COLLECTION_NAME || 'semantic_cache' }}
           CACHE_TTL_DAYS: ${{ vars.CACHE_TTL_DAYS || '7' }}
           # GEMINI_API_KEY 는 settings 검증 통과용. cleanup 자체는 미사용.

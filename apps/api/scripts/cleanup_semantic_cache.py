@@ -15,6 +15,8 @@ Qdrant 가 native point TTL 을 지원하지 않아 무한 누적되는 문제 (
 환경변수 (모두 옵션, .env 자동 로드):
   QDRANT_URL              기본 http://localhost:6333
   QDRANT_API_KEY          기본 빈 문자열 (local Qdrant)
+  CF_ACCESS_CLIENT_ID     Cloudflare Access 서비스 토큰 ID (vdb.<zone> 경유 시)
+  CF_ACCESS_CLIENT_SECRET Cloudflare Access 서비스 토큰 secret (ID 와 함께 둘 다 있을 때만 헤더 추가)
   CACHE_COLLECTION_NAME   기본 semantic_cache
   CACHE_TTL_DAYS          기본 7
 
@@ -59,8 +61,19 @@ def _load_env() -> None:
 _HTTP_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
 
 
-def _headers(api_key: str) -> dict[str, str]:
-    return {"api-key": api_key, "Content-Type": "application/json"}
+def _headers(
+    api_key: str,
+    cf_access_client_id: str = "",
+    cf_access_client_secret: str = "",
+) -> dict[str, str]:
+    headers = {"api-key": api_key, "Content-Type": "application/json"}
+    # vdb.<zone> 은 Cloudflare Access(서비스 토큰)로 막혀 있다. 둘 중 하나만 있으면
+    # Access 가 어차피 거절하므로 둘 다 있을 때만 보낸다. VM 내부(http://qdrant:6333)
+    # 실행은 Access 를 거치지 않으므로 비워 둔다.
+    if cf_access_client_id and cf_access_client_secret:
+        headers["CF-Access-Client-Id"] = cf_access_client_id
+        headers["CF-Access-Client-Secret"] = cf_access_client_secret
+    return headers
 
 
 async def _count(
@@ -134,7 +147,11 @@ async def _run() -> int:
     print(f"[config] qdrant={base}  collection={name}  ttl_days={ttl_days}")
     print(f"[config] cutoff={cutoff:.0f}  ({cutoff_human} 이전 point 삭제 대상)")
 
-    headers = _headers(api_key)
+    headers = _headers(
+        api_key,
+        os.environ.get("CF_ACCESS_CLIENT_ID", ""),
+        os.environ.get("CF_ACCESS_CLIENT_SECRET", ""),
+    )
     async with httpx.AsyncClient(http2=False, timeout=_HTTP_TIMEOUT) as client:
         try:
             total = await _count(client, base, headers, name)
