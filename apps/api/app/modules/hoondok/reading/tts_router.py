@@ -4,7 +4,7 @@
 비로그인 읽기(원문·오늘 말씀은 공개)와 달리 계정을 요구한다. 비로그인은 클라이언트가 브라우저 음성을 쓴다.
 """
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from fastapi.responses import Response
 
 from app.core.common.schemas import ErrorResponse
@@ -30,6 +30,7 @@ _errors = {
     code: {"model": ErrorResponse, "description": desc}
     for code, desc in {
         401: "로그인 필요",
+        403: "X-Requested-With 헤더 없음 — 다른 사이트에서 온 요청",
         404: "TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖",
         422: "TTS_INVALID_VOICE — 알 수 없는 목소리",
         429: "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · "
@@ -40,6 +41,13 @@ _errors = {
     }.items()
 }
 _audio_responses = {200: {"content": {"audio/mpeg": {}}, "description": "단락 mp3"}, **_errors}
+
+
+async def require_same_origin_fetch(request: Request) -> None:
+    """단락 음성은 GET 이지만 사용자 한도·월 상한을 쓴다. 다른 사이트의 <audio src> 같은 요청이
+    로그인 쿠키만으로 한도를 쓰지 못하게, 같은 origin 의 fetch 가 붙이는 커스텀 헤더를 요구한다."""
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF 검증 실패")
 
 
 async def check_tts_limit(request: Request, user: User = Depends(get_current_user)) -> None:
@@ -69,7 +77,7 @@ async def get_tts_voices(service: TtsService = Depends(get_tts_service)) -> TtsV
     "/chunks/{chunk_id}",
     response_class=Response,
     responses=_audio_responses,
-    dependencies=[Depends(check_tts_limit)],
+    dependencies=[Depends(require_same_origin_fetch), Depends(check_tts_limit)],
 )
 async def get_chunk_audio(
     chunk_id: str = Path(max_length=128),

@@ -61,7 +61,12 @@ export async function fetchVoiceAudio(url: string, signal?: AbortSignal): Promis
   for (let attempt = 0; ; attempt += 1) {
     let response: Response;
     try {
-      response = await hoondokFetch(url, { credentials: "include", signal });
+      // 서버는 이 헤더가 없는 요청을 다른 사이트 요청으로 보고 막는다(한도 보호).
+      response = await hoondokFetch(url, {
+        credentials: "include",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        signal,
+      });
     } catch (error) {
       if (signal?.aborted) throw error;
       throw new VoiceAudioError("error");

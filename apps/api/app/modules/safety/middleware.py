@@ -10,6 +10,8 @@ login_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
 # 공개 질문 조회 기록 상한 — 채팅 질문 한도와 따로 센다(목록을 훑어보다 질문 한도를 쓰지 않게).
 question_view_limiter = RateLimiter(max_requests=60, window_seconds=60)
+# 인증 없는 답변 피드백 쓰기(POST·DELETE /chat/feedback) — 행을 무한히 만들지 못하게 IP 당 분당 30회.
+feedback_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
 
 def extract_client_ip(request: Request) -> str:
@@ -51,6 +53,11 @@ async def check_rate_limit(request: Request) -> None:
     client_ip = extract_client_ip(request)
     limiter = get_rate_limiter()
     limiter.check(client_ip)
+
+
+async def check_feedback_rate_limit(request: Request) -> None:
+    """익명 답변 피드백 전용 IP 상한(채팅 상한과 따로 센다)."""
+    feedback_limiter.check(extract_client_ip(request))
 
 
 async def check_login_rate_limit(request: Request) -> None:
