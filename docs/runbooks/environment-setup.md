@@ -93,4 +93,4 @@ uv run alembic current
 
 ## 검증
 
-루트 `make ci`와 `node tooling/checks/docs-links.mjs`를 실행한다. 전체 pytest는 `apps/api`에서 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest`로 검증한다. 실제 통과 결과는 [현재 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록하며 과거 개수와 구분한다.
+루트 `make ci`와 `node tooling/checks/docs-links.mjs`를 실행한다. 전체 pytest는 `apps/api`에서 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest`로 검증한다. 실제 통과 결과는 PR 본문에 기록하며 과거 개수와 구분한다.

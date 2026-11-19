@@ -130,7 +130,7 @@ Phase 2 완료 기준: `make e2e` 로 루프 재현. `admin_token` 만 가진 �
 | G `chore/hoondok-ops` | `infra/oracle-vm/smoke.sh` + `make smoke-web`(공개 URL: `/login` 200 · `/api/backend/health`·`/api/backend/hoondok/today` 200 · `HOONDOK_ENABLED=1` 이면 `/hoondok` 200·manifest 200·`sw.js` `no-cache` 헤더·아이콘 200, `0` 이면 `/hoondok` 404 — 기대값은 인자) + `ops-check.sh` 에 `hoondok-today` 검사(오늘·내일 편성 없음 → WARN, `record` 패턴) + runbook `docs/runbooks/hoondok-pwa-rollout.md`(플래그 ON 배포 순서·`smoke-web`·킬스위치 배포 절차·`rollback-web` 만으로는 SW 가 안 지워진다는 사실·Cloudflare 캐시 확인·web 512m 메모리 재측정·실기기 증거 양식) + `docs/architecture/2026-09-05-pwa-flutter-monorepo.md` §7 에 구현 경로 주석 | `bash -n`(make ci) · `make smoke-web HOONDOK_ENABLED=0` 을 현재 운영에 실행해 통과 · `ops-check` 실행 시 `hoondok-today` 행 출력 · docs-links 새 오류 0 |
 | H `feat/hoondok-client-errors` (조건부, 마지막) | 최소 클라이언트 오류 수집: `client_error_events` 테이블(additive-only: id·occurred_at·kind Literal `sw_register`·`install_prompt`·`unhandled`·`api_5xx`·message 200자 절단·path·ua 200자·user_id nullable) + `POST /hoondok/client-errors`(익명 허용, 기존 rate limiter, 본문 검증) + web 전역 핸들러(`window.onerror`·`unhandledrejection`·SW 등록 실패, hoondok 스코프에서만). REQ-PWA-015: 질문·메모·검색어 원문 수집 금지. 조회는 psql 로만(admin 화면 없음) | pytest: 검증·절단·rate limit · Vitest: 핸들러가 hoondok 밖에서 미등록 · additive-only 리허설(§3) · 착수 조건 = G 머지 후 사용자 승인 |
 
-Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 16.4+ 실기기에서 설치 → 가입(초대 코드) → 훈독 → 완료. 편성자가 admin 에서 7일분 이상 입력. 시연 챗·admin E2E·`smoke-web` green. `mission_logs` 7일 적재 시작. 배포 순서 = A·F(·H) 머지 후 `make deploy-backend` → B 후 `make deploy-admin` → C~E·G 후 `make deploy-web HOONDOK_ENABLED=1` → `make smoke-web HOONDOK_ENABLED=1` → 실기기 증거 → 초대. 각 단계 별도 승인. 실기기 증거는 `docs/plans/completed` 이동 시 첨부한다.
+Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 16.4+ 실기기에서 설치 → 가입(초대 코드) → 훈독 → 완료. 편성자가 admin 에서 7일분 이상 입력. 시연 챗·admin E2E·`smoke-web` green. `mission_logs` 7일 적재 시작. 배포 순서 = A·F(·H) 머지 후 `make deploy-backend` → B 후 `make deploy-admin` → C~E·G 후 `make deploy-web HOONDOK_ENABLED=1` → `make smoke-web HOONDOK_ENABLED=1` → 실기기 증거 → 초대. 각 단계 별도 승인. 실기기 증거는 [롤아웃 runbook](../../runbooks/hoondok-pwa-rollout.md) §실행 기록에 남긴다.
 
 **완료 기준 충족 현황 (2026-09-20 배포 후 실측 · 같은 날 증거 재대조)** — 증거는 [runbook §실행 기록](../../runbooks/hoondok-pwa-rollout.md#실행-기록). 각 칸은 그 절에 적힌 측정값만 옮긴다. 측정이 없는 기준은 올리지 않고 ⬜ 또는 ⚠️ 로 남긴다.
 
@@ -151,7 +151,7 @@ Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 1
 
 Phase 3 데이터(7일 중 5일 완료 비율, D7 재방문)를 본 뒤 착수한다. 알림 4종 중 훈독 알림만.
 
-> **2026-09-22 개정 (`PLAN-HD-006`)**: 게이트를 "데이터를 본 뒤 **착수**" 에서 "데이터를 본 뒤 **운영 ON**" 으로 옮겼다. 코드는 [`PLAN-HD-006`](../completed/2026-09-22-hoondok-notifications.md) 으로 먼저 구현·머지하고, VAPID 미설정이면 토글은 "준비 중"·발송기는 no-op 이다. 아래 항목 중 두 가지가 바뀌었다 — VAPID 공개키는 build-arg 가 아니라 `GET /hoondok/push/config` 런타임 전달(D1), 발송 관측은 구독 컬럼 + `ops-check` psql(D2). 시각은 `users` 가 아니라 `notification_preferences.read_time`(사용자별, 완료자 생략).
+> **2026-09-22 개정 (`PLAN-HD-006`)**: 게이트를 "데이터를 본 뒤 **착수**" 에서 "데이터를 본 뒤 **운영 ON**" 으로 옮겼다. 코드는 `PLAN-HD-006` 으로 먼저 구현·머지하고, VAPID 미설정이면 토글은 "준비 중"·발송기는 no-op 이다. 아래 항목 중 두 가지가 바뀌었다 — VAPID 공개키는 build-arg 가 아니라 `GET /hoondok/push/config` 런타임 전달(D1), 발송 관측은 구독 컬럼 + `ops-check` psql(D2). 시각은 `users` 가 아니라 `notification_preferences.read_time`(사용자별, 완료자 생략).
 
 - 베타 1차 판정 쿼리 2개(별도 이벤트 수집기 없이).
 - `notifications` 모듈: VAPID 3종(`SecretStr`, `.env.example`·`turbo.json`·Makefile build-arg 동기화), `push_subscriptions`, `POST/DELETE /hoondok/me/push`.
@@ -275,7 +275,7 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 3 | 편성 입력 (편성자가 운영 admin 편성 화면에서 수기 입력) | `ops-check` 불변식 **8건 전부 OK** — `hoondok-today` OK "앞으로 8일분" · `GET /hoondok/today` `status="available"`(참어머님 말씀모음, `authority_grade=R`). §6 완료 기준 "7일분 이상" 충족 | 2026-09-20 |
 | 3 | `make deploy-web HOONDOK_ENABLED=1` (`a93a6c7`, `--no-deps`) | web `a93a6c7` · 실데이터 9라우트 200 · 프리뷰 8라우트 404(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선) · `ops-check` 8건 OK · `smoke-web` 12건 OK(`sw-cache` WARN 1) · web 메모리 **53.1 MiB / 512 MiB**(2026-09-19 OFF 기준 57.1 에서 증가 없음 — runbook §메모리 의 `[가정]` 확인) · `sw.js` 무변경이라 킬스위치 위험 불변 | 2026-09-20 |
 | 3 | 마지막 전체 `make e2e` | **85 passed / 0 failed** (`PLAN-HD-004` 최종 게이트, 트리 `edb2545`). 운영 태그 `a93a6c7`·`c066b02` 가 둘 다 이 트리의 조상이라 배포된 코드를 포함한다 — §6 표의 "시연 챗·admin E2E" 를 ✅ 로 올린 근거 | 2026-09-21 |
-| 3-a | 직전 기록(참고) | `85 passed` ([PLAN-HD-002 §8](../completed/2026-09-19-hoondok-screens.md), HEAD `c0b0547` = PR #300 트리). 그 위 #301(`c066b02`)이 실행되지 않아 2026-09-20 에 ⚠️ 로 강등했던 근거 | 2026-09-20 |
+| 3-a | 직전 기록(참고) | `85 passed` (PLAN-HD-002 §8, HEAD `c0b0547` = PR #300 트리). 그 위 #301(`c066b02`)이 실행되지 않아 2026-09-20 에 ⚠️ 로 강등했던 근거 | 2026-09-20 |
 
 ## 10. 결정 기록
 
