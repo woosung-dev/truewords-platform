@@ -132,3 +132,28 @@ async def test_get_chunk_403_when_volume_has_no_full_text_right() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/api/sources/chunks/abc-123?chatbot_id=cb1")
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_full_text_volumes_reads_only_allowed_full_text_rights() -> None:
+    """권리 표 질의 — allowed + scope_full_text 인 권만 원문 공개 대상이다."""
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy.pool import StaticPool
+    from sqlmodel import SQLModel
+
+    from app.modules.hoondok.models import ContentRight
+
+    engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all, tables=[SQLModel.metadata.tables["content_rights"]])
+    async with AsyncSession(engine) as session:
+        session.add_all(
+            [
+                ContentRight(volume="공개권", status="allowed", scope_full_text=True, work_title="a"),
+                ContentRight(volume="검색만", status="allowed", scope_full_text=False, work_title="b"),
+                ContentRight(volume="철회권", status="revoked", scope_full_text=True, work_title="c"),
+            ]
+        )
+        await session.commit()
+        assert await get_full_text_volumes(session) == {"공개권"}
+    await engine.dispose()
