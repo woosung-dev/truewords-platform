@@ -107,7 +107,8 @@ describe("온보딩 (구글 로그인 + 예전 이메일 로그인)", () => {
     expect(screen.getByRole("img", { name: "아침 햇살 속 들판" })).toBeInTheDocument();
     expect(screen.queryByLabelText(/이름/)).toBeNull();
     expect(screen.queryByRole("button", { name: "가입하기" })).toBeNull();
-    expect(screen.getByText(/구글 계정의 이름·이메일·식별번호/)).toBeInTheDocument();
+    expect(screen.getByText(/구글 계정에서는 이름·이메일·식별번호만/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "개인정보 처리방침" })).toHaveAttribute("href", "/privacy");
     expect(screen.queryByLabelText("비밀번호")).toBeNull();
   });
 
