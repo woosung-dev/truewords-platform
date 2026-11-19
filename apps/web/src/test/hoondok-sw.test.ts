@@ -283,11 +283,11 @@ describe("은퇴한 /hoondok 서비스워커 (DEC-PWA-026)", () => {
   it("앱을 열지 않은 예전 구독자에게도 알림을 띄우고, 주소는 /hoondok 접두를 뗀 루트 경로로 연다", async () => {
     const worker = loadWorker(RETIRED_SW_SOURCE);
     await worker.dispatch("push", {
-      data: { json: () => ({ title: "오늘의 책갈피가 꽂혀 있어요", body: "본문", url: "/hoondok/bookmark" }) },
+      data: { json: () => ({ title: "오늘 읽을 말씀이 있어요", body: "본문", url: "/hoondok/read" }) },
     });
     const [title, options] = worker.self.registration.showNotification.mock.calls[0];
-    expect(title).toBe("오늘의 책갈피가 꽂혀 있어요");
-    expect(options).toMatchObject({ tag: "hoondok-read", data: { url: `${ORIGIN}/bookmark` } });
+    expect(title).toBe("오늘 읽을 말씀이 있어요");
+    expect(options).toMatchObject({ tag: "hoondok-read", data: { url: `${ORIGIN}/read` } });
 
     // 외부 주소는 열지 않는다
     await worker.dispatch("push", { data: { json: () => ({ title: "t", url: "https://evil.example/x" }) } });

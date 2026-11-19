@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, signInWithGoogle, test } from "./hoondok-test";
 
-// 맞춤 말씀 앱 안 화면: 가입 직후 질문 흐름 → 홈 오늘의 책갈피 아래 한 줄(고르기 / 까닭·바꾸기) → 관심사 바꾸기.
+// 맞춤 말씀 앱 안 화면: 가입 직후 질문 흐름 → 홈 나의 책갈피 아래 한 줄(고르기 / 까닭·바꾸기) → 관심사 바꾸기.
 // 답은 이 기기 localStorage 에만 있고 카드는 기기에서 고른다(카드 목록은 시드 3장, topic "감사"). 선택값은 요청에 실리지 않는다.
 // 정적 경로(/family 등)와 겹치지 않게 쿼리·조각과 요청 본문만 본다
 const SELECTION = /family|tired|thankful|interests|moods/;
@@ -26,7 +26,7 @@ test("질문 없이 시작하면 홈 책갈피 아래 '고르기' 줄이 질문 
   await signUp(page, "건너뛴식구");
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
-  await expect(page.getByRole("heading", { level: 2, name: "오늘의 책갈피" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "나의 책갈피" })).toBeVisible();
   await expect(page.getByText("관심 주제를 고르면 맞춘 장이 꽂혀요")).toBeVisible();
   const pick = page.getByRole("link", { name: "관심 주제 고르기" });
   await expect(pick).toHaveAttribute("href", "/start");

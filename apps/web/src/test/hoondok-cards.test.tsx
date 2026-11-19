@@ -401,36 +401,65 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     expect(container.querySelector(".bmk-moment")).toHaveAttribute("hidden");
   });
 
-  it("홈 카드: 받기 전엔 책 이름과 꺼내기, 받은 뒤엔 다시 보기", async () => {
-    const { BookmarkHomeCard } = await import("@/features/hoondok/cards/components/home-card");
-    const { unmount } = render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "책갈피 꺼내기" })).toHaveAttribute("href", "/bookmark");
+  it("홈 나의 책갈피(비로그인): 받기 전엔 책 이름만, 받은 뒤엔 본문 한 줄과 다시 보기 · 책장은 링크가 아니다", async () => {
+    const { BookmarkShelfHome } = await import("@/features/hoondok/cards/components/home-card");
+    const { unmount, container } = render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
+    expect(screen.getByRole("heading", { name: "나의 책갈피" })).toBeInTheDocument();
+    expect(await screen.findByText("매일 한 장씩 꽂혀요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "오늘 한 장 보기" })).toHaveAttribute("href", "/bookmark");
+    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute("href", "/onboarding?returnTo=%2F");
+    // 받기 전에는 본문·출처를 DOM 에 넣지 않는다
+    expect(container).not.toHaveTextContent(CARD.text);
+    expect(container).not.toHaveTextContent(CARD.source_label);
+    expect(screen.queryByRole("link", { name: "나의 책갈피 책장 보기" })).toBeNull();
+    expect(container.querySelectorAll(".bmshelf__spine.is-ghost").length).toBeGreaterThan(0);
+    expect(screen.getByText("새 장")).toBeInTheDocument();
+    // 비로그인에게는 갤러리 줄·장수가 없다
+    expect(screen.queryByRole("link", { name: /내 카드 갤러리/ })).toBeNull();
     unmount();
     writeLocalReceipt({ date: TODAY, cardId: CARD.id });
-    render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(await screen.findByRole("link", { name: "책갈피 다시 보기" })).toBeInTheDocument();
-    // 비로그인에게는 타일이 없다
-    expect(screen.queryByRole("link", { name: /내 카드 갤러리/ })).toBeNull();
+    render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
+    expect(await screen.findByRole("link", { name: "다시 보기" })).toHaveAttribute("href", "/bookmark");
+    expect(screen.getByText(`“${CARD.text}”`)).toBeInTheDocument();
+    expect(screen.getByText(CARD.source_label)).toBeInTheDocument();
+    expect(screen.getByText("오늘 꺼냄")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "오늘 한 장 보기" })).toBeNull();
   });
 
-  it("홈 타일: 로그인하면 나의 책갈피·내 카드 갤러리 장수(서버 값)를 보인다", async () => {
-    const item = { card: CARD, received_on: TODAY, shared_at: null };
+  it("홈 나의 책갈피(로그인): 받은 장수·권별 책등·범례·건넨 장수는 서버 값, 안 받았으면 꺼내기", async () => {
+    const item = { card: CARD, received_on: "2026-01-02", shared_at: null };
     fetchMock.mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
-      if (url.includes("filter=shared")) return json({ items: [], shelves: [] });
+      if (url.includes("filter=shared")) return json({ items: [item], shelves: [] });
       if (url.includes("/hoondok/me/cards"))
-        return json({ items: [item], shelves: [{ work_title: "천성경", count: 1 }] });
+        return json({
+          items: [item, item, item],
+          shelves: [
+            { work_title: "천성경", count: 2 },
+            { work_title: "평화경", count: 1 },
+          ],
+        });
       return json({ detail: "not found" }, 404);
     });
-    const { BookmarkHomeCard } = await import("@/features/hoondok/cards/components/home-card");
-    render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(await screen.findByRole("link", { name: /나의 책갈피\s*1장/ })).toHaveAttribute("href", "/bookmarks");
-    expect(await screen.findByRole("link", { name: /내 카드 갤러리\s*건넨 카드 0장/ })).toHaveAttribute(
+    const { BookmarkShelfHome } = await import("@/features/hoondok/cards/components/home-card");
+    const { container } = render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
+    expect(await screen.findByText("3장")).toHaveClass("sect__meta");
+    expect(screen.getByRole("link", { name: "나의 책갈피 책장 보기" })).toHaveAttribute("href", "/bookmarks");
+    expect(screen.getByText("천성경 2 · 평화경 1")).toBeInTheDocument();
+    const spines = [...container.querySelectorAll(".bmshelf__spine")];
+    expect(spines).toHaveLength(3);
+    expect(spines[0]).toHaveClass(`pc--book-${bookColorIndex("천성경")}`);
+    expect(spines[2]).toHaveClass(`pc--book-${bookColorIndex("평화경")}`, "is-gap");
+    expect(screen.getByText("새 장이 한 장 꽂혔어요")).toBeInTheDocument();
+    expect(screen.getByText("천성경 제1편 · 9월 28일 월요일")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "꺼내기" })).toHaveAttribute("href", "/bookmark");
+    expect(await screen.findByRole("link", { name: /내 카드 갤러리\s*건넨 카드 1장/ })).toHaveAttribute(
       "href",
       "/bookmarks?filter=shared",
     );
+    expect(screen.queryByRole("link", { name: "로그인" })).toBeNull();
   });
 });
 

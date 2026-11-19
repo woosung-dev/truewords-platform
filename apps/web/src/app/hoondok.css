@@ -186,9 +186,6 @@
   --sky-star-glow: rgba(227, 196, 142, 0.6);
   --sky-star-glow-day: rgba(168, 115, 28, 0.35);
   --shadow-panel: 0 28px 64px rgba(8, 12, 28, 0.3), 0 2px 8px rgba(8, 12, 28, 0.12);
-  --night-1: #121a31;
-  --night-2: #1e2745;
-  --night-3: #2a2c47;
 
   /* 글자 크기 8단계 (rem — 브라우저 글자 크기 설정을 따른다, DES §1.2·§3.4).
      px 은 루트 16px 기준 환산값. 새 크기를 만들지 말고 가장 가까운 단계를 쓴다. */
@@ -474,43 +471,7 @@
   }
 
   /* ---------- 3.1 편성 없는 날 (C3) ----------
-     홈 "오늘의 실천" 첫 줄은 누를 곳이 아니라 카드가 아닌 바탕 줄로 위계를 낮춘다. 두 줄까지 어절 단위로 줄바꿈된다.
      훈독하기(/read) 빈 날의 다음 행동은 이어 읽기 카드(`.card.resume`, library.css) → 서고 버튼 순서로 쌓는다. */
-  .day-quiet {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    padding: 14px 16px;
-    border-radius: var(--r);
-    background: var(--surface-2);
-  }
-  .day-quiet__ic {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--ink-2);
-    display: grid;
-    place-items: center;
-    flex: none;
-  }
-  .day-quiet__bd {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-    padding-top: 1px;
-  }
-  .day-quiet__bd b {
-    font-size: var(--fs-md);
-    font-weight: 600;
-    line-height: 1.4;
-  }
-  .day-quiet__bd span {
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-    line-height: 1.55;
-  }
   .day-go {
     display: flex;
     flex-direction: column;
@@ -678,11 +639,6 @@
   }
   .owl--breathe {
     animation: hoondok-owl-breathe 2.4s ease-in-out 2;
-  }
-  .day-quiet__ic:has(.owl) {
-    background: transparent;
-    width: 44px;
-    height: 44px;
   }
   .empty__title {
     font-size: var(--fs-lg);

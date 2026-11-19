@@ -71,7 +71,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
   // 홈에는 말씀 본문이 없다 — 정본이 today 에서 `.lede` 를 숨기고 PRD SCR-PWA-002 도 미션 3종만 둔다.
-  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /read 가 갖는다.
+  // 오늘 말씀은 "오늘 읽을 말씀" 판의 제목으로만 드러나고 전문은 /read 가 갖는다.
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
   await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
@@ -114,7 +114,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await expect(page.getByText("이투이님")).toBeVisible();
   await expect(page.locator(".sect__head", { hasText: "이번 주" })).toContainText("연속 1일");
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /훈독하기.*완료/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".home-word__todo")).toHaveText("읽음");
   // 소급 동기화(sync)로 기록된 완료는 설치 안내 자격이 아니다 (Phase 3 E)
   await expect(page.locator(".notice-slot", { hasText: /홈 화면에 추가하면/ })).toHaveCount(0);
 
@@ -160,10 +160,12 @@ test("설치 안내: 직접 완료 뒤 하단 안내 노출 · 방법 보기 펼
   const title = page.locator(".notice-slot").getByText(/홈 화면에 추가하면/);
   await expect(title).toHaveCount(0);
 
-  // 홈 미션 카드 체크 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
-  const check = page.getByRole("button", { name: /훈독하기.*완료/ });
-  await check.click();
-  await expect(check).toHaveAttribute("aria-pressed", "true");
+  // 훈독하기의 훈독 완료 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
+  await page.goto("/read");
+  await page.getByRole("button", { name: "훈독 완료" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "오늘 훈독을 마쳤어요" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.locator(".home-word__todo")).toHaveText("읽음");
   await expect(title).toBeVisible();
   await expect(page.getByRole("button", { name: "설치", exact: true })).toHaveCount(0);
   // "방법 보기" 는 같은 자리에서 펼쳐 브라우저 메뉴 안내를 보이고, "접기" 로 한 줄로 돌아간다
@@ -506,7 +508,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   const missionsBefore = await missions.boundingBox();
   releaseConfig();
   await expect(card.getByText("매일 언제 훈독을 알려 드릴까요?")).toBeVisible();
-  await expect(card).toContainText("오늘의 책갈피가 꽂혀 있어요");
+  await expect(card).toContainText("오늘 읽을 말씀이 있어요");
   // 안내는 탭 바 위 고정 자리에 뜬다 — 나타나도 미션 목록 위치가 그대로다 (밀면 오터치 → "나중에" 거절)
   const missionsAfter = await missions.boundingBox();
   expect(missionsAfter?.y).toBe(missionsBefore?.y);

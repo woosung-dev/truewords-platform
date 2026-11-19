@@ -1,4 +1,5 @@
-// 편성 없는 날(C3 안 A): 홈은 오늘 상태 한 줄 + 이어 읽기 첫 자리, 훈독하기는 이어 읽기 → 서고. 대체 말씀은 없다.
+// 편성 없는 날(C3 안 A): 홈 주인공 판이 오늘 상태와 서고·검색 길을 말하고, 오늘의 실천은 이어 읽기 → 기도하기 그대로다.
+// 훈독하기(/read)는 이어 읽기 → 서고. 대체 말씀은 없다.
 // 이어 읽기 카드 데이터는 A1(useResumeCard) 그대로라 서고 API 만 바꿔 끼운다.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -18,12 +19,13 @@ vi.mock("@/features/hoondok/jeongseong-api", () => ({ jeongseongAPI: { today: vi
 vi.mock("@/features/hoondok/together/api", () => ({ togetherAPI: { today: vi.fn() } }));
 
 import { HomeMissions, HomeTogether } from "@/features/hoondok/components/home-missions";
-import { HomeWeek } from "@/features/hoondok/components/home-sky";
+import { HomeWeek, HomeWord } from "@/features/hoondok/components/home-sky";
 import { EffectiveReading } from "@/features/hoondok/jeongseong/components/effective-reading";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { writeLastReading } from "@/features/hoondok/library/last-reading";
 import { missionsAPI } from "@/features/hoondok/missions-api";
+import { writePending } from "@/features/hoondok/pending";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { togetherAPI } from "@/features/hoondok/together/api";
 import { identityAPI } from "@/features/identity/api";
@@ -76,12 +78,13 @@ function show(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={client}>{children}</QueryClientProvider>);
 }
-/** 미션 목록의 줄 순서 — 안내 줄은 "안내", 카드는 종류 이름 */
+/** 미션 목록의 카드 순서 — 종류 이름(자리만 잡은 카드는 빈 문자열) */
 function missionOrder(container: HTMLElement) {
-  return [...container.querySelectorAll(".missions > *")].map((node) =>
-    node.classList.contains("day-quiet") ? "안내" : (node.querySelector(".mission__kind")?.textContent ?? ""),
+  return [...container.querySelectorAll(".missions > *")].map(
+    (node) => node.querySelector(".mission__kind")?.textContent ?? "",
   );
 }
+const PRACTICE = ["말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -108,25 +111,34 @@ beforeEach(() => {
 });
 
 describe("홈 · 편성 없는 날", () => {
-  it("기록 없음: 오늘 상태 한 줄 뒤 첫 카드가 서고이고 기다림·중복 서고 버튼·죽은 훈독하기 카드가 없다", async () => {
+  it("오늘의 실천은 이어 읽기 → 기도하기뿐이고 빈 날 안내·훈독하기 카드가 없다", async () => {
     const view = show(<HomeMissions today={EMPTY} />);
-    const line = await screen.findByText("오늘은 정해진 말씀이 없어요");
-    expect(line.closest("[role=status]")).toHaveTextContent("서고에서 한 권 골라 읽어 보세요.");
-    expect(screen.getByText("오늘은 서고에서")).toHaveClass("sect__meta");
-    expect(missionOrder(view.container)).toEqual(["안내", "말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]);
+    await waitFor(() => expect(missionOrder(view.container)).toEqual(PRACTICE));
+    expect(await screen.findByText("말씀 서고")).toHaveClass("mission__title");
+    expect(screen.getByText("내 속도로")).toHaveClass("sect__meta");
+    expect(screen.queryByText("오늘은 정해진 말씀이 없어요")).toBeNull();
     expect(screen.getAllByRole("link").filter((link) => link.getAttribute("href") === "/library")).toHaveLength(1);
-    expect(screen.queryByText(/기다리고|편성되면|오늘 말씀 대신/)).toBeNull();
     expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /훈독하기/ })).toBeNull();
   });
 
-  it("이어 읽을 기록이 있으면 그 자리가 첫 카드다(A1 카드 그대로)", async () => {
+  it("주인공 판: 정해진 말씀이 없다고 말하고 서고에서 고르기 · 말씀 검색으로 보낸다 — 훈독하기·책갈피 대체 없음", async () => {
+    const view = show(<HomeWord today={EMPTY} serverSlot="day" />);
+    expect(await screen.findByText("오늘은 정해진 말씀이 없어요")).toHaveClass("home-word__title");
+    expect(screen.getByRole("link", { name: "서고에서 고르기" })).toHaveAttribute("href", "/library");
+    expect(screen.getByRole("link", { name: "서고에서 고르기" })).toHaveClass("btn-primary");
+    expect(screen.getByRole("link", { name: "말씀 검색" })).toHaveAttribute("href", "/search");
+    expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
+    expect(view.container).not.toHaveTextContent(/책갈피/);
+    // 말씀이 없으니 완료 칩도 없다
+    expect(screen.queryByText(/^(읽기 전|읽음)$/)).toBeNull();
+  });
+
+  it("이어 읽을 기록이 있으면 실천 첫 카드가 그 자리다(A1 카드 그대로)", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });
     const view = show(<HomeMissions today={EMPTY} />);
     expect(await screen.findByText("천성경 · 참사랑의 근본")).toBeInTheDocument();
-    expect(screen.getByText("읽던 말씀을 이어서 읽어 보세요.")).toBeInTheDocument();
-    expect(screen.getByText("오늘은 이어 읽기")).toHaveClass("sect__meta");
-    expect(missionOrder(view.container)[1]).toBe("말씀 읽기 · 이어 읽기");
+    expect(missionOrder(view.container)).toEqual(PRACTICE);
     const card = view.container.querySelector(".missions > .mission .mission__link");
     expect(card).toHaveAttribute("href", `${wordsHref(VOLUME)}?page=1&from=resume`);
     // 체크는 A1 과 같이 비활성 — 빈 날에 훈독하기 완료 동선을 새로 만들지 않는다
@@ -134,7 +146,7 @@ describe("홈 · 편성 없는 날", () => {
     expect(screen.queryByRole("link", { name: /^말씀 서고/ })).toBeNull();
   });
 
-  it("편성이 정해지기 전에는 카드 순서를 정하지 않고 자리만 잡는다 — 빈 날로 정해져도 카드가 자리를 바꾸지 않는다", async () => {
+  it("편성이 정해지기 전에는 카드 두 장 자리만 잡고, 정해지면 같은 두 장이 그 자리에 들어간다", async () => {
     vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
     let resolveJeongseong: (value: JeongseongTodayResponse) => void = () => {};
     vi.mocked(jeongseongAPI.today).mockReturnValue(
@@ -146,44 +158,32 @@ describe("홈 · 편성 없는 날", () => {
     await waitFor(() => expect(jeongseongAPI.today).toHaveBeenCalled());
     const missions = view.container.querySelector(".missions");
     expect(missions).toHaveAttribute("aria-busy", "true");
-    // 종류 이름 없는 자리 3개 — 훈독하기 카드를 먼저 그렸다가 빈 날로 바뀌며 순서가 뒤집히지 않는다
-    expect(missionOrder(view.container)).toEqual(["", "", ""]);
+    expect(missionOrder(view.container)).toEqual(["", ""]);
     expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
     resolveJeongseong({ date: DATE, status: "none", reason: null, period_id: null, reading: null });
-    await waitFor(() =>
-      expect(missionOrder(view.container)).toEqual(["안내", "말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]),
-    );
+    await waitFor(() => expect(missionOrder(view.container)).toEqual(PRACTICE));
     expect(missions).not.toHaveAttribute("aria-busy");
   });
 
-  it("이어 읽을 기록을 확인하는 동안에는 기록이 있다고도 없다고도 말하지 않는다", async () => {
-    vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
-    let resolvePositions: (value: { items: [] }) => void = () => {};
-    vi.mocked(libraryAPI.readingPositions).mockReturnValue(
-      new Promise((resolve) => {
-        resolvePositions = resolve;
-      }),
-    );
-    show(<HomeMissions today={EMPTY} />);
-    const line = await screen.findByText("오늘은 정해진 말씀이 없어요");
-    expect(line.closest("[role=status]")).not.toHaveTextContent(/읽던 말씀|서고에서/);
-    expect(screen.queryByText(/^오늘은 (이어 읽기|서고에서)$/)).toBeNull();
-    resolvePositions({ items: [] });
-    expect(await screen.findByText("서고에서 한 권 골라 읽어 보세요.")).toBeInTheDocument();
-    expect(screen.getByText("오늘은 서고에서")).toHaveClass("sect__meta");
-  });
-
   it("철회된 날도 빈 날과 같은 안내다", async () => {
-    show(<HomeMissions today={WITHDRAWN} />);
+    show(<HomeWord today={WITHDRAWN} serverSlot="day" />);
     expect(await screen.findByText("오늘은 정해진 말씀이 없어요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "서고에서 고르기" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
   });
 
-  it("편성 조회 실패는 빈 날이 아니다 — 원인 안내만 하고 오늘 상태 한 줄을 띄우지 않는다", async () => {
-    const view = show(<HomeMissions today={FAILED} />);
+  it("편성 조회 실패는 빈 날이 아니다 — 원인 안내와 훈독하기(/read)만 두고 빈 날 문구·서고 버튼을 띄우지 않는다", async () => {
+    show(
+      <>
+        <HomeWord today={FAILED} serverSlot="day" />
+        <HomeMissions today={FAILED} />
+      </>,
+    );
     expect(await screen.findByText("오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("link", { name: /훈독하기/ })).toHaveAttribute("href", "/read"));
-    expect(view.container.querySelector(".day-quiet")).toBeNull();
+    expect(screen.getByText("오늘 말씀을 확인하지 못했어요")).toBeInTheDocument();
+    expect(screen.queryByText("오늘은 정해진 말씀이 없어요")).toBeNull();
+    expect(screen.queryByRole("link", { name: "서고에서 고르기" })).toBeNull();
     expect(screen.queryByText(/기다리고|편성되면/)).toBeNull();
   });
 
@@ -198,6 +198,7 @@ describe("홈 · 편성 없는 날", () => {
     } as JeongseongTodayResponse);
     show(
       <>
+        <HomeWord today={EMPTY} serverSlot="day" />
         <HomeMissions today={EMPTY} />
         <HomeWeek today={EMPTY} todayWeekday={2} />
       </>,
@@ -209,18 +210,53 @@ describe("홈 · 편성 없는 날", () => {
     expect(await screen.findByText("연속 12일")).toBeInTheDocument();
   });
 
-  it("편성 있는 날은 지금 순서 그대로다(회귀)", async () => {
-    const view = show(<HomeMissions today={AVAILABLE} />);
-    await waitFor(() =>
-      expect(missionOrder(view.container)).toEqual([
-        "훈독하기 · 3분",
-        "기도하기 · 1분 · 준비 중",
-        "말씀 읽기 · 이어 읽기",
-      ]),
+  it("편성 있는 날: 판이 제목·훈독하기를 갖고 실천은 같은 두 장이다", async () => {
+    const view = show(
+      <>
+        <HomeWord today={AVAILABLE} serverSlot="day" />
+        <HomeMissions today={AVAILABLE} />
+      </>,
     );
-    expect(screen.getByText("일반 편성")).toHaveClass("mission__title");
-    expect(screen.getByText("2가지 · 내 속도로")).toBeInTheDocument();
-    expect(view.container.querySelector(".day-quiet")).toBeNull();
+    expect(await screen.findByText("일반 편성")).toHaveClass("home-word__title");
+    expect(screen.getByText("3분")).toHaveClass("home-word__min");
+    expect(screen.getByRole("link", { name: "훈독하기" })).toHaveAttribute("href", "/read");
+    await waitFor(() => expect(missionOrder(view.container)).toEqual(PRACTICE));
+    expect(screen.queryByRole("link", { name: "서고에서 고르기" })).toBeNull();
+  });
+});
+
+describe("홈 · 오늘 읽을 말씀 완료 칩", () => {
+  it("판정 전에는 칩이 없고, 오늘 안 읽었으면 '읽기 전', 요약이 읽음이면 '읽음'", async () => {
+    vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
+    let resolveSummary: (value: Awaited<ReturnType<typeof missionsAPI.summary>>) => void = () => {};
+    vi.mocked(missionsAPI.summary).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSummary = resolve;
+      }),
+    );
+    show(<HomeWord today={AVAILABLE} serverSlot="day" />);
+    expect(await screen.findByText("일반 편성")).toBeInTheDocument();
+    await waitFor(() => expect(missionsAPI.summary).toHaveBeenCalled());
+    expect(screen.queryByText(/^(읽기 전|읽음)$/)).toBeNull();
+    resolveSummary({
+      today: { read: true, pray: false, study: false },
+      week: [],
+      streak_days: 1,
+      best_streak_days: 1,
+      total_days: 1,
+    });
+    const chip = await screen.findByText("읽음");
+    expect(chip).toHaveAttribute("data-done");
+  });
+
+  it("비로그인: 이 기기에서 오늘 마쳤으면 '읽음', 아니면 '읽기 전'", async () => {
+    const first = show(<HomeWord today={AVAILABLE} serverSlot="day" />);
+    expect(await screen.findByText("읽기 전")).not.toHaveAttribute("data-done");
+    first.unmount();
+    writePending("read");
+    show(<HomeWord today={AVAILABLE} serverSlot="day" />);
+    expect(await screen.findByText("읽음")).toHaveAttribute("data-done");
+    expect(missionsAPI.summary).not.toHaveBeenCalled();
   });
 });
 

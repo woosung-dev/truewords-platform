@@ -415,18 +415,33 @@
     color: var(--chip-ink);
   }
 
-  /* ---------- 지평선에 걸친 "오늘 읽을 말씀" 판 ---------- */
+  /* ---------- 지평선에 걸친 "오늘 읽을 말씀" 판 = 오늘 할 일 ----------
+     더블 베젤: .home-word 가 바깥 쉘(반투명 + 테두리 고리), .home-word__core 가 안쪽 흰 판이다.
+     채운 주황 버튼은 홈에서 이 판 하나뿐이다. 움직임은 transform 만, 곡선은 --home-ease 하나. */
   .home-word {
+    --home-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --home-ring: 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent);
     position: relative;
     z-index: 2;
     margin-top: -52px;
-    padding: 20px;
+    padding: 6px;
+    background: color-mix(in srgb, var(--surface) 58%, transparent);
+    border-radius: var(--r-sheet);
+    box-shadow:
+      var(--home-ring),
+      var(--shadow-panel);
+  }
+  .home-word__core {
+    padding: 22px 20px 20px;
+    border-radius: calc(var(--r-sheet) - 6px);
     background: var(--surface);
-    border-radius: 26px;
-    box-shadow: var(--shadow-panel);
+    box-shadow:
+      inset 0 1px 0 var(--sheen-70),
+      var(--home-ring);
   }
   .home-word__owl {
     position: absolute;
+    z-index: 1;
     top: -50px;
     right: 18px;
     pointer-events: none;
@@ -440,29 +455,56 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    min-height: 28px;
+    min-height: 30px;
   }
   .home-word__kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
-    font-size: var(--fs-md);
+    padding: 5px 12px;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    font-size: var(--fs-sm);
     font-weight: 700;
     color: var(--accent-strong);
   }
-  .home-word__min {
+  .home-word__kicker::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  /* 오늘 훈독 완료 칩. 읽음이 돼도 축하 연출은 없다(DEC-PWA-019) */
+  .home-word__todo {
     display: inline-flex;
     align-items: center;
-    min-height: 28px;
-    padding: 0 10px;
-    border-radius: var(--r-full);
-    background: var(--surface-2);
+    gap: 6px;
     font-size: var(--fs-sm);
     font-weight: 600;
-    color: var(--ink-2);
+    color: var(--ink-3);
+    white-space: nowrap;
+  }
+  .home-word__todo i {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px var(--line);
+  }
+  .home-word__todo[data-done] {
+    color: var(--ok-strong);
+  }
+  .home-word__todo[data-done] i {
+    background: var(--ok-soft);
+    box-shadow: none;
   }
   .home-word__quote {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 16px;
   }
   .home-word__mark {
     flex: none;
@@ -472,17 +514,21 @@
   .home-word__title {
     margin: 0;
     min-width: 0;
-    font-size: var(--fs-lg);
-    font-weight: 600;
-    line-height: 1.6;
-    letter-spacing: -0.012em;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     overflow: hidden;
   }
   .home-word__src {
-    margin: 8px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 10px 0 0;
     padding-left: 36px;
     font-size: var(--fs-md);
     line-height: 1.5;
@@ -491,6 +537,17 @@
   .home-word__src b {
     font-weight: 600;
     color: var(--ink);
+  }
+  .home-word__min {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-2);
   }
   .home-word__skel {
     display: inline-block;
@@ -504,11 +561,53 @@
   .home-word__skel--short {
     width: 9em;
   }
+  /* 버튼-속-버튼: 꼬리 아이콘은 자기 원(nub) 안에 둔다 */
   .home-word__go {
-    margin-top: 16px;
-    min-height: 54px;
+    justify-content: space-between;
+    min-height: 58px;
+    margin-top: 20px;
+    padding: 0 7px 0 24px;
     border-radius: var(--r-full);
     font-size: var(--fs-lg);
+    font-weight: 700;
+    box-shadow:
+      0 10px 22px -10px color-mix(in srgb, var(--accent-strong) 70%, transparent),
+      inset 0 1px 0 var(--sheen-25);
+    transition: transform 0.3s var(--home-ease);
+  }
+  .home-word__go:active {
+    transform: scale(0.98);
+  }
+  .home-word__nub {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--accent-ink) 18%, transparent);
+    transition: transform 0.5s var(--home-ease);
+  }
+  .home-word__go:focus-visible .home-word__nub {
+    transform: translateX(3px) scale(1.05);
+  }
+  .home-word__go--2 {
+    min-height: 52px;
+    margin-top: 10px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .home-word__go--2 .home-word__nub {
+    width: 38px;
+    height: 38px;
+    background: var(--surface);
+    box-shadow: var(--home-ring);
+  }
+  @media (hover: hover) {
+    .home-word__go:hover .home-word__nub {
+      transform: translateX(3px) scale(1.05);
+    }
   }
 
   /* ---------- 하늘 아래 땅 ---------- */
@@ -536,25 +635,6 @@
   }
   .home .notice {
     padding-top: 28px;
-  }
-
-  /* 오늘의 책갈피: 하늘 한 조각 같은 밤 판(남색 + 잔별 + 금색 리본). 받기 흐름·문구는 home-card.tsx 그대로 */
-  .home .bmhome__env {
-    background: linear-gradient(160deg, var(--night-1) 0%, var(--night-2) 62%, var(--night-3) 100%);
-  }
-  .home .bmhome__env::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background-image:
-      radial-gradient(1.5px 1.5px at 18% 22%, var(--sheen-70), transparent),
-      radial-gradient(1px 1px at 42% 12%, var(--sheen-70), transparent),
-      radial-gradient(1.5px 1.5px at 66% 30%, var(--sheen-70), transparent),
-      radial-gradient(1px 1px at 30% 58%, var(--sheen-35), transparent),
-      radial-gradient(1px 1px at 84% 64%, var(--sheen-70), transparent),
-      radial-gradient(1.5px 1.5px at 56% 76%, var(--sheen-35), transparent);
   }
 
   @media (min-width: 768px) {
@@ -672,7 +752,9 @@
       grid-column: 2;
       grid-row: 1;
       margin-top: -290px;
-      padding: 30px 32px 28px;
+    }
+    .home-word__core {
+      padding: 26px 28px 24px;
     }
     .home-word__owl {
       top: -62px;
@@ -687,8 +769,9 @@
       line-height: 1.55;
     }
     .home-word__go {
-      width: auto;
-      min-width: 220px;
+      display: flex;
+      width: fit-content;
+      min-width: 260px;
     }
     .home__practice {
       grid-column: 1;

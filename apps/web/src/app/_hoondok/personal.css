@@ -1,47 +1,7 @@
-/* 맞춤 말씀 앱 안 화면 — 홈 책갈피 까닭 줄 · 나의 정원 "나에게 맞추기" · 관심사와 마음 바꾸기 · 마음 한 장.
+/* 맞춤 말씀 앱 안 화면 — 나의 정원 "나에게 맞추기" · 관심사와 마음 바꾸기 · 마음 한 장.
    값의 원본은 hoondok.css 토큰이고 시안은 hoondok-onboarding-design(DESIGN-PLAN §5~§7)이다.
    설정형 화면 둘은 ≥768 에서 560 중앙(정본 015·020 과 같은 근거). 모션은 정본 누름 120ms 뿐이다. */
 [data-app="hoondok"] {
-  /* ---------- 1. 홈 책갈피 카드 아래 한 줄 ---------- */
-  .ps-why {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 16px -18px -16px;
-    padding: 4px 8px 4px 18px;
-    border-top: 1px solid var(--line);
-  }
-  .ps-why > svg {
-    flex: none;
-    color: var(--ink-3);
-  }
-  .ps-why__t {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    padding: 10px 0;
-    font-size: var(--fs-sm);
-    line-height: 1.5;
-    color: var(--ink-2);
-  }
-  .ps-why__t b {
-    color: var(--ink);
-    font-weight: 600;
-  }
-  /* 글자 링크지만 누르는 자리는 44 이상 */
-  .ps-why__go {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    min-width: 44px;
-    padding: 0 10px;
-    border-radius: var(--r-sm);
-    font-size: var(--fs-md);
-    font-weight: 600;
-    color: var(--accent-strong);
-  }
-
   /* ---------- 2. 나의 정원 "나에게 맞추기" 목록 ---------- */
   .ps-list {
     padding: 0;
@@ -113,23 +73,6 @@
     margin: 10px 0 0;
     font-size: var(--fs-sm);
     color: var(--accent-strong);
-  }
-  /* 홈 책갈피 자리 지킴: 책갈피 카드(cards.css .bmhome)와 같은 높이. 회색은 garden.css 공용 .skeleton */
-  .ps-skel .skeleton {
-    min-height: 0;
-  }
-  /* 홈 책갈피 짙은 카드(cards.css .bmhome__env)와 같은 높이 */
-  .ps-skel__env {
-    display: block;
-    height: 272px;
-    border-radius: 0;
-  }
-  .ps-skel__line {
-    height: 14px;
-  }
-  .ps-skel__why {
-    display: block;
-    margin: 18px;
   }
   .ps-clear {
     display: flex;
@@ -295,7 +238,6 @@
     }
   }
   @media (min-width: 1024px) and (hover: hover) {
-    .ps-why__go:hover,
     .ps-list__row:hover,
     .ps-bar--split > .btn-ghost:hover {
       background: var(--surface-2);
