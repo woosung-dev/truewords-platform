@@ -282,7 +282,7 @@ describe("PushPromptCard — ready", () => {
     vi.setSystemTime(new Date("2026-09-28T22:40:00Z"));
     render(wrap(<PushPromptCard placement="home" />));
     expect(await screen.findByText(PUSH_PROMPT_TITLE)).toBeInTheDocument();
-    expect(screen.getByText("잠금 화면에는 '오늘의 책갈피가 꽂혀 있어요' 처럼 보여요")).toBeInTheDocument();
+    expect(screen.getByText("잠금 화면에는 '오늘 읽을 말씀이 있어요' 처럼 보여요")).toBeInTheDocument();
     // 접힌 한 줄에는 시각 칸이 없다 — 같은 자리에서 펼쳐야 고른다
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     await openPicker();

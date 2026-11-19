@@ -54,15 +54,17 @@ async function grantClipboard(context: BrowserContext, origin: string) {
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
 }
 
-test("홈 카드 → 받기 → 읽기 → 건네기 시트 → 원문 밑줄 → 다시 꺼내기 (비로그인)", async ({ page, baseURL }) => {
+test("홈 나의 책갈피 → 받기 → 읽기 → 건네기 시트 → 원문 밑줄 → 다시 꺼내기 (비로그인)", async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const card = await todayCard(page);
 
   await page.goto("/");
-  const home = page.locator(".bmhome");
-  await expect(page.getByRole("heading", { name: "오늘의 책갈피" })).toBeVisible();
-  await expect(home).toContainText(card.volume);
-  await home.getByRole("link", { name: "책갈피 꺼내기" }).click();
+  const home = page.locator(".bmshelf");
+  await expect(page.getByRole("heading", { name: "나의 책갈피" })).toBeVisible();
+  // 비로그인은 책 이름·본문 없이 매일 한 장 안내와 로그인 길만 본다
+  await expect(home).toContainText("매일 한 장씩 꽂혀요");
+  await expect(home).not.toContainText(card.text);
+  await home.getByRole("link", { name: "오늘 한 장 보기" }).click();
 
   await expect(page).toHaveURL(/\/bookmark$/);
   const reinsert = page.getByRole("button", { name: /책에 다시 꽂기/ });

@@ -1,9 +1,8 @@
 // SCR-PWA-002 오늘 훈독 (홈) "오늘의 하늘". 비로그인 읽기 + 로그인 시 완료·연속일(Phase 2).
-// 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 읽을 말씀" 판, 아래 땅에 실천 · 책갈피 · 정성 · 함께 읽기.
+// 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 읽을 말씀" 판(오늘 할 일), 아래 땅에 실천 · 나의 책갈피 · 정성 · 함께 읽기.
+// 역할 나누기: 훈독(운영자 편성)은 판 하나가 주인공이고, 책갈피(매일 한 장)는 2순위 "나의 책갈피" 책장이다.
 // 설치 권유·알림 제안은 layout 의 하단 안내 자리가 그린다 — 홈은 HomeMissions 가 신호만 보낸다.
-// 말씀 본문은 홈에 싣지 않는다 — 정본 프로토타입이 today 에서 `.lede`·`.lede-src` 를 숨기고,
-// PRD SCR-PWA-002 는 미션 3종만 열거하며, DES §2.2 말씀 카드는 SCR-PWA-003·006·008 컴포넌트다.
-// 말씀 판은 미션 카드가 이미 보이는 제목·저작물·화자·예상 분만 크게 보이고, 읽기는 `/read` 로 분리해 미션 카드 → 훈독 루프를 살린다.
+// 말씀 본문은 홈에 싣지 않는다 — 판은 제목·저작물·화자·예상 분만 크게 보이고 전문은 `/read` 가 갖는다.
 import { loadToday } from "@/features/hoondok/api";
 import { loadTodayCard } from "@/features/hoondok/cards/api";
 import { cardDayLabel } from "@/features/hoondok/cards/format";
@@ -18,7 +17,7 @@ import { skySlotAt } from "@/features/hoondok/sky";
 import { formatKstDate } from "@/features/hoondok/today";
 
 export default async function HoondokHomePage() {
-  // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 오늘 편성 카드는 없다.
+  // 나의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 오늘 편성 카드는 없다.
   // 이 기기에 고른 답이 있으면 맞춘 카드로 바뀐다(PersonalBookmarkHome — 답은 기기에만 있어 클라이언트가 고른다).
   const isCardsEnabled = isHoondokCardsEnabled();
   const [today, card] = await Promise.all([loadToday(), isCardsEnabled ? loadTodayCard() : null]);

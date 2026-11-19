@@ -38,11 +38,7 @@ async function moveReading(id: string, readingDate: string) {
 function missionOrder(page: Page) {
   return page
     .locator(".missions > *")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node.classList.contains("day-quiet") ? "안내" : (node.querySelector(".mission__kind")?.textContent ?? ""),
-      ),
-    );
+    .evaluateAll((nodes) => nodes.map((node) => node.querySelector(".mission__kind")?.textContent ?? ""));
 }
 
 test.describe.configure({ mode: "serial" });
@@ -69,15 +65,16 @@ test.afterAll(async () => {
   await admin?.dispose();
 });
 
-test("기록 없음: 홈은 오늘 상태 한 줄 → 서고 카드, 함께 읽기 숫자 없음 · 훈독하기는 서고가 주 버튼", async ({
+test("기록 없음: 홈 판은 정해진 말씀 없음 → 서고·검색, 함께 읽기 숫자 없음 · 훈독하기는 서고가 주 버튼", async ({
   page,
 }) => {
   await page.goto("/");
-  const line = page.locator(".day-quiet");
-  await expect(line).toContainText("오늘은 정해진 말씀이 없어요");
-  await expect(line).toContainText("서고에서 한 권 골라 읽어 보세요.");
-  await expect.poll(() => missionOrder(page)).toEqual(["안내", "말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]);
-  // 서고로 가는 길은 첫 카드 하나 — 떠 있던 "오늘 말씀 대신 서고에서 읽기" 버튼이 없다
+  const word = page.locator(".home-word");
+  await expect(word.locator(".home-word__title")).toHaveText("오늘은 정해진 말씀이 없어요");
+  await expect(word.getByRole("link", { name: "서고에서 고르기" })).toHaveAttribute("href", "/library");
+  await expect(word.getByRole("link", { name: "말씀 검색" })).toHaveAttribute("href", "/search");
+  await expect(word.getByRole("link", { name: /훈독하기/ })).toHaveCount(0);
+  await expect.poll(() => missionOrder(page)).toEqual(["말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]);
   await expect(page.locator('.missions a[href="/library"]')).toHaveCount(1);
   await expect(page.getByText(/기다리고 있어요|편성되면|오늘 말씀 대신/)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "함께 읽는 사람들" })).toHaveCount(0);
@@ -90,12 +87,11 @@ test("기록 없음: 홈은 오늘 상태 한 줄 → 서고 카드, 함께 읽�
   await expect(page.getByRole("button", { name: "훈독 완료" })).toHaveCount(0);
 });
 
-test("이 기기에서 읽던 곳이 있으면 홈·훈독하기 모두 이어 읽기가 첫 행동이다", async ({ page }) => {
+test("이 기기에서 읽던 곳이 있으면 홈 실천 첫 카드와 훈독하기 첫 행동이 이어 읽기다", async ({ page }) => {
   await page.goto(wordsPath);
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("1번째 합성 문장");
 
   await page.goto("/");
-  await expect(page.locator(".day-quiet")).toContainText("읽던 말씀을 이어서 읽어 보세요.");
   const first = page.locator(".missions > .mission").first();
   await expect(first.locator(".mission__meta")).toHaveText("1단락부터 이어 읽어요 · 이 기기에서 읽던 곳");
 

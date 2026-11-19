@@ -3,8 +3,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-li
 import type { JeongseongTodayResponse } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HomeMissions } from "@/features/hoondok/components/home-missions";
-import { HomeWeek } from "@/features/hoondok/components/home-sky";
+import { HomeWeek, HomeWord } from "@/features/hoondok/components/home-sky";
 import { EffectiveReading } from "@/features/hoondok/jeongseong/components/effective-reading";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
@@ -81,7 +80,7 @@ afterEach(() => {
 });
 
 describe("홈·읽기 공통 오늘 말씀", () => {
-  it("개인화가 확인되기 전 홈에서 다른 편성을 완료하지 못하고 두 화면은 같은 말씀을 쓴다", async () => {
+  it("개인화가 확인되기 전 홈 판은 일반 편성을 먼저 보이지 않고, 확인 뒤 두 화면은 같은 말씀을 쓴다", async () => {
     let resolve!: (value: JeongseongTodayResponse) => void;
     vi.mocked(jeongseongAPI.today).mockReturnValue(
       new Promise((done) => {
@@ -91,20 +90,21 @@ describe("홈·읽기 공통 오늘 말씀", () => {
     const { wrapper } = setup();
     render(
       <>
-        <HomeMissions today={PUBLIC} />
+        <HomeWord today={PUBLIC} serverSlot="day" />
         <EffectiveReading today={PUBLIC} />
       </>,
       { wrapper },
     );
-    expect(screen.getByRole("button", { name: /훈독하기.*완료/ })).toBeDisabled();
+    expect(screen.queryByText("일반 편성")).toBeNull();
     expect(screen.queryByRole("button", { name: "훈독 완료" })).toBeNull();
     await act(async () => resolve(PERSONAL));
     expect(await screen.findByRole("heading", { name: "오늘 정성 말씀" })).toBeInTheDocument();
     expect(screen.getAllByText("오늘 정성 말씀")).toHaveLength(2);
+    expect(screen.queryByText("일반 편성")).toBeNull();
     expect(jeongseongAPI.today).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("link", { name: /말씀 읽기/ })).toHaveAttribute("href", "/library");
-    expect(screen.getByRole("button", { name: /말씀 읽기.*완료/ })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: /훈독하기.*완료/ }));
+    // 완료는 훈독하기 화면의 "훈독 완료" 한 곳에서 한다 — 홈에는 훈독 완료 체크가 없다
+    expect(screen.queryByRole("button", { name: /훈독하기.*완료/ })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "훈독 완료" }));
     await waitFor(() => expect(missionsAPI.complete).toHaveBeenCalledWith("read"));
     expect(jeongseongAPI.today).toHaveBeenCalledTimes(1);
   });

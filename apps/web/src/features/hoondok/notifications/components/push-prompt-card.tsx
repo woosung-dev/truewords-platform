@@ -29,7 +29,7 @@ export const PUSH_PROMPT_TITLE = "매일 언제 훈독을 알려 드릴까요?";
 export const PUSH_PROMPT_IOS_TITLE = "iPhone·iPad 는 홈 화면에 추가해야 알림을 받을 수 있어요";
 const SETTINGS_PATH = "/settings";
 // 발송기(push_sender.TITLE_TEXT)가 보내는 제목과 같다 — 말씀 본문·신앙 맥락이 잠금 화면에 드러나지 않는다.
-const PUSH_TITLE_PREVIEW = "오늘의 책갈피가 꽂혀 있어요";
+const PUSH_TITLE_PREVIEW = "오늘 읽을 말씀이 있어요";
 
 const subscribeNever = () => () => {};
 const isInAppSnapshot = () => inAppBrowser() !== null;

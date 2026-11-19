@@ -7,9 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 맞춤 말씀 앱 안 화면 — 홈 책갈피 까닭 줄 · 받기 화면 카드 · 관심사와 마음 바꾸기 · 마음 한 장.
 const cards = vi.hoisted(() => ({ list: vi.fn(), today: vi.fn(), mine: vi.fn(), receive: vi.fn(), shared: vi.fn() }));
 vi.mock("@/features/hoondok/cards/api", () => ({ cardsAPI: cards }));
+// 홈 책갈피는 로그인 사용자에게만 책 이름을 보인다 — 그 묶음에서만 로그인으로 바꾼다
+const session = vi.hoisted(() => ({ user: null as { id: string; email: string; display_name: string } | null }));
 vi.mock("@/features/identity/use-current-user", () => ({
   CURRENT_USER_KEY: ["hoondok", "me"],
-  useCurrentUser: () => ({ user: null, isLoading: false, isError: false, refetch: vi.fn() }),
+  useCurrentUser: () => ({ user: session.user, isLoading: false, isError: false, refetch: vi.fn() }),
 }));
 // 받기 화면은 모션·FLIP 을 쓰므로 어떤 카드로 열렸는지만 본다
 const bookmarkScreen = vi.hoisted(() => vi.fn());
@@ -74,11 +76,17 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  session.user = null;
   vi.clearAllMocks();
   vi.unstubAllEnvs();
 });
 
 describe("홈 책갈피 까닭 한 줄", () => {
+  beforeEach(() => {
+    session.user = { id: "u1", email: "a@b.c", display_name: "효진" };
+    cards.mine.mockResolvedValue({ items: [], shelves: [] });
+  });
+
   it("homeReason: 겹친 이름을 두 개까지 인용하고, 위기 선택지는 이름으로 들추지 않는다", () => {
     const both = scoreCard(FAMILY_CARD, { interests: ["family", "blessing", "prayer"], moods: [] });
     expect(homeReason(both)).toBe("‘가정과 부부’와 ‘축복과 결혼 준비’를 고르셔서 꽂아 둔 장이에요");
@@ -88,9 +96,10 @@ describe("홈 책갈피 까닭 한 줄", () => {
     for (const text of [homeReason(both), homeReason(crisisOnly)]) expect(text).not.toMatch(/[—–!]|많이 힘들어요/);
   });
 
-  it("답이 없으면 오늘 편성 카드 그대로에 '고르기' 줄이 질문 흐름으로 이어지고, 카드 목록을 받지 않는다", () => {
+  it("답이 없으면 오늘 편성 카드 그대로에 '고르기' 줄이 질문 흐름으로 이어지고, 카드 목록을 받지 않는다", async () => {
     wrap(<PersonalBookmarkHome todayCard={TODAY_CARD} dateLabel="10월 23일" />);
-    expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "나의 책갈피" })).toBeInTheDocument();
+    expect(await screen.findByText("천성경 제1편 · 10월 23일")).toBeInTheDocument();
     expect(screen.getByText("관심 주제를 고르면 맞춘 장이 꽂혀요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "관심 주제 고르기" })).toHaveAttribute("href", "/start");
     expect(cards.list).not.toHaveBeenCalled();
@@ -100,7 +109,7 @@ describe("홈 책갈피 까닭 한 줄", () => {
     storeAnswers({ interests: ["family"], moods: ["tired"] });
     wrap(<PersonalBookmarkHome todayCard={TODAY_CARD} dateLabel="10월 23일" />);
     // 마음 일치 2점(위로 카드)이 주제 일치 1점(가정 카드)보다 앞선다
-    expect(await screen.findByText("천성경 제5편")).toBeInTheDocument();
+    expect(await screen.findByText("천성경 제5편 · 10월 23일")).toBeInTheDocument();
     expect(screen.getByText("‘지쳤어요’")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "관심사와 마음 바꾸기" })).toHaveAttribute("href", "/garden/interests");
     // 선택값은 요청에 실리지 않는다(쿼리 없는 목록 하나)
@@ -111,7 +120,7 @@ describe("홈 책갈피 까닭 한 줄", () => {
     storeAnswers({ interests: ["principle"] });
     wrap(<PersonalBookmarkHome todayCard={TODAY_CARD} dateLabel="10월 23일" />);
     expect(await screen.findByText(FALLBACK_REASON)).toBeInTheDocument();
-    expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
+    expect(await screen.findByText("천성경 제1편 · 10월 23일")).toBeInTheDocument();
   });
 });
 
