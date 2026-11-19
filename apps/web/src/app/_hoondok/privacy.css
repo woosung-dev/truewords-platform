@@ -1,0 +1,235 @@
+/* 개인정보 처리방침 (/privacy). 긴 안내문이라 장식 없이 굵기·간격·가는 선으로만 구분한다.
+   색은 토큰(var())만 쓰고, 표 대신 이름표/내용 줄(.pv-row)로 좁은 화면에서도 가로로 넘치지 않게 한다. */
+[data-app="hoondok"] {
+  .pv {
+    line-height: 1.65;
+  }
+
+  /* 머리 — 제목은 앱바(h1)가 갖고, 여기는 한 줄 소개와 시행일만 둔다 */
+  .pv-head {
+    padding: 8px 0 18px;
+  }
+  .pv-head__lede {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .pv-head__date {
+    margin: 8px 0 0;
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+  }
+
+  /* 한눈에 보기 — 결론 먼저 */
+  .pv-sum {
+    padding: 18px 16px 8px;
+  }
+  .pv-sum__title {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .pv-sum__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .pv-sum__item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pv-sum__ic {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .pv-sum__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pv-sum__t {
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .pv-sum__d {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .pv-sum__cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .pv-sum__cta:active {
+    background: var(--surface-2);
+  }
+
+  /* 목차 */
+  .pv-toc {
+    margin: 24px 0 8px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 0;
+  }
+  .pv-toc__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .pv-toc__link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    font-size: var(--fs-sm);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .pv-toc__link:hover {
+    text-decoration: underline;
+  }
+  .pv-toc__no,
+  .pv-sect__no {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-xs);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 항목 */
+  .pv-sect {
+    padding: 28px 0 4px;
+    scroll-margin-top: 72px;
+  }
+  .pv-sect__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+  .pv-sect p {
+    margin: 0 0 10px;
+    font-size: var(--fs-md);
+  }
+
+  .pv-list {
+    list-style: disc;
+    margin: 0 0 10px;
+    padding-left: 1.2em;
+    font-size: var(--fs-md);
+  }
+  .pv-list li + li {
+    margin-top: 4px;
+  }
+  .pv-list--sub {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+
+  /* 이름표/내용 줄 — 좁은 화면은 위아래, 넓은 화면은 좌우 */
+  .pv-dl {
+    margin: 0 0 12px;
+    border-top: 1px solid var(--line);
+  }
+  .pv-row {
+    display: grid;
+    gap: 2px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pv-row__k {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+  }
+  .pv-row__v {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+
+  /* 맡기는 곳 — 회사마다 한 장 */
+  .pv-procs {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .pv-proc {
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    padding: 12px 14px 4px;
+    margin: 0;
+  }
+  .pv-proc__name {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .pv-proc__body {
+    margin: 0;
+  }
+  .pv-dl--inner {
+    margin: 0;
+    border-top: 0;
+  }
+  .pv-dl--inner .pv-row:last-child {
+    border-bottom: 0;
+  }
+
+  .pv-link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+  }
+
+  /* 온보딩 안내 줄 안의 처리방침 링크 — 작은 글씨라도 누르는 자리는 세로 24px 를 넘긴다 (WCAG 2.2 SC 2.5.8) */
+  .pv-inline-link {
+    display: inline-block;
+    min-height: 24px;
+    line-height: 24px;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  @media (min-width: 768px) {
+    .pv-toc__list {
+      grid-template-columns: 1fr 1fr;
+      column-gap: 16px;
+    }
+    .pv-row {
+      grid-template-columns: 9.5em 1fr;
+      gap: 16px;
+    }
+    .pv-dl--inner .pv-row {
+      grid-template-columns: 4.5em 1fr;
+    }
+  }
+}
