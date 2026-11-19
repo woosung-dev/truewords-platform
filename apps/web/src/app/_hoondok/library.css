@@ -652,6 +652,19 @@
   .rd-sheet__close {
     margin-top: 10px;
   }
+  /* 확인 시트 버튼 줄 — 닫기(보조, 왼쪽 1)와 주 행동(오른쪽 2)을 같은 높이로 한 줄에 둔다 */
+  .rd-sheet__acts {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .rd-sheet__acts > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .rd-sheet__acts > .btn:last-child {
+    flex: 2 1 0;
+  }
 
   /* AI 설명 탭에서 고른 단락 인용 */
   .rd-ai__quote {

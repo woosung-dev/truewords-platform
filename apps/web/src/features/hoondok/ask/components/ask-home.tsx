@@ -544,15 +544,19 @@ function DeleteAskSheet({
     onSuccess: onDeleted,
   });
   return (
-    <ReaderSheet title="이 질문을 지울까요?" onClose={onClose} initialFocus="close">
-      <p className="js-lede">질문과 답, 이어서 한 대화가 내 계정에서 모두 지워져요. 되돌릴 수 없어요.</p>
-      {item.public_status && <p className="js-lede">{PUBLIC_COPY_NOTE[item.public_status]}</p>}
-      {remove.isError && <p role="alert">지우지 못했어요. 잠시 뒤 다시 해 주세요.</p>}
-      <div className="ask-acts ask-del__acts">
+    <ReaderSheet
+      title="이 질문을 지울까요?"
+      onClose={onClose}
+      initialFocus="close"
+      actions={
         <HoondokButton variant="primary" isLoading={remove.isPending} onClick={() => remove.mutate()}>
           지우기
         </HoondokButton>
-      </div>
+      }
+    >
+      <p className="js-lede">질문과 답, 이어서 한 대화가 내 계정에서 모두 지워져요. 되돌릴 수 없어요.</p>
+      {item.public_status && <p className="js-lede">{PUBLIC_COPY_NOTE[item.public_status]}</p>}
+      {remove.isError && <p role="alert">지우지 못했어요. 잠시 뒤 다시 해 주세요.</p>}
     </ReaderSheet>
   );
 }

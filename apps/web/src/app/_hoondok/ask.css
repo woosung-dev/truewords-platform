@@ -734,13 +734,6 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  /* 지우기 확인 시트 — 지우기를 전체 폭 주 버튼으로 (닫기는 시트가 그 아래에 전체 폭으로 둔다) */
-  .ask-del__acts {
-    margin-top: 16px;
-  }
-  .ask-del__acts > .btn {
-    flex: 1;
-  }
   /* 값이 하나뿐인 안내 줄 — 좌우 배분(`.hint` 기본)이면 빈 칸이 문장을 오른쪽 끝으로 민다.
      이름은 `.ask-hint`(library.css 의 검색 화면 질문 진입 카드)와 겹치지 않게 둔다 */
   .ask-hint-line {
