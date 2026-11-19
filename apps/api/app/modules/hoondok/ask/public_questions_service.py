@@ -4,6 +4,8 @@
 - 마음 돌봄(pastoral)·위기 신호 답, 근거 인용이 없는 답, 이어 물은 답(세션 첫 답이 아님)은 공개하지 않는다(409).
 - 본인이 같은 답을 다시 신청하면 기존 신청을 그대로 돌려준다(응답 유실 복구).
 - 공개 범위는 status=published 뿐. 본인 삭제는 행을 지워 관리자도 되살릴 수 없게 한다.
+- 공개 목록은 고정(관리자 지정, 최대 MAX_PINNED) → 인기도(조회 수 + 3 × 질문 수) → 최근 공개순. 페이지는 offset 을 담은 불투명 cursor 로 잇는다.
+  조회는 (질문, 조회자, KST 날짜)당 1회만 세고, 질문 수는 공개 질문을 보고 새로 물어 답을 받은 계정당 1회다.
 - 신청자는 답이 달린 채팅 세션의 소유자(research_sessions.user_id = 훈독 user id)여야 한다. 아니면 없는 답과 같은 404 —
   훈독 AI 질문은 POST /hoondok/ask/stream 으로만 계정 세션에 묶인다(DEC-PWA-025 2차).
 """
@@ -11,28 +13,45 @@
 import re
 import secrets
 import uuid
+from collections.abc import Callable
+from datetime import date
 
 from sqlalchemy.exc import IntegrityError
 
 from app.core.errors import ConflictError, InvalidError, NotFoundError
-from app.core.common.clock import utcnow
+from app.core.common.clock import today_kst, utcnow
 from app.modules.admin.service import AdminService
 from app.modules.chat.models import MessageRole
 from app.modules.hoondok.models import PublicQuestion
-from app.modules.hoondok.ask.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.ask.public_questions_repository import (
+    POPULARITY_ASK_WEIGHT,
+    AdminSort,
+    PublicQuestionRepository,
+    viewer_key,
+)
 from app.modules.hoondok.ask.public_questions_schemas import (
     MyPublicQuestionItem,
     MyPublicQuestionListResponse,
     PublicQuestionAdminItem,
     PublicQuestionAdminListResponse,
+    PublicQuestionBookmarkListResponse,
     PublicQuestionDetail,
     PublicQuestionListResponse,
+    PublicQuestionPinsReorder,
+    PublicQuestionPinsResponse,
     PublicQuestionReview,
     PublicQuestionSource,
     PublicQuestionSummary,
 )
 
 PUBLIC_STATUS = "published"
+MAX_PINNED = 10
+INVALID_CURSOR = "목록 위치(cursor)가 올바르지 않아요"
+PIN_NEEDS_PUBLISHED = "공개 중인 질문만 고정할 수 있어요"
+PIN_LIMIT = f"고정 질문은 최대 {MAX_PINNED}개예요"
+PIN_SET_MISMATCH = "고정된 질문 전체를 한 번씩만 보내야 해요"
+MAX_CURSOR_LENGTH = 9
+MAX_CURSOR_OFFSET = 100_000
 SOURCE_LIMIT = 3
 PREVIEW_LENGTH = 120
 NOT_FOUND = "질문을 찾을 수 없어요"
@@ -73,7 +92,23 @@ def _admin(row: PublicQuestion) -> PublicQuestionAdminItem:
         status=row.status,  # type: ignore[arg-type]
         created_at=row.created_at,
         reviewed_at=row.reviewed_at,
+        view_count=row.view_count,
+        ask_count=row.ask_count,
+        score=row.view_count + POPULARITY_ASK_WEIGHT * row.ask_count,
+        pin_order=row.pin_order,
     )
+
+
+def _parse_cursor(cursor: str | None) -> int:
+    """불투명 cursor(현재는 offset 문자열) → offset. 비어 있으면 0, 숫자가 아니거나 음수면 422."""
+    if not cursor:
+        return 0
+    if len(cursor) > MAX_CURSOR_LENGTH or not cursor.isascii() or not cursor.isdigit():
+        raise InvalidError(INVALID_CURSOR)
+    offset = int(cursor)
+    if offset > MAX_CURSOR_OFFSET:  # DB 정수 범위를 넘는 offset 이 500 을 내지 않게
+        raise InvalidError(INVALID_CURSOR)
+    return offset
 
 
 def _published_at(row: PublicQuestion):
@@ -82,8 +117,11 @@ def _published_at(row: PublicQuestion):
 
 
 class PublicQuestionService:
-    def __init__(self, repo: PublicQuestionRepository) -> None:
+    def __init__(
+        self, repo: PublicQuestionRepository, *, today_fn: Callable[[], date] = today_kst
+    ) -> None:
         self.repo = repo
+        self.today_fn = today_fn
 
     # --- 본인 ---------------------------------------------------------------------
 
@@ -159,32 +197,59 @@ class PublicQuestionService:
             raise NotFoundError(NOT_FOUND)
         return row
 
-    async def list_public(self, q: str | None, cursor: str | None, limit: int) -> PublicQuestionListResponse:
-        after = None
-        if cursor:
-            after = await self.repo.get(cursor)
-            if after is None or after.status != PUBLIC_STATUS:
-                raise InvalidError("목록 위치(cursor)가 올바르지 않아요")
-        keyword = (q or "").strip() or None
-        rows = await self.repo.list_published(keyword, after, limit + 1)
-        has_more = len(rows) > limit
-        rows = rows[:limit]
-        return PublicQuestionListResponse(
-            items=[
-                PublicQuestionSummary(
-                    id=r.id,
-                    question=r.question,
-                    preview=make_preview(r.answer_md),
-                    answer_mode=r.answer_mode,  # type: ignore[arg-type]
-                    published_at=_published_at(r),
-                )
-                for r in rows
-            ],
-            next_cursor=rows[-1].id if has_more else None,
+    @staticmethod
+    def _summary(r: PublicQuestion, bookmarked: bool) -> PublicQuestionSummary:
+        return PublicQuestionSummary(
+            id=r.id,
+            question=r.question,
+            preview=make_preview(r.answer_md),
+            answer_mode=r.answer_mode,  # type: ignore[arg-type]
+            published_at=_published_at(r),
+            pinned=r.pin_order is not None,
+            view_count=r.view_count,
+            bookmarked=bookmarked,
         )
 
-    async def get_public(self, question_id: str) -> PublicQuestionDetail:
+    async def list_public(
+        self, q: str | None, cursor: str | None, limit: int, user_id: uuid.UUID | None = None
+    ) -> PublicQuestionListResponse:
+        """cursor 는 불투명 문자열(offset). 숫자가 아니면 422 — 예전 keyset cursor(질문 id)도 422 다."""
+        offset = _parse_cursor(cursor)
+        keyword = (q or "").strip() or None
+        rows = await self.repo.list_published(keyword, offset, limit + 1)
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        mine = await self.repo.bookmarked_ids(user_id, [r.id for r in rows]) if user_id else set()
+        return PublicQuestionListResponse(
+            items=[self._summary(r, r.id in mine) for r in rows],
+            next_cursor=str(offset + limit) if has_more else None,
+        )
+
+    async def record_view(self, question_id: str, user_id: uuid.UUID | None, client_ip: str) -> None:
+        """공개 질문 조회 1회. 로그인 계정이 우선, 익명은 클라이언트 IP 기준(둘 다 HMAC 키). published 가 아니면 404.
+
+        조회자 식별은 서버가 정한다 — 클라이언트가 보내는 값으로 조회 수를 부풀릴 수 없다.
+        """
+        await self._published(question_id)
+        key = viewer_key("u", user_id) if user_id is not None else viewer_key("ip", client_ip)
+        await self.repo.record_view(question_id, key, self.today_fn())
+
+    async def put_bookmark(self, user_id: uuid.UUID, question_id: str) -> None:
+        """멱등. published 가 아니면 404."""
+        await self._published(question_id)
+        await self.repo.add_bookmark(question_id, user_id)
+
+    async def delete_bookmark(self, user_id: uuid.UUID, question_id: str) -> None:
+        """멱등. 공개가 내려간 질문의 남은 북마크도 지울 수 있게 상태·존재를 확인하지 않는다."""
+        await self.repo.remove_bookmark(question_id, user_id)
+
+    async def list_bookmarks(self, user_id: uuid.UUID, limit: int) -> PublicQuestionBookmarkListResponse:
+        rows = await self.repo.list_bookmarked(user_id, limit)
+        return PublicQuestionBookmarkListResponse(items=[self._summary(r, True) for r in rows])
+
+    async def get_public(self, question_id: str, user_id: uuid.UUID | None = None) -> PublicQuestionDetail:
         row = await self._published(question_id)
+        bookmarked = user_id is not None and row.id in await self.repo.bookmarked_ids(user_id, [row.id])
         return PublicQuestionDetail(
             id=row.id,
             question=row.question,
@@ -192,6 +257,7 @@ class PublicQuestionService:
             sources=_sources(row),
             answer_mode=row.answer_mode,  # type: ignore[arg-type]
             published_at=_published_at(row),
+            bookmarked=bookmarked,
         )
 
 
@@ -201,27 +267,81 @@ class PublicQuestionAdminService:
     def __init__(self, repo: PublicQuestionRepository) -> None:
         self.repo = repo
 
-    async def list(self, status_filter: str | None, page: int, page_size: int) -> PublicQuestionAdminListResponse:
-        rows, total = await self.repo.page(status_filter, (page - 1) * page_size, page_size)
+    async def list(
+        self, status_filter: str | None, q: str | None, sort: AdminSort, page: int, page_size: int
+    ) -> PublicQuestionAdminListResponse:
+        keyword = (q or "").strip() or None
+        rows, total = await self.repo.page(status_filter, keyword, sort, (page - 1) * page_size, page_size)
         return PublicQuestionAdminListResponse(
             items=[_admin(r) for r in rows], total=total, page=page, page_size=page_size
         )
 
+    async def list_pins(self) -> PublicQuestionPinsResponse:
+        return PublicQuestionPinsResponse(items=[_admin(r) for r in await self.repo.list_pins()])
+
     async def review_with_audit(
         self, question_id: str, data: PublicQuestionReview, audit: AdminService, actor_id: uuid.UUID
     ) -> PublicQuestionAdminItem:
-        row = await self.repo.get(question_id)
+        """상태 전환(먼저) → 고정 변경. 숨김은 고정을 푼다. 고정은 최종 상태가 published 일 때만, 최대 MAX_PINNED."""
+        # 고정 집합을 세고 다시 매기기 전에 고정 행·대상 행을 잠가(Postgres) 동시 변경이 같은 번호·초과 고정을 만들지 못하게 한다.
+        await self.repo.list_pins(lock=True)
+        row = await self.repo.get_for_update(question_id)
         if row is None:
             raise NotFoundError(NOT_FOUND)
-        row.status = data.status
-        row.reviewed_at = utcnow()
+        status_changed = data.status is not None and data.status != row.status
+        final_status = data.status or row.status
+        pins: list[PublicQuestion] = []
+        if data.pinned:
+            if final_status != PUBLIC_STATUS:
+                raise ConflictError(PIN_NEEDS_PUBLISHED)
+            pins = await self.repo.list_pins()
+            if row.pin_order is None and len(pins) >= MAX_PINNED:
+                raise ConflictError(PIN_LIMIT)
+
+        changes: dict = {"id": row.id}
+        if status_changed:
+            # 같은 상태를 다시 보내면(재공개 등) 검수 시각·감사 기록을 건드리지 않는다.
+            row.status = data.status  # type: ignore[assignment]
+            row.reviewed_at = utcnow()
+            changes["status"] = data.status
+        unpin = row.pin_order is not None and (data.pinned is False or final_status != PUBLIC_STATUS)
+        if unpin:
+            row.pin_order = None
+            changes["pinned"] = False
+        elif data.pinned and row.pin_order is None:
+            row.pin_order = max((p.pin_order or 0 for p in pins), default=-1) + 1
+            changes["pinned"] = True
         saved = await self.repo.save(row, commit=False)
+        if unpin:
+            # 남은 고정을 0..n-1 로 이어 붙인다.
+            await self.repo.renumber_pins()
         # target_id 는 UUID 컬럼이라 slug 대신 원본 message_id 를 남기고, slug 는 changes 에 둔다.
         await audit.log_audit(
             admin_user_id=actor_id,
             action="public_question.review",
             target_table="hoondok_public_questions",
             target_id=saved.message_id,
-            changes={"id": saved.id, "status": data.status},
+            changes=changes,
         )
         return _admin(saved)
+
+    async def reorder_pins(
+        self, data: PublicQuestionPinsReorder, audit: AdminService, actor_id: uuid.UUID
+    ) -> PublicQuestionPinsResponse:
+        """고정 순서 바꾸기 — ids 는 현재 고정 집합과 정확히 같아야 한다(중복·누락·추가 422)."""
+        pins = {p.id: p for p in await self.repo.list_pins(lock=True)}
+        if len(set(data.ids)) != len(data.ids) or set(data.ids) != set(pins):
+            raise InvalidError(PIN_SET_MISMATCH)
+        for index, question_id in enumerate(data.ids):
+            pins[question_id].pin_order = index
+            await self.repo.save(pins[question_id], commit=False)
+        if data.ids:
+            # 한 번의 변경이라 감사 기록도 한 건 — 대상은 맨 위 질문의 message_id, 전체 순서는 changes 에 둔다.
+            await audit.log_audit(
+                admin_user_id=actor_id,
+                action="public_question.reorder_pins",
+                target_table="hoondok_public_questions",
+                target_id=pins[data.ids[0]].message_id,
+                changes={"ids": list(data.ids)},
+            )
+        return await self.list_pins()

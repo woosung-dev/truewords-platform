@@ -11,7 +11,7 @@ import { Suspense, useEffect, useState } from "react";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
 import { canGoBackInApp } from "@/features/hoondok/nav-history";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { ASK_QUESTION_MAX, askLength } from "../ask-stream";
+import { ASK_QUESTION_MAX, askLength, isPublicQuestionId } from "../ask-stream";
 import { ASKS_KEY } from "../asks-api";
 import { useClearLegacyAskItems } from "../legacy";
 import { startLiveAsk } from "../live";
@@ -32,7 +32,13 @@ const VISIBILITY_LABEL: Record<AskVisibility, string> = {
 
 type Sheet = "mode" | "visibility" | null;
 
-type AskNewInitial = { question: string; choice: AnswerChoice; isResume?: boolean };
+type AskNewInitial = {
+  question: string;
+  choice: AnswerChoice;
+  isResume?: boolean;
+  /** 추천 질문의 "나도 물어보기"로 열었으면 그 공개 질문 id(모양을 검사한 값만). */
+  fromPublicId?: string;
+};
 const EMPTY_INITIAL: AskNewInitial = { question: "", choice: "auto" };
 
 // 로그인하러 가는 동안 쓰던 문장을 이 탭에만 잠깐 둔다. 주소(returnTo)에 싣지 않는다 — 질문 원문이 방문 기록·주소창
@@ -62,10 +68,14 @@ function parseChoice(raw: string | null): AnswerChoice {
   return ANSWER_CHOICES.find((info) => info.id === raw)?.id ?? "auto";
 }
 
-/** 로그인 뒤 같은 모델로 돌아올 주소. 문장은 주소에 싣지 않고 이 탭의 sessionStorage 로 넘긴다(keepDraft). */
-export function askNewReturnHref(choice: AnswerChoice): string {
+/**
+ * 로그인 뒤 같은 모델로 돌아올 주소. 문장은 주소에 싣지 않고 이 탭의 sessionStorage 로 넘긴다(keepDraft).
+ * 공개 질문 id(from)는 누구나 보는 공개 질문의 id 라 주소에 그대로 둔다.
+ */
+export function askNewReturnHref(choice: AnswerChoice, fromPublicId?: string): string {
   const params = new URLSearchParams({ resume: "1" });
   if (choice !== "auto") params.set("mode", choice);
+  if (fromPublicId) params.set("from", fromPublicId);
   return `/ask/new?${params.toString()}`;
 }
 
@@ -133,6 +143,8 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
         question: text,
         answerMode: choice === "auto" ? undefined : choice,
         wantsPublic: shownVisibility === "public",
+        // 문장을 고쳐 썼으면 그 공개 질문을 이은 질문이 아니다 — 미리 채운 문장 그대로일 때만 싣는다
+        publicQuestionId: text === initial.question.trim() ? initial.fromPublicId : undefined,
       },
       () => void queryClient.invalidateQueries({ queryKey: ASKS_KEY }),
     );
@@ -148,7 +160,7 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
           title="질문하려면 로그인이 필요해요"
           body="AI 질문은 훈독에 로그인한 분만 하루 5번까지 할 수 있어요. 질문과 답은 내 계정에만 보관돼요."
           quote={text || undefined}
-          returnTo={askNewReturnHref(choice)}
+          returnTo={askNewReturnHref(choice, initial.fromPublicId)}
           replace
         />
       </section>
@@ -278,13 +290,16 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
 function AskNewWithQuery() {
   // 말씀 단락·훈독 완료·검색 "이 말로 새로 묻기" 가 `?q=` 로 문장을 넘긴다. 채우기만 하고 보내지는 않는다.
   // `mode`·`resume` 은 로그인 안내에서 돌아올 때만 붙는다(문장은 sessionStorage 로 돌아온다).
+  // `from` 은 추천 질문 "나도 물어보기" — 모양이 맞을 때만 받아 새 질문 요청에 public_question_id 로 싣는다.
   const params = useSearchParams();
+  const from = params.get("from");
   return (
     <AskNewForm
       initial={{
         question: params.get("q") ?? "",
         choice: parseChoice(params.get("mode")),
         isResume: params.get("resume") === "1",
+        fromPublicId: isPublicQuestionId(from) ? from : undefined,
       }}
     />
   );

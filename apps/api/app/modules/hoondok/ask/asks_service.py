@@ -141,10 +141,17 @@ class AskService:
         except Exception:
             await self.repo.refund(user_id, day)
             raise
-        return self._relay(user_id, day, first, frames)
+        # 이어 묻기(session_id 있음)는 공개 질문 질문 수에 세지 않는다.
+        public_id = data.public_question_id if data.session_id is None else None
+        return self._relay(user_id, day, first, frames, public_id)
 
     async def _relay(
-        self, user_id: uuid.UUID, day: date, first: str, frames: AsyncIterator[str]
+        self,
+        user_id: uuid.UUID,
+        day: date,
+        first: str,
+        frames: AsyncIterator[str],
+        public_question_id: str | None = None,
     ) -> AsyncIterator[str]:
         """프레임을 그대로 흘리면서 sources 이벤트를 계정에 기록한다.
 
@@ -154,7 +161,7 @@ class AskService:
         try:
             while True:
                 if frame.startswith("event: sources\n"):
-                    await self._record(user_id, day, frame)
+                    await self._record(user_id, day, frame, public_question_id)
                 yield frame
                 try:
                     frame = await anext(frames)
@@ -164,7 +171,9 @@ class AskService:
             # 클라이언트가 끊으면 채팅 스트림도 닫아 STREAM_ABORTED 관찰 경로를 그대로 탄다.
             await frames.aclose()  # type: ignore[attr-defined]
 
-    async def _record(self, user_id: uuid.UUID, day: date, frame: str) -> None:
+    async def _record(
+        self, user_id: uuid.UUID, day: date, frame: str, public_question_id: str | None = None
+    ) -> None:
         try:
             data = json.loads(frame.split("\ndata: ", 1)[1])
             await self.repo.record_turn(
@@ -177,6 +186,7 @@ class AskService:
                     suggested_followups=[t for t in data.get("suggested_followups") or [] if isinstance(t, str)],
                 )
             )
+            await self._count_public_ask(user_id, public_question_id)
         except Exception as error:
             # 답은 이미 만들어졌다 — 기록 실패로 답 전달을 끊지 않는다. 다만 이 답은 계정 목록에 남지 않고 이어 묻기도
             # 소유 확인(403)에 막히므로, 쓴 횟수는 되돌린다.
@@ -188,6 +198,20 @@ class AskService:
             except Exception as refund_error:
                 logger.error("hoondok ask 횟수 되돌리기 실패: %s", type(refund_error).__name__)
                 await self.repo.rollback()
+
+    async def _count_public_ask(self, user_id: uuid.UUID, public_question_id: str | None) -> None:
+        """답이 계정에 기록된 새 대화만 공개 질문의 질문 수에 반영한다. 실패해도 질문 흐름을 막지 않는다."""
+        if not public_question_id:
+            return
+        try:
+            await self.repo.count_public_ask(public_question_id, user_id)
+        except Exception as error:
+            # 질문 본문·바인딩 값이 담길 수 있어 예외 종류만 남긴다. 답·횟수에는 영향이 없다.
+            logger.warning("공개 질문 질문 수 반영 실패: %s", type(error).__name__)
+            try:
+                await self.repo.rollback()
+            except Exception:
+                pass
 
     # --- 계정 보관 -------------------------------------------------------------------
 

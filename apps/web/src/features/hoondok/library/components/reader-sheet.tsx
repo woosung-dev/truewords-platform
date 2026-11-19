@@ -17,11 +17,17 @@ export function ReaderSheet({
   onClose,
   children,
   toast,
+  initialFocus,
+  actions,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   toast?: ReactNode;
+  /** "close" 면 열릴 때 닫기 버튼에 포커스를 둔다(되돌릴 수 없는 확인 시트에서 Enter 로 바로 실행되지 않게). */
+  initialFocus?: "close";
+  /** 확인 시트의 주 행동. 주면 닫기(왼쪽, 짧게)와 한 줄에 놓는다(오른쪽, 길게). */
+  actions?: ReactNode;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -57,9 +63,23 @@ export function ReaderSheet({
           {title}
         </h2>
         {children}
-        <button className="btn btn-ghost rd-sheet__close" type="button" onClick={onClose}>
-          닫기
-        </button>
+        {actions ? (
+          <div className="rd-sheet__acts">
+            <button className="btn btn-ghost" type="button" onClick={onClose} autoFocus={initialFocus === "close"}>
+              닫기
+            </button>
+            {actions}
+          </div>
+        ) : (
+          <button
+            className="btn btn-ghost rd-sheet__close"
+            type="button"
+            onClick={onClose}
+            autoFocus={initialFocus === "close"}
+          >
+            닫기
+          </button>
+        )}
       </div>
       {toast}
     </dialog>

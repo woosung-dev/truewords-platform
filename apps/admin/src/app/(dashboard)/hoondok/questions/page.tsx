@@ -1,26 +1,39 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { Fragment, useState } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight, Pin, PinOff } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isNotFound, loadErrorMessage, mutationErrorMessage } from "@/features/hoondok/api-errors";
+import { PINS_KEY, PinnedQuestionsCard, QUESTIONS_KEY, pinLabel, shortQuestion } from "@/features/hoondok/components/pinned-questions-card";
 import { kstTodayIso } from "@/features/hoondok/dates";
 import {
   ANSWER_MODE_LABEL,
+  MAX_PINNED,
   type PublicQuestionAdminItem,
+  QUESTION_SEARCH_MAX,
+  QUESTION_SORT_LABEL,
   QUESTION_STATUS_LABEL,
-  type QuestionReviewStatus,
+  type QuestionPatch,
+  type QuestionSort,
   type QuestionStatus,
   questionsAPI,
 } from "@/features/hoondok/questions-api";
+import { ApiError } from "@/lib/api";
 
-const LIST_KEY = ["hoondok", "questions"];
+const LIST_KEY = [...QUESTIONS_KEY, "list"];
+const SORTS = Object.keys(QUESTION_SORT_LABEL) as QuestionSort[];
+const LIMIT_MESSAGE_SHORT = "상단 고정은 10개까지예요. 하나를 해제해야 새로 고정할 수 있어요.";
+const LIMIT_MESSAGE = "상단 고정은 10개까지예요. 하나를 해제하고 다시 시도해 주세요.";
+const nf = (n: number) => n.toLocaleString("ko-KR");
 
 // 상태 배지 — 카드 화면의 검수 배지 토큰을 그대로 쓴다(새 디자인 없음).
 const STATUS_BADGE: Record<QuestionStatus, string> = {
@@ -85,25 +98,56 @@ function AnswerPreview({ text }: { text: string }) {
 export default function HoondokQuestionsPage() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<QuestionStatus>("pending");
+  const [sort, setSort] = useState<QuestionSort>("oldest");
+  const [searchInput, setSearchInput] = useState("");
+  const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: [...LIST_KEY, status, page],
-    queryFn: () => questionsAPI.list(status, page),
+  // 검색어는 300ms 멈춘 뒤 적용하고 1쪽부터 다시 본다
+  useEffect(() => {
+    const term = searchInput.trim();
+    if (term === q) return;
+    const timer = setTimeout(() => {
+      setQ(term);
+      setPage(1);
+      setOpenId(null);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, q]);
+
+  const { data, isLoading, isError, error, refetch, isPlaceholderData } = useQuery({
+    queryKey: [...LIST_KEY, status, sort, q, page],
+    queryFn: () => questionsAPI.list({ status, sort, q, page }),
+    placeholderData: keepPreviousData,
   });
+  const pins = useQuery({ queryKey: PINS_KEY, queryFn: () => questionsAPI.pins() });
+  const pinCount = pins.data?.items.length ?? 0;
+  const pinLimitReached = pinCount >= MAX_PINNED;
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: LIST_KEY });
+  // 고정 카드와 표를 함께 갱신한다
+  const refresh = () => queryClient.invalidateQueries({ queryKey: QUESTIONS_KEY });
 
-  const reviewMutation = useMutation({
-    mutationFn: ({ id, next }: { id: string; next: QuestionReviewStatus }) => questionsAPI.review(id, next),
-    onSuccess: (_, { next }) => {
-      toast.success(next === "published" ? "추천했습니다" : "추천에서 뺐습니다");
+  const patchMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: QuestionPatch; wasPinned: boolean; pinCount: number }) =>
+      questionsAPI.update(id, patch),
+    onSuccess: (_, { patch, wasPinned, pinCount: count }) => {
+      if (patch.pinned === true) toast.success(`상단에 고정했습니다 (${count + 1}/${MAX_PINNED})`);
+      else if (patch.pinned === false) toast.success("고정을 풀었습니다");
+      else if (patch.status === "published") toast.success("추천했습니다");
+      else toast.success(wasPinned ? "추천에서 뺐습니다. 상단 고정도 풀렸습니다" : "추천에서 뺐습니다");
       refresh();
     },
-    onError: (err: Error) => {
-      toast.error(mutationErrorMessage(err, "저장에 실패했습니다"));
-      if (isNotFound(err)) refresh();
+    onError: (err: Error, { patch }) => {
+      if (patch.pinned === true) {
+        toast.error(err instanceof ApiError && err.status === 409 ? LIMIT_MESSAGE : "고정하지 못했습니다");
+      } else if (patch.pinned === false) {
+        toast.error("고정을 풀지 못했습니다");
+      } else {
+        toast.error(mutationErrorMessage(err, "저장에 실패했습니다"));
+      }
+      // 404 는 이미 없어진 질문, 409 는 고정 목록이 어긋난 경우라 둘 다 새로 고친다
+      if (isNotFound(err) || (err instanceof ApiError && err.status === 409)) refresh();
     },
   });
 
@@ -113,33 +157,78 @@ export default function HoondokQuestionsPage() {
     setOpenId(null);
   }
 
+  function clearSearch() {
+    setSearchInput("");
+    setQ("");
+    setPage(1);
+  }
+
   const items = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
-  const busy = reviewMutation.isPending;
+  const busy = patchMutation.isPending;
   // 뒤쪽 쪽의 마지막 항목을 추천하거나 빼면 그 쪽이 비고 쪽 넘김도 사라진다 — 남은 마지막 쪽으로 옮긴다
-  if (data && items.length === 0 && page > 1) setPage(totalPages < page ? totalPages : page - 1);
+  if (data && !isLoading && !isPlaceholderData && items.length === 0 && page > 1) setPage(totalPages < page ? totalPages : page - 1);
 
   return (
     <div className="space-y-5 page-wide">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">추천 질문 고르기</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          식구님들이 공개를 허용한 질문과 답이에요. 추천한 것만 훈독 AI 질문의 추천 목록에 이름 없이 보여요.
+          식구님들이 공개를 허용한 질문과 답이에요. 추천한 것만 훈독 AI 질문의 추천 목록에 이름 없이 보여요. 추천 목록은
+          상단 고정 → 점수(조회 + 나도 물어보기 × 3) 순이에요.
         </p>
       </div>
 
-      <div role="group" aria-label="상태 필터" className="flex flex-wrap gap-1.5">
-        {FILTERS.map((value) => (
-          <Button
-            key={value}
-            size="sm"
-            variant={status === value ? "default" : "outline"}
-            aria-pressed={status === value}
-            onClick={() => changeFilter(value)}
-          >
-            {QUESTION_STATUS_LABEL[value]}
-          </Button>
-        ))}
+      <PinnedQuestionsCard externalBusy={busy} />
+
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div role="group" aria-label="상태 필터" className="flex flex-wrap gap-1.5">
+          {FILTERS.map((value) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={status === value ? "default" : "outline"}
+              aria-pressed={status === value}
+              onClick={() => changeFilter(value)}
+            >
+              {QUESTION_STATUS_LABEL[value]}
+            </Button>
+          ))}
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <div className="flex-1 md:flex-none md:w-40">
+            <Label htmlFor="question-sort" className="sr-only">
+              정렬
+            </Label>
+            <NativeSelect
+              id="question-sort"
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as QuestionSort);
+                setPage(1);
+              }}
+            >
+              {SORTS.map((value) => (
+                <option key={value} value={value}>
+                  {QUESTION_SORT_LABEL[value]}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          <div className="flex-1 md:flex-none md:w-64">
+            <Label htmlFor="question-search" className="sr-only">
+              질문 검색
+            </Label>
+            <Input
+              id="question-search"
+              type="search"
+              placeholder="질문 검색"
+              maxLength={QUESTION_SEARCH_MAX}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -158,21 +247,45 @@ export default function HoondokQuestionsPage() {
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center">
-          <p className="text-muted-foreground text-sm">이 상태의 질문이 없습니다.</p>
+        <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
+          {q ? (
+            <>
+              <p className="text-muted-foreground text-sm">&apos;{q}&apos;와 맞는 질문이 없습니다.</p>
+              <Button variant="outline" size="sm" onClick={clearSearch}>
+                검색 지우기
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm">이 상태의 질문이 없습니다.</p>
+          )}
         </div>
       ) : (
         <>
+          <p className="text-xs text-muted-foreground">점수 = 조회 + 나도 물어보기 × 3</p>
           <Card className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
-                  <TableHead className="font-semibold text-foreground">신청일</TableHead>
                   <TableHead className="font-semibold text-foreground">질문</TableHead>
-                  <TableHead className="font-semibold text-foreground">답변 모델</TableHead>
-                  <TableHead className="font-semibold text-foreground">근거</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden md:table-cell">답한 모델</TableHead>
                   <TableHead className="font-semibold text-foreground">상태</TableHead>
-                  <TableHead className="w-48" />
+                  <TableHead className="font-semibold text-foreground text-right hidden lg:table-cell">조회</TableHead>
+                  <TableHead className="font-semibold text-foreground text-right hidden lg:table-cell">
+                    나도 물어보기
+                  </TableHead>
+                  <TableHead
+                    aria-sort={sort === "popular" ? "descending" : undefined}
+                    className="font-semibold text-foreground text-right"
+                  >
+                    점수
+                  </TableHead>
+                  <TableHead
+                    aria-sort={sort === "newest" ? "descending" : sort === "oldest" ? "ascending" : undefined}
+                    className="font-semibold text-foreground hidden md:table-cell"
+                  >
+                    신청일
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-foreground hidden md:table-cell">동작</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,7 +296,10 @@ export default function HoondokQuestionsPage() {
                     open={openId === item.id}
                     onToggle={() => setOpenId((prev) => (prev === item.id ? null : item.id))}
                     busy={busy}
-                    onReview={(next) => reviewMutation.mutate({ id: item.id, next })}
+                    pinLimitReached={pinLimitReached}
+                    onPatch={(patch) =>
+                      patchMutation.mutate({ id: item.id, patch, wasPinned: item.pin_order !== null, pinCount })
+                    }
                   />
                 ))}
               </TableBody>
@@ -192,7 +308,7 @@ export default function HoondokQuestionsPage() {
 
           <nav aria-label="페이지" className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              총 {data?.total ?? 0}건 · {page} / {totalPages}쪽
+              총 {nf(data?.total ?? 0)}건 · {page} / {totalPages}쪽
             </span>
             <div className="flex gap-1.5">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
@@ -214,17 +330,18 @@ interface QuestionRowProps {
   open: boolean;
   onToggle: () => void;
   busy: boolean;
-  onReview: (next: QuestionReviewStatus) => void;
+  pinLimitReached: boolean;
+  onPatch: (patch: QuestionPatch) => void;
 }
 
-function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps) {
+function QuestionRow({ item, open, onToggle, busy, pinLimitReached, onPatch }: QuestionRowProps) {
   const previewId = `question-preview-${item.id}`;
   const Chevron = open ? ChevronDown : ChevronRight;
+  const pinned = item.pin_order !== null;
   return (
     <Fragment>
       <TableRow data-id={item.id} className="hover:bg-admin-muted/30 transition-colors align-top">
-        <TableCell className="whitespace-nowrap text-sm text-muted-foreground">{kstDate(item.created_at)}</TableCell>
-        <TableCell className="min-w-[16rem] max-w-[32rem] whitespace-normal">
+        <TableCell className="md:min-w-[14rem] max-w-[32rem] whitespace-normal">
           <button
             type="button"
             aria-expanded={open}
@@ -235,35 +352,56 @@ function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps)
             <Chevron className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="line-clamp-2">{item.question}</span>
           </button>
+          {pinned && (
+            <p className="mt-1 ml-5.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <Pin className="w-3 h-3" aria-hidden />
+              {pinLabel(item.pin_order as number)}
+            </p>
+          )}
+          <div className="mt-2 ml-5.5 flex flex-wrap gap-2 md:hidden">
+            <RowActions item={item} busy={busy} pinLimitReached={pinLimitReached} onPatch={onPatch} />
+          </div>
         </TableCell>
-        <TableCell className="whitespace-nowrap text-sm">{ANSWER_MODE_LABEL[item.answer_mode]}</TableCell>
-        <TableCell className="text-sm tabular-nums">{item.sources.length}</TableCell>
+        <TableCell className="whitespace-nowrap text-sm hidden md:table-cell">
+          {ANSWER_MODE_LABEL[item.answer_mode]}
+        </TableCell>
         <TableCell>
           <Badge className={STATUS_BADGE[item.status]}>{QUESTION_STATUS_LABEL[item.status]}</Badge>
         </TableCell>
-        <TableCell className="text-right whitespace-nowrap space-x-1.5">
-          {item.status !== "published" && (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => onReview("published")}>
-              추천하기
-            </Button>
-          )}
-          {item.status !== "hidden" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              disabled={busy}
-              onClick={() => onReview("hidden")}
-            >
-              추천에서 빼기
-            </Button>
-          )}
+        <TableCell className="w-16 text-right text-sm tabular-nums hidden lg:table-cell">{nf(item.view_count)}</TableCell>
+        <TableCell className="w-24 text-right text-sm tabular-nums hidden lg:table-cell">{nf(item.ask_count)}</TableCell>
+        <TableCell className="w-16 text-right text-sm tabular-nums font-medium">{nf(item.score)}</TableCell>
+        <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground hidden md:table-cell">
+          {kstDate(item.created_at)}
+        </TableCell>
+        <TableCell className="whitespace-normal hidden md:table-cell">
+          <div className="flex justify-end gap-1.5">
+            <RowActions item={item} busy={busy} pinLimitReached={pinLimitReached} onPatch={onPatch} />
+          </div>
         </TableCell>
       </TableRow>
       {open && (
         <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={6} className="bg-admin-muted/20 whitespace-normal">
+          <TableCell colSpan={8} className="bg-admin-muted/20 whitespace-normal">
             <section id={previewId} aria-label="답 미리보기" className="space-y-3 py-1">
+              <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground lg:hidden">
+                <div className="flex gap-1 md:hidden">
+                  <dt>답한 모델</dt>
+                  <dd className="text-foreground">{ANSWER_MODE_LABEL[item.answer_mode]}</dd>
+                </div>
+                <div className="flex gap-1">
+                  <dt>조회</dt>
+                  <dd className="text-foreground tabular-nums">{nf(item.view_count)}</dd>
+                </div>
+                <div className="flex gap-1">
+                  <dt>나도 물어보기</dt>
+                  <dd className="text-foreground tabular-nums">{nf(item.ask_count)}</dd>
+                </div>
+                <div className="flex gap-1 md:hidden">
+                  <dt>신청일</dt>
+                  <dd className="text-foreground tabular-nums">{kstDate(item.created_at)}</dd>
+                </div>
+              </dl>
               <p className="text-sm font-medium">{item.question}</p>
               <AnswerPreview text={item.answer_md} />
               {item.sources.length > 0 && (
@@ -285,5 +423,71 @@ function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps)
         </TableRow>
       )}
     </Fragment>
+  );
+}
+
+interface RowActionsProps {
+  item: PublicQuestionAdminItem;
+  busy: boolean;
+  pinLimitReached: boolean;
+  onPatch: (patch: QuestionPatch) => void;
+}
+
+/** 행 동작 버튼 묶음 — 좁은 화면에서는 질문 칸 아래, 넓은 화면에서는 동작 열에 놓는다. */
+function RowActions({ item, busy, pinLimitReached, onPatch }: RowActionsProps) {
+  const pinned = item.pin_order !== null;
+  const name = shortQuestion(item.question);
+  return (
+    <>
+      {item.status !== "published" && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          aria-label={`'${name}' 추천하기`}
+          onClick={() => onPatch({ status: "published" })}
+        >
+          추천하기
+        </Button>
+      )}
+      {item.status !== "hidden" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          disabled={busy}
+          aria-label={`'${name}' 추천에서 빼기`}
+          onClick={() => onPatch({ status: "hidden" })}
+        >
+          추천에서 빼기
+        </Button>
+      )}
+      {item.status === "published" &&
+        (pinned ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-w-[5.5rem]"
+            disabled={busy}
+            aria-label={`'${name}' 고정 해제`}
+            onClick={() => onPatch({ pinned: false })}
+          >
+            <PinOff aria-hidden /> 고정 해제
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-w-[5.5rem]"
+            disabled={busy || pinLimitReached}
+            aria-describedby={pinLimitReached ? "pin-limit-note" : undefined}
+            title={pinLimitReached ? LIMIT_MESSAGE_SHORT : undefined}
+            aria-label={`'${name}' 상단 고정`}
+            onClick={() => onPatch({ pinned: true })}
+          >
+            <Pin aria-hidden /> 고정
+          </Button>
+        ))}
+    </>
   );
 }

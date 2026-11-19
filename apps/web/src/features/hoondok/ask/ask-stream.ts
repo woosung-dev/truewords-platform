@@ -37,8 +37,15 @@ export type AskOptions = {
   answerMode?: AnswerMode;
   /** 있으면 같은 대화로 이어 묻는다. */
   sessionId?: string;
+  /** 추천 질문의 "나도 물어보기"로 연 새 질문이면 그 공개 질문 id. 서버가 첫 답이 실제로 보관될 때만 센다. */
+  publicQuestionId?: string;
   signal?: AbortSignal;
 };
+
+/** 공개 질문 id 모양(서버 상한 16자, URL 안전 문자). 주소에서 받은 값은 이걸 통과해야 요청에 싣는다. */
+export function isPublicQuestionId(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{1,16}$/.test(value);
+}
 
 /** 질문 1건의 글자 상한(서버 입력 검증과 같다). 넘으면 서버가 400 INPUT_BLOCKED 로 거절한다. */
 export const ASK_QUESTION_MAX = 1000;
@@ -108,10 +115,11 @@ async function errorKind(res: Response): Promise<AskErrorKind> {
 /**
  * 질문 1건을 보내고 답·근거·고지를 모아서 돌려준다.
  *
- * 같은 origin 프록시(`/api/backend`)에 `X-Requested-With` 와 쿠키를 함께 보낸다. `answer_mode`·`session_id` 는 값이 있을 때만 싣는다.
+ * 같은 origin 프록시(`/api/backend`)에 `X-Requested-With` 와 쿠키를 함께 보낸다. `answer_mode`·`session_id`·`public_question_id` 는
+ * 값이 있을 때만 싣는다.
  */
 async function streamAsk(path: string, payload: Record<string, unknown>, options: AskOptions): Promise<AskResult> {
-  const { answerMode, sessionId, signal } = options;
+  const { answerMode, sessionId, publicQuestionId, signal } = options;
   const res = await hoondokFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
@@ -120,6 +128,10 @@ async function streamAsk(path: string, payload: Record<string, unknown>, options
       ...payload,
       ...(answerMode ? { answer_mode: answerMode } : {}),
       ...(sessionId ? { session_id: sessionId } : {}),
+      // 이어 묻기(session_id)에는 싣지 않는다 — 서버도 새 대화의 첫 답만 센다
+      ...(!sessionId && publicQuestionId && isPublicQuestionId(publicQuestionId)
+        ? { public_question_id: publicQuestionId }
+        : {}),
     }),
     signal,
   });

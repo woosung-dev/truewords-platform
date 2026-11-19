@@ -8,6 +8,9 @@ from app.modules.safety.rate_limiter import RateLimiter, get_rate_limiter
 # 교회 Wi-Fi 처럼 NAT 하나 뒤에서 여럿이 로그인해도 막히지 않게 30회/60초로 둔다(초대 코드 limiter 와 같은 기준).
 login_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
+# 공개 질문 조회 기록 상한 — 채팅 질문 한도와 따로 센다(목록을 훑어보다 질문 한도를 쓰지 않게).
+question_view_limiter = RateLimiter(max_requests=60, window_seconds=60)
+
 
 def extract_client_ip(request: Request) -> str:
     """Reverse proxy (Cloudflare Tunnel) 환경의 원 클라이언트 IP.
@@ -53,3 +56,8 @@ async def check_rate_limit(request: Request) -> None:
 async def check_login_rate_limit(request: Request) -> None:
     """로그인 엔드포인트 전용 IP 상한(채팅 상한과 따로 센다)."""
     login_limiter.check(extract_client_ip(request))
+
+
+async def check_question_view_rate_limit(request: Request) -> None:
+    """공개 질문 조회 기록 전용 IP 상한(채팅 상한과 따로 센다)."""
+    question_view_limiter.check(extract_client_ip(request))

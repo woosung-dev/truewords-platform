@@ -47,3 +47,5 @@ export const aiSummaryKey = (id: string) => [...AI_SUMMARIES_KEY, id] as const;
 export const PUBLIC_QUESTIONS_KEY = ["hoondok", "public-questions"] as const;
 export const publicQuestionsKey = (query: string) => [...PUBLIC_QUESTIONS_KEY, query] as const;
 export const publicQuestionKey = (id: string) => ["hoondok", "public-question", id] as const;
+/** 내가 북마크한 공개 질문. 사용자별 값이라 로그아웃이 지우는 ["hoondok", …] 아래에 두고, 목록 접두와 겹치지 않게 이름을 따로 둔다. */
+export const PUBLIC_BOOKMARKS_KEY = ["hoondok", "public-question-bookmarks"] as const;
