@@ -3123,11 +3123,11 @@ export type PublicQuestionReview = {
     /**
      * Pinned
      */
-    pinned?: boolean | null;
+    pinned?: boolean;
     /**
      * Status
      */
-    status?: 'published' | 'hidden' | null;
+    status?: 'published' | 'hidden';
 };
 
 /**

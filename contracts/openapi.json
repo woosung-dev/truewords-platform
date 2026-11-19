@@ -5324,30 +5324,16 @@
         "description": "PATCH 본문. 공개(published)·숨김(hidden) 전환과 고정(pinned) 중 하나 이상.",
         "properties": {
           "pinned": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pinned"
+            "title": "Pinned",
+            "type": "boolean"
           },
           "status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "published",
-                  "hidden"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "enum": [
+              "published",
+              "hidden"
             ],
-            "title": "Status"
+            "title": "Status",
+            "type": "string"
           }
         },
         "title": "PublicQuestionReview",

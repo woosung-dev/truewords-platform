@@ -2,9 +2,9 @@
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, WithJsonSchema, model_validator
 
 from app.modules.chat.types import AnswerMode
 
@@ -112,8 +112,10 @@ class PublicQuestionReview(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    status: ReviewStatus | None = None
-    pinned: bool | None = None
+    # 계약에는 null 을 넣지 않는다 — 생략만 허용한다. anyOf[enum, null] 로 바뀌면 기존 클라이언트 기준
+    # enum 값 제거로 판정된다(oasdiff). 보내지 않으면 None 이다.
+    status: Annotated[ReviewStatus | None, WithJsonSchema({"type": "string", "enum": ["published", "hidden"]})] = None
+    pinned: Annotated[bool | None, WithJsonSchema({"type": "boolean"})] = None
 
     @model_validator(mode="after")
     def _require_one(self) -> "PublicQuestionReview":
