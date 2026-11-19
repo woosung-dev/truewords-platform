@@ -2,7 +2,7 @@
 
 - 훈독을 웹 루트(`/`, `/read`, `/ask` …)에서 소유한다. 예전 `/hoondok/*` 화면 주소는 `next.config.ts` 가 같은 경로로 308 하고, 정적 자산은 `public/hoondok/` 경로를 유지한다(리다이렉트 제외 목록에 넣는다). 관리자 화면은 `apps/admin`이다. 공통 규칙은 루트 `AGENTS.md`의 "웹 앱 공통"을 따른다.
 - 인증은 `src/features/identity`의 일반 사용자 계정(쿠키 `hoondok_token`)뿐이다. 관리자 계정(`admin_token`)을 웹에서 읽거나 쓰지 않는다. 로그인 이동은 `/onboarding?returnTo=` 이고 `returnTo` 는 같은 origin 상대 경로만 허용한다.
-- 훈독은 `NEXT_PUBLIC_HOONDOK_ENABLED=1` 빌드에서만 존재한다. 가정예배·가족 프리뷰 프로토타입(`NEXT_PUBLIC_HOONDOK_PREVIEW`)은 코드에서 삭제했고, 필요하면 git 이력에서 복원한다.
+- 훈독은 `NEXT_PUBLIC_HOONDOK_ENABLED=1` 빌드에서만 존재한다.
 - 말씀 화면은 권리가 허용된 데이터만 보여준다.
 - 훈독 CSS: 토큰(hex)은 `src/app/hoondok.css` 첫 블록에만 두고 나머지 CSS는 `[data-app="hoondok"]` 스코프와 `var()`만 쓴다(`pnpm hoondok:check`가 검사). 훈독 토큰을 `globals.css`·`:root`에 두지 않는다.
 - 새 훈독 화면은 `src/features/hoondok/screens.ts` 레지스트리에 한 줄 추가한다. `tabs.ts`·`app-shell.tsx`는 건드리지 않는다. 공용 컴포넌트는 배럴 `src/components/hoondok/index.ts`로만 가져온다.

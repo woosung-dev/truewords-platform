@@ -16,7 +16,7 @@
 
 - 채팅 답변은 기존 RAG 파이프라인과 safety/output filter를 통과시킨다. 검색 근거와 출처를 생략하거나 별도 LLM 직접 호출로 우회하지 않는다.
 - 검색 source 필터·캐시 정책을 변경할 때는 현재 코드의 호출 경로와 테스트를 확인한다. `chat/schemas.py`의 Source 필드를 바꾸면 `pipeline/stages/persist.py`의 캐시 저장 필드와 `tests/test_cache_schema_propagation.py`도 함께 확인한다.
-- 비밀 값은 환경 설정에서 읽고 API 키·DB 비밀번호는 `SecretStr`로 다룬다. 새 DB 변경은 Alembic revision에 반영하고 데이터 삭제가 필요한 변경은 별도 마이그레이션 절차를 검토한다.
+- 비밀 값은 환경 설정에서 읽고 API 키·DB 비밀번호는 `SecretStr`로 다룬다. 새 DB 변경은 Alembic revision에 반영한다. 컨테이너가 시작할 때 `alembic upgrade head`가 자동 실행되므로 컬럼·데이터 삭제는 두 번에 나눠 배포한다: 먼저 코드에서 사용을 멈추고, 다음 배포에서 삭제한다.
 
 ## 현재 범위
 
