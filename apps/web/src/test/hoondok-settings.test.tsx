@@ -167,6 +167,13 @@ describe("SCR-PWA-015 내 데이터 삭제 (API-HD-011)", () => {
   });
 });
 
+describe("SCR-PWA-015 안내", () => {
+  it("로그인 여부와 무관하게 개인정보 처리방침으로 가는 행이 있다", async () => {
+    render(wrap(<SettingsScreen />));
+    expect(await screen.findByRole("link", { name: /개인정보 처리방침/ })).toHaveAttribute("href", "/privacy");
+  });
+});
+
 describe("SCR-PWA-015 설치 안내 (상시 노출)", () => {
   it("자격·30일 숨김과 무관하게 일반 안내를 렌더하고 '나중에' 는 두지 않는다", async () => {
     // 홈 조건(자격 없음 + 숨김 기한 안)에서도 설정에서는 보인다

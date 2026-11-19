@@ -79,6 +79,17 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     hideSearchLink: true,
     hideNav: true,
   },
+  // 개인정보 처리방침 — 온보딩·설정·구글 동의 화면에서 들어온다. 들어온 곳으로 돌아가고, 바로 연 주소면 홈으로 간다.
+  // 제목이 길어 좁은 화면에서 두 줄로 꺾이지 않게 검색 아이콘은 숨긴다
+  {
+    match: "/privacy",
+    title: "개인정보 처리방침",
+    backHref: "/",
+    backToHistory: true,
+    tabId: "garden",
+    variant: "read",
+    hideSearchLink: true,
+  },
   {
     match: "/offline",
     title: "오프라인",

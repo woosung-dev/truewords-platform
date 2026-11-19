@@ -1,6 +1,7 @@
 "use client";
 
-import { Smartphone } from "lucide-react";
+import { ChevronRight, Smartphone } from "lucide-react";
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { inAppBrowser } from "@/features/hoondok/install/platform";
@@ -89,6 +90,23 @@ export function SettingsScreen() {
         <DisplayNameCard />
         <LoginMethodsCard />
         <DeleteAccountCard />
+      </div>
+
+      <div className="sect">
+        <div className="sect__head">
+          <h2 className="sect__title">안내</h2>
+        </div>
+        <div className="st-group">
+          <Link className="st-row st-row--link" href="/privacy">
+            <span className="st-row__bd">
+              <b className="st-row__t">개인정보 처리방침</b>
+              <span className="st-row__d">어떤 정보를 저장하고 어떻게 지우는지 알려드려요</span>
+            </span>
+            <span className="st-go" aria-hidden="true">
+              <ChevronRight size={20} />
+            </span>
+          </Link>
+        </div>
       </div>
 
       <p className="notice">독립 운영 베타</p>
