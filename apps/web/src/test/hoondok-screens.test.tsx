@@ -19,6 +19,7 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/onboarding")).toEqual(["시작하기", "/", "today", "app"]);
     expect(pick("/garden")).toEqual(["나의 정원", undefined, "garden", "app"]);
     expect(pick("/settings")).toEqual(["알림·설치", "/garden", "garden", "app"]);
+    expect(pick("/privacy")).toEqual(["개인정보 처리방침", "/", "garden", "read"]);
     expect(pick("/ask")).toEqual(["AI 질문", undefined, "ask", "read"]);
     expect(pick("/ask/new")).toEqual(["새 질문하기", undefined, "ask", "onb"]);
     expect(pick("/ask/q-123")).toEqual(["질문", "/ask", "ask", "read"]);

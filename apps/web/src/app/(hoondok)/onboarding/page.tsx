@@ -328,7 +328,11 @@ export default function HoondokOnboardingPage() {
         </Suspense>
       </div>
       <p className="notice">
-        베타 기간에는 구글 계정의 이름·이메일·식별번호만 저장하고 다른 곳에 쓰지 않아요. 이용약관·처리방침은 정식 안내 전입니다.
+        구글 계정에서는 이름·이메일·식별번호만 받고 다른 곳에 쓰지 않아요. 자세한 내용은{" "}
+        <Link className="pv-inline-link" href="/privacy">
+          개인정보 처리방침
+        </Link>
+        에 있어요. 이용약관은 정식 안내 전이에요.
       </p>
     </section>
   );
