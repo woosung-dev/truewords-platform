@@ -23,7 +23,30 @@ const MAX_SPINES = 12;
 const SPINE_HEIGHTS = [84, 90, 78, 92, 86, 96, 88, 80];
 const GHOST_SPINES = [78, 86, 72, 90, 80];
 
-/** 권별 색 책등. shelves(개수 내림차순) 순서로 상한까지 세우고, 권이 바뀌는 자리에 틈을 둔다 */
+/**
+ * 권마다 세울 책등 수. 합이 상한을 넘으면 장수 비율로 나누되 권마다 최소 1개 — 한 권이 상한을 다 차지해
+ * 범례(여러 권)와 그림(한 색)이 어긋나지 않게 한다. 상한보다 권이 많으면 장수 많은 권부터 1개씩.
+ */
+export function spineCounts(counts: number[], max = MAX_SPINES): number[] {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (total <= max) return counts;
+  const result: number[] = counts.map((count, index) => (index < max && count > 0 ? 1 : 0));
+  let left = max - result.reduce((sum, count) => sum + count, 0);
+  // 남은 자리는 (원래 장수 / 이미 받은 책등) 이 가장 큰 권에 하나씩 — 비율에 가깝게 나뉜다
+  while (left > 0) {
+    let best = -1;
+    for (let index = 0; index < counts.length; index += 1) {
+      if (result[index] === 0 || result[index] >= counts[index]) continue;
+      if (best < 0 || counts[index] / result[index] > counts[best] / result[best]) best = index;
+    }
+    if (best < 0) break;
+    result[best] += 1;
+    left -= 1;
+  }
+  return result;
+}
+
+/** 권별 색 책등. shelves(개수 내림차순) 순서로 세우고, 권이 바뀌는 자리에 틈을 둔다 */
 function Spines({ shelves }: { shelves: CardShelf[] | null }) {
   if (!shelves || shelves.length === 0)
     return (
@@ -35,8 +58,9 @@ function Spines({ shelves }: { shelves: CardShelf[] | null }) {
       </span>
     );
   const spines: { key: string; book: number; isGap: boolean }[] = [];
-  for (const shelf of shelves) {
-    for (let index = 0; index < shelf.count && spines.length < MAX_SPINES; index += 1)
+  const perShelf = spineCounts(shelves.map((shelf) => shelf.count));
+  for (const [shelfIndex, shelf] of shelves.entries()) {
+    for (let index = 0; index < perShelf[shelfIndex]; index += 1)
       spines.push({
         key: `${shelf.work_title}-${index}`,
         book: bookColorIndex(shelf.work_title),

@@ -844,3 +844,15 @@ describe("플래그 · 화면 레지스트리", () => {
     expect(recipient.backHref).toBeUndefined();
   });
 });
+
+describe("홈 책장 책등 나누기", () => {
+  it("상한 안이면 장수 그대로, 넘으면 비율로 나누되 권마다 최소 1개", async () => {
+    const { spineCounts } = await import("@/features/hoondok/cards/components/home-card");
+    expect(spineCounts([5, 4, 3])).toEqual([5, 4, 3]);
+    // 한 권이 12장 이상이어도 다른 권이 그림에서 사라지지 않는다
+    expect(spineCounts([20, 2, 1])).toEqual([10, 1, 1]);
+    expect(spineCounts([20, 2, 1]).reduce((a, b) => a + b, 0)).toBe(12);
+    // 권이 상한보다 많으면 장수 많은 권부터 1개씩
+    expect(spineCounts(Array.from({ length: 14 }, () => 1))).toEqual([...Array(12).fill(1), 0, 0]);
+  });
+});
