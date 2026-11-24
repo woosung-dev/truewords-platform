@@ -394,7 +394,7 @@ async def client(db, tmp_path):
     app.dependency_overrides[get_identity_repository] = lambda: _Users()
     app.dependency_overrides[get_tts_service] = lambda: service
     try:
-        c = TestClient(app)
+        c = TestClient(app, headers={"X-Requested-With": "XMLHttpRequest"})
         c.me, c.synth = me, synth  # type: ignore[attr-defined]
         yield c
     finally:
@@ -412,6 +412,14 @@ def test_voices_is_public(client):
 
 def test_audio_requires_login(client):
     assert client.get(f"/hoondok/tts/chunks/{CHUNK_ID}?voice=sulafat").status_code == 401
+    client.synth.assert_not_awaited()
+
+
+def test_audio_rejects_cross_site_get_without_header(client):
+    """다른 사이트의 <audio src> 처럼 커스텀 헤더 없는 GET 은 로그인 쿠키가 있어도 한도를 쓰지 않는다."""
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(client.me))
+    response = client.get(f"/hoondok/tts/chunks/{CHUNK_ID}?voice=sulafat", headers={"X-Requested-With": ""})
+    assert response.status_code == 403
     client.synth.assert_not_awaited()
 
 

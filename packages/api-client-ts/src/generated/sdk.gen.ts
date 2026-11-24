@@ -779,7 +779,7 @@ export const updateAdminUserStatusAdminUsersUserIdStatusPatch = <ThrowOnError ex
  *
  * Raises:
  * 404: 청크 미존재 또는 chatbot 미존재.
- * 403: 청크가 chatbot 의 허용 source 집합 밖.
+ * 403: 청크가 chatbot 의 허용 source 집합 밖, 또는 권에 원문 공개 권리 없음.
  */
 export const getChunkApiSourcesChunksChunkIdGet = <ThrowOnError extends boolean = false>(options: Options<GetChunkApiSourcesChunksChunkIdGetData, ThrowOnError>): RequestResult<GetChunkApiSourcesChunksChunkIdGetResponses, GetChunkApiSourcesChunksChunkIdGetErrors, ThrowOnError> => (options.client ?? client).get<GetChunkApiSourcesChunksChunkIdGetResponses, GetChunkApiSourcesChunksChunkIdGetErrors, ThrowOnError>({ url: '/api/sources/chunks/{chunk_id}', ...options });
 
