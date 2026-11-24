@@ -585,12 +585,16 @@ export function WordsScreen({
               </button>
             ))}
           </div>
-          <TtsBar
-            reader={reader}
-            title={`듣기 · ${doc.page}구간`}
-            total={doc.chunks.length}
-            nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
-          />
+          {/* AI 설명 탭은 원문 단락을 읽는 듣기 바와 상관없는 글이라 바를 숨긴다. 듣기 상태는 이 화면이 쥐고 있어
+              재생 중이면 소리는 이어지고 하단 독의 미니 플레이어로 멈출 수 있다 */}
+          {segment !== "ai" && (
+            <TtsBar
+              reader={reader}
+              title={`듣기 · ${doc.page}구간`}
+              total={doc.chunks.length}
+              nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
+            />
+          )}
           {/* 도구를 누른 순간에는 크롬이 보이는 상태다 — 안내를 크롬 안에 두어야 스크롤 위치와 무관하게 보인다 */}
           {hint && (
             <p className="notice" role="status">

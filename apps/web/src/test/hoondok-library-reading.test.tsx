@@ -898,6 +898,15 @@ describe("AI 설명 탭 — 이 장의 공개 요약", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: /원문에서 앞뒤 읽기/ }));
     await waitFor(() => expect(screen.getByRole("tab", { name: "본문" })).toHaveAttribute("aria-selected", "true"));
   });
+  it("AI 설명 탭에서는 원문 듣기 바를 숨기고, 본문 탭으로 돌아오면 다시 보인다", async () => {
+    await showWords();
+    const ttsNote = "이 브라우저는 소리 내어 읽기를 지원하지 않아요.";
+    expect(await screen.findByText(ttsNote)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
+    await waitFor(() => expect(screen.queryByText(ttsNote)).toBeNull());
+    fireEvent.click(screen.getByRole("tab", { name: "본문" }));
+    expect(await screen.findByText(ttsNote)).toBeInTheDocument();
+  });
   it("다른 장의 요약만 있으면 단락 질문만 보인다", async () => {
     vi.mocked(summariesAPI.list).mockResolvedValue([{ ...LIST_ITEM, section_position: 9 }]);
     await showWords();
