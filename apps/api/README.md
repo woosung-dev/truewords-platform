@@ -12,7 +12,7 @@ apps/api/
 │   │   ├── config.py              # 환경 설정
 │   │   ├── common/                # DB·Gemini·공통 오류·요청 추적
 │   │   └── alembic_support/       # 기존 advisory lock·backfill
-│   └── modules/                   # admin/chat/chatbot/datasource/
+│   └── modules/                   # admin/chat/chatbot/datasource/hoondok/identity/
 │                                  # cache/malssum/pipeline/qdrant/safety/search
 ├── scripts/export_openapi.py       # 무외부접속 계약 생성
 ├── scripts/                       # 기존 운영·적재·평가 스크립트
@@ -24,7 +24,7 @@ apps/api/
 └── uv.lock
 ```
 
-도메인은 Router → Service → Repository 책임을 유지한다. Flutter·일반 사용자 인증·알림 확장은 아직 구현 범위가 아니다.
+도메인은 Router → Service → Repository 책임을 유지한다. Flutter는 아직 구현 범위가 아니다.
 
 ## 로컬 실행
 
