@@ -171,11 +171,20 @@ jobs:
             admin) keys="$common" ;;
             web) keys="$common NEXT_PUBLIC_HOONDOK_ENABLED NEXT_PUBLIC_HOONDOK_CARDS NEXT_PUBLIC_HOONDOK_MASCOT NEXT_PUBLIC_HOONDOK_PATHS" ;;
           esac
+          # 비어 있어도 되는 키. 비우면 그 기능 없이 빌드된다(카카오 키 없음 = 카카오 버튼 숨김).
+          optional=""
+          [ "$SERVICE" = web ] && optional="NEXT_PUBLIC_KAKAO_JS_KEY"
           args=""
           for key in $keys; do
             value=$(sed -n "s/^${key}=//p" "$file" | tail -1)
             [ -n "$value" ] || { echo "::error::${file} 에 ${key} 가 비어 있다"; exit 1; }
             [[ $value =~ ^[A-Za-z0-9:/._-]+$ ]] || { echo "::error::${key} 값에 허용되지 않은 문자가 있다"; exit 1; }
+            args+="${key}=${value}"$'\n'
+          done
+          for key in $optional; do
+            value=$(sed -n "s/^${key}=//p" "$file" | tail -1)
+            [ -n "$value" ] || continue
+            [[ $value =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::${key} 값에 허용되지 않은 문자가 있다"; exit 1; }
             args+="${key}=${value}"$'\n'
           done
           if [ "$SERVICE" = admin ]; then
