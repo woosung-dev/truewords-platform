@@ -125,22 +125,24 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   expect(again.status()).toBe(409);
 });
 
-// PLAN-HD-009 함께 읽는 사람들 1단계 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
+// PLAN-HD-009 함께 읽는 사람들 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
 // 재실행·다른 테스트가 완료를 쌓을 수 있어 두 문구를 모두 허용하고 API 응답과 화면이 맞는지만 본다.
-test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구", async ({ page }) => {
+// 비로그인 홈은 오늘 읽기 전이므로 읽으러 가는 버튼이 함께 보인다.
+test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구 · 읽기 전 버튼", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "함께 읽는 사람들" })).toBeVisible();
   const card = page.locator(".card.together");
   await expect(card).toHaveCount(1);
   await expect(card).toContainText("누가 읽었는지는 보이지 않아요");
+  await expect(card.getByRole("link", { name: "오늘 말씀 읽으러 가기" })).toHaveAttribute("href", "/read");
 
   const together = await (await page.request.get("/api/backend/hoondok/today/together")).json();
   expect(together.threshold).toBe(10);
   if (together.is_shown) {
-    await expect(card).toContainText(`오늘 함께 읽은 식구 ${together.count.toLocaleString("ko-KR")}명`);
+    await expect(card).toContainText(`오늘 ${together.count.toLocaleString("ko-KR")}명이 훈독했어요`);
   } else {
     expect(together.count).toBeNull();
-    await expect(card).toContainText("오늘도 식구들과 함께 읽어요");
+    await expect(card).toContainText("오늘도 식구들이 훈독하고 있어요");
     await expect(card).not.toContainText(/\d+명/);
   }
 });
