@@ -575,10 +575,6 @@
     font-weight: 600;
     color: var(--ok-strong);
   }
-  /* 한 화면에 부엉이 한 마리 — 접힌 오늘의 말씀 안(빈 날 줄 등)의 부엉이는 그리지 않는다(다음 장 행에 이미 있다) */
-  .path-fold .day-quiet__ic:has(> .owl) {
-    display: none;
-  }
   /* .empty 의 좌우 20px 안쪽 여백을 버튼만 되돌려 다른 정성 화면의 전체 폭 버튼과 맞춘다 */
   .path-empty .path-cta {
     margin-inline: -20px;

@@ -99,9 +99,11 @@ type ViewerProps = {
   index: number;
   onMove: (index: number) => void;
   onClose: () => void;
+  /** 주면 "원문에서 앞뒤 읽기"가 페이지 이동 대신 이 콜백을 부른다(원문 뷰 안에서 본문 탭으로 돌아갈 때). */
+  onOpenSource?: (item: PreviewableEvidence) => void;
 };
 
-function EvidenceContent({ summaryId, volume, unit, evidence, index, onMove }: Omit<ViewerProps, "onClose">) {
+function EvidenceContent({ summaryId, volume, unit, evidence, index, onMove, onOpenSource }: Omit<ViewerProps, "onClose">) {
   const item = evidence[index];
   const source = useQuery({
     queryKey: [...aiSummaryKey(summaryId), "evidence", item.index],
@@ -117,7 +119,8 @@ function EvidenceContent({ summaryId, volume, unit, evidence, index, onMove }: O
         : source.data?.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
       {source.isPending && <span className="sum-ev__skel" aria-label="원문을 불러오고 있어요"><i /><i /><i /></span>}
     </div>
-    <Link className="sum-ev__open" href={wordsHref(volume, item.chunk_id)}>원문에서 앞뒤 읽기 <ChevronRight size={16} aria-hidden="true" /></Link>
+    {onOpenSource ? <button type="button" className="sum-ev__open" onClick={() => onOpenSource(item)}>원문에서 앞뒤 읽기 <ChevronRight size={16} aria-hidden="true" /></button>
+      : <Link className="sum-ev__open" href={wordsHref(volume, item.chunk_id)}>원문에서 앞뒤 읽기 <ChevronRight size={16} aria-hidden="true" /></Link>}
     {evidence.length > 1 && <nav className="sum-ev__nav" aria-label="근거 넘기기">
       <button type="button" onClick={() => onMove(index - 1)} disabled={index === 0}><ChevronLeft size={18} aria-hidden="true" />이전 근거</button>
       <span>{index + 1} / {evidence.length}</span>

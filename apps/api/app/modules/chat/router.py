@@ -21,7 +21,7 @@ from app.modules.chat.schemas import (
     SessionListResponse,
 )
 from app.modules.chat.service import ChatService
-from app.modules.safety.middleware import check_rate_limit
+from app.modules.safety.middleware import check_feedback_rate_limit, check_rate_limit
 
 router = APIRouter(tags=["chat"])
 
@@ -90,7 +90,12 @@ async def get_session_history(
     return SessionHistoryResponse(**result)
 
 
-@router.post("/chat/feedback", response_model=FeedbackResponse, status_code=201)
+@router.post(
+    "/chat/feedback",
+    response_model=FeedbackResponse,
+    status_code=201,
+    dependencies=[Depends(check_feedback_rate_limit)],
+)
 async def submit_feedback(
     request: FeedbackRequest,
     http_request: Request,
@@ -113,7 +118,11 @@ async def submit_feedback(
     )
 
 
-@router.delete("/chat/feedback/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/chat/feedback/{message_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(check_feedback_rate_limit)],
+)
 async def delete_feedback(
     message_id: uuid.UUID,
     http_request: Request,

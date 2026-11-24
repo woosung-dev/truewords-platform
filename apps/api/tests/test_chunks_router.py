@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.modules.chatbot.dependencies import get_chatbot_service
-from app.modules.datasource.chunks_router import chunks_router
+from app.modules.datasource.chunks_router import chunks_router, get_full_text_volumes
 from app.modules.datasource.dependencies import get_qdrant_service
 from app.modules.datasource.schemas import SourceChunkDetail
 
@@ -28,10 +28,12 @@ def _runtime_with_sources(*sources: str):
 def _make_app(
     qdrant_service: object,
     chatbot_runtime_config: object | None = None,
+    full_text_volumes: frozenset[str] = frozenset({"347권", "999권"}),
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(chunks_router)
     app.dependency_overrides[get_qdrant_service] = lambda: qdrant_service
+    app.dependency_overrides[get_full_text_volumes] = lambda: set(full_text_volumes)
 
     chatbot_service = AsyncMock()
     chatbot_service.build_runtime_config = AsyncMock(return_value=chatbot_runtime_config)
@@ -114,3 +116,44 @@ async def test_get_chunk_400_when_chatbot_id_missing() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/api/sources/chunks/abc-123")
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_chunk_403_when_volume_has_no_full_text_right() -> None:
+    """원문 공개 권리가 없는(철회·미등록) 권의 청크는 챗봇 범위 안이어도 내주지 않는다."""
+    service = AsyncMock()
+    service.get_chunk_detail = AsyncMock(
+        return_value=SourceChunkDetail.model_validate(
+            {"chunk_id": "abc-123", "text": "본문", "volume": "3권", "sources": ["A"]}
+        )
+    )
+    app = _make_app(service, _runtime_with_sources("A"), full_text_volumes=frozenset({"347권"}))
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/sources/chunks/abc-123?chatbot_id=cb1")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_full_text_volumes_reads_only_allowed_full_text_rights() -> None:
+    """권리 표 질의 — allowed + scope_full_text 인 권만 원문 공개 대상이다."""
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy.pool import StaticPool
+    from sqlmodel import SQLModel
+
+    from app.modules.hoondok.models import ContentRight
+
+    engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all, tables=[SQLModel.metadata.tables["content_rights"]])
+    async with AsyncSession(engine) as session:
+        session.add_all(
+            [
+                ContentRight(volume="공개권", status="allowed", scope_full_text=True, work_title="a"),
+                ContentRight(volume="검색만", status="allowed", scope_full_text=False, work_title="b"),
+                ContentRight(volume="철회권", status="revoked", scope_full_text=True, work_title="c"),
+            ]
+        )
+        await session.commit()
+        assert await get_full_text_volumes(session) == {"공개권"}
+    await engine.dispose()

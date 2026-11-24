@@ -84,6 +84,8 @@ class ChatbotRepository:
 
         cron job 의 추천 질문 생성을 위해 사용. user role 메시지 기준으로 봇별 필터.
         analytics_repository.get_top_queries 와 달리 chatbot_config_id 로 격리.
+        훈독 사용자(users)의 AI 질문은 "내 계정에서만" 보이는 비공개 기록이라 제외한다 — 결과가
+        GET /chatbots 로 익명에게 공개되므로 남의 질문이 추천 질문으로 새지 않게 한다.
         """
         cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
@@ -95,6 +97,7 @@ class ChatbotRepository:
                 WHERE rs.chatbot_config_id = :bot_id
                   AND sm.role = 'USER'
                   AND sm.created_at >= :cutoff
+                  AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = rs.user_id)
                 GROUP BY sm.content
                 ORDER BY count DESC, sm.content
                 LIMIT :limit

@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import HoondokPrivacyPage from "@/app/(hoondok)/privacy/page";
-import { PRIVACY_OFFICER, PRIVACY_PROCESSORS } from "@/features/hoondok/privacy/policy";
+import { PRIVACY_CONTACT, PRIVACY_PROCESSORS } from "@/features/hoondok/privacy/policy";
 
 // 개인정보 처리방침 (/privacy). 구글 OAuth 동의 화면이 링크하는 공개 화면이다.
 describe("개인정보 처리방침", () => {
@@ -19,14 +19,16 @@ describe("개인정보 처리방침", () => {
     }
   });
 
-  it("기기에만 두는 정보·삭제 경로·보호책임자 연락처를 알린다", () => {
+  it("기기에만 두는 정보·삭제 경로·문의처를 알리고, 개인 이름은 싣지 않는다", () => {
     render(<HoondokPrivacyPage />);
     expect(screen.getByText("마음에 관한 답은 이 기기에만 둬요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /설정에서 내 데이터 관리하기/ })).toHaveAttribute("href", "/settings");
-    expect(screen.getByRole("link", { name: PRIVACY_OFFICER.email })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: PRIVACY_CONTACT.email })).toHaveAttribute(
       "href",
-      `mailto:${PRIVACY_OFFICER.email}`,
+      `mailto:${PRIVACY_CONTACT.email}`,
     );
+    expect(screen.getByText(PRIVACY_CONTACT.department)).toBeInTheDocument();
+    expect(screen.queryByText(/장우성/)).toBeNull();
   });
 
   it("처리를 맡기는 곳마다 나라와 하는 일을 적는다 (국외 이전 고지)", () => {

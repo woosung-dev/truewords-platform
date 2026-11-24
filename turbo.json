@@ -14,7 +14,8 @@
         "NEXT_PUBLIC_HOONDOK_ENABLED",
         "NEXT_PUBLIC_HOONDOK_CARDS",
         "NEXT_PUBLIC_HOONDOK_MASCOT",
-        "NEXT_PUBLIC_HOONDOK_PATHS"
+        "NEXT_PUBLIC_HOONDOK_PATHS",
+        "NEXT_PUBLIC_KAKAO_JS_KEY"
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },

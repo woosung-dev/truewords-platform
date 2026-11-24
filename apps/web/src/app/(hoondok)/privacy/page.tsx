@@ -9,7 +9,7 @@ import {
   PRIVACY_EFFECTIVE_DATE,
   PRIVACY_HELP_CENTERS,
   PRIVACY_HISTORY,
-  PRIVACY_OFFICER,
+  PRIVACY_CONTACT,
   PRIVACY_PROCESSORS,
 } from "@/features/hoondok/privacy/policy";
 
@@ -28,8 +28,8 @@ const SECTIONS = [
   { id: "rights", title: "내 권리와 요청 방법" },
   { id: "cookies", title: "쿠키와 기기 저장소" },
   { id: "security", title: "안전하게 지키는 방법" },
-  { id: "children", title: "만 14세 미만" },
-  { id: "officer", title: "개인정보 보호책임자" },
+  { id: "children", title: "만 14세 미만 아동" },
+  { id: "officer", title: "문의하는 곳" },
   { id: "help", title: "도움받을 수 있는 곳" },
   { id: "changes", title: "방침이 바뀔 때" },
 ] as const;
@@ -156,6 +156,10 @@ export default function HoondokPrivacyPage() {
           <li>오류를 고치고 서비스를 안정적으로 운영하기</li>
         </ul>
         <p>광고나 마케팅에는 쓰지 않아요.</p>
+        <p>
+          위 정보는 모두 서비스를 제공하는 데 꼭 필요해서 「개인정보 보호법」 제15조 제1항 제4호(계약의 이행)에 따라
+          따로 동의를 받지 않고 처리해요. 동의를 받아 처리하는 정보는 없어요.
+        </p>
       </Section>
 
       <Section id="period">
@@ -218,7 +222,7 @@ export default function HoondokPrivacyPage() {
           <Row label="보기">나의 정원과 나의 기록에서 내 기록을 볼 수 있어요</Row>
           <Row label="고치기">설정에서 표시 이름을 바꿀 수 있어요</Row>
           <Row label="지우기">설정 → 내 데이터 삭제</Row>
-          <Row label="그 밖의 요청">아래 보호책임자에게 메일을 주시면 늦어도 10일 안에 처리하고 알려드려요</Row>
+          <Row label="그 밖의 요청">아래 문의하는 곳으로 메일을 주시면 늦어도 10일 안에 처리하고 알려드려요</Row>
         </dl>
       </Section>
 
@@ -253,18 +257,22 @@ export default function HoondokPrivacyPage() {
       </Section>
 
       <Section id="children">
-        <p>만 14세 미만은 보호자 동의 없이 가입할 수 없어요. 동의 없이 가입한 사실을 알게 되면 계정을 지워요.</p>
+        <p>나이와 관계없이 누구나 쓸 수 있어요.</p>
+        <p>
+          훈독은 위 2번처럼 서비스에 꼭 필요한 정보만 동의 없이 처리하므로, 만 14세 미만도 보호자 동의 절차 없이 가입할
+          수 있어요. 나중에 동의가 필요한 기능을 더하면 만 14세 미만은 그 기능에 한해 보호자(법정대리인)의 동의를
+          받을게요.
+        </p>
+        <p>보호자는 아이의 정보를 보거나, 고치거나, 지워 달라고 아래 문의하는 곳에 요청할 수 있어요.</p>
       </Section>
 
       <Section id="officer">
-        <p>개인정보에 관한 문의·요청·불만은 아래로 보내 주세요.</p>
+        <p>개인정보에 관한 문의·열람·삭제 요청과 불편 사항은 아래로 보내 주세요.</p>
         <dl className="pv-dl">
-          <Row label="보호책임자">
-            {PRIVACY_OFFICER.name} ({PRIVACY_OFFICER.role})
-          </Row>
+          <Row label="담당">{PRIVACY_CONTACT.department}</Row>
           <Row label="이메일">
-            <a className="pv-link" href={`mailto:${PRIVACY_OFFICER.email}`}>
-              {PRIVACY_OFFICER.email}
+            <a className="pv-link" href={`mailto:${PRIVACY_CONTACT.email}`}>
+              {PRIVACY_CONTACT.email}
             </a>
           </Row>
         </dl>

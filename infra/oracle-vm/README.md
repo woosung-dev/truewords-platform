@@ -93,7 +93,9 @@
 | `truewords.<zone>` | `http://web:3000` (canonical, 2026-09-06 추가. 구 `app.<zone>` route·DNS 는 같은 날 **삭제** — 실사용자 없어 301 생략) |
 | `truewords-admin.<zone>` | `http://admin:3000` (2026-09-06 등록) |
 | `api.<zone>` | `http://backend:8080` |
-| `vdb.<zone>` | `http://qdrant:6333` |
+| `vdb.<zone>` | `http://qdrant:6333` (Cloudflare Access 서비스 토큰 필수, 아래 참고) |
+
+> `vdb.<zone>` 은 Qdrant API 키에 더해 Cloudflare Access 앱 `truewords-vdb` 로 막는다. 정책은 서비스 토큰 `truewords-gha-cache-cleanup` 하나만 허용하는 `Service Auth` 다. 브라우저·사람 로그인은 허용하지 않는다. 이 경로를 쓰는 곳은 GHA `cache-cleanup.yml` 뿐이고 저장소 Secret `CF_ACCESS_CLIENT_ID`·`CF_ACCESS_CLIENT_SECRET` 으로 헤더를 보낸다. VM 안의 `make cron-cache-cleanup` 은 `http://qdrant:6333` 을 직접 쓰므로 영향이 없다. 로컬에서 `vdb.<zone>` 을 호출할 때는 `CF-Access-Client-Id`·`CF-Access-Client-Secret` 헤더를 함께 보낸다. 토큰을 교체하면 Secret 두 개를 같이 갱신한다.
 
 > 현행 Zero Trust UI 에서는 이 화면이 **Networks → Tunnels & Mesh → `truewords-oracle` → `Published application routes`** 다 (구 "Public Hostnames"). Service Type 은 `HTTP` 여야 한다 — 컨테이너가 평문이라 `HTTPS` 로 두면 502 다. Path 는 비운다. 값을 넣으면 그 경로만 라우팅되어 `/login` 과 정적 자산이 404 가 된다. DNS 레코드(proxied CNAME)는 저장 시 자동 생성된다.
 
@@ -320,7 +322,7 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 
-ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 최신 실행 결과는 [전환 계획 §5](../../docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다.
+ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 당시 실행 결과는 완료 후 삭제한 전환 계획 §5에 있다(Git 이력 `318ad53b`의 `docs/plans/completed/2026-09-05-monorepo-migration.md`).
 
 격리 fixture에서 직접 API와 Docker web의 `Accept-Encoding: identity`는 250ms 간격으로 SSE를 전달했지만, web의 gzip 요청은 784ms에 `done`까지 한꺼번에 전달했다. Next 기본 gzip 압축의 버퍼링으로 확인했고, 대응은 API SSE 응답의 `Cache-Control: no-cache, no-transform`이다. 해당 응답만 압축에서 제외하여 일반 페이지 압축을 유지한다. `X-Accel-Buffering: no`만으로는 Next 압축을 해제하지 못한다.
 
@@ -673,7 +675,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 
 **이제 `ops-check.sh` 의 `gemini-key` 가 매일 이 키를 실제로 찔러 본다.** 키가 죽으면 나머지 검사는 전부 초록이므로(`/health` 도 200) 그 전에는 확인 장치가 아예 없었다. 즉시 확인은 `make gemini-check`. 상세: [운영 불변식 점검 §`gemini-key`](#gemini-key--유일한-외부-의존-감시)
 
-확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md)
+확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/runbooks/2026-07-30-gcp-neon-residual-audit.md)
 
 ## 보안 체크리스트
 

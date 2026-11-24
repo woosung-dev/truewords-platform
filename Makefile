@@ -227,6 +227,7 @@ deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (�
 		--build-arg NEXT_PUBLIC_HOONDOK_CARDS=$(HOONDOK_CARDS) \
 		--build-arg NEXT_PUBLIC_HOONDOK_MASCOT=$(HOONDOK_MASCOT) \
 		--build-arg NEXT_PUBLIC_HOONDOK_PATHS=$(HOONDOK_PATHS) \
+		--build-arg NEXT_PUBLIC_KAKAO_JS_KEY=$(call build_arg,NEXT_PUBLIC_KAKAO_JS_KEY) \
 		--label org.opencontainers.image.revision=$(DEPLOY_SHA) -t $(WEB_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
 	@$(call VM_DEPLOY_SH,$(GUARD_MODE),deploy $(DEPLOY_SHA) web)

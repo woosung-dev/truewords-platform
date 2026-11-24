@@ -9965,6 +9965,10 @@ export type GetChunkAudioHoondokTtsChunksChunkIdGetErrors = {
      */
     401: ErrorResponse;
     /**
+     * X-Requested-With 헤더 없음 — 다른 사이트에서 온 요청
+     */
+    403: ErrorResponse;
+    /**
      * TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖
      */
     404: ErrorResponse;

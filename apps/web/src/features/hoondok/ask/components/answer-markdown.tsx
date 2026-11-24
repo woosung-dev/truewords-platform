@@ -3,6 +3,7 @@
 // AI 답 본문 렌더러 — AI 질문 상세와 원문 뷰 "AI 설명" 탭이 함께 쓴다.
 // 모델은 `### 소제목`·`**강조**`·`- 목록` 마크다운으로 답한다. 문자열 그대로 두면 기호가 화면에 노출된다.
 // 원시 HTML 은 react-markdown 기본값대로 렌더하지 않고, 링크는 외부 이동을 막으려 글자로만 남긴다.
+// 이미지는 그리지 않는다 — 공개 질문으로 게시된 답의 `![](외부 URL)` 이 보는 사람마다 외부 요청을 내지 않게 한다.
 import ReactMarkdown, { type Components } from "react-markdown";
 
 const COMPONENTS: Components = {
@@ -14,6 +15,7 @@ const COMPONENTS: Components = {
   ul: ({ children }) => <ul className="ai-note__list">{children}</ul>,
   ol: ({ children }) => <ol className="ai-note__list">{children}</ol>,
   a: ({ children }) => <span>{children}</span>,
+  img: () => null,
 };
 
 export function AnswerMarkdown({ answer }: { answer: string }) {

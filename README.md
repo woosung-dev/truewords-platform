@@ -92,7 +92,7 @@ make ci
 node tooling/checks/docs-links.mjs
 ```
 
-M1~M4의 전체 회귀와 E2E·계약 검사는 [이전 실행 계획의 완료 증거](docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거), 후속 UI 분리 검증은 [앱별 UI 실행 계획](docs/plans/completed/2026-09-05-app-owned-ui.md)을 확인한다. 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
+M1~M4의 전체 회귀와 E2E·계약 검사, 후속 UI 분리 검증의 당시 기록은 완료 후 삭제한 실행 계획에 있다(Git 이력 `318ad53b`의 `docs/plans/completed/`). 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
 
 **main 머지 뒤 GitHub Actions 로 배포한다.** main 의 CI 가 성공하면 `release.yml` 이 arm64 이미지를 GHCR 에 올리고, 이미지·VM 파일을 바꾼 커밋은 `production` 환경 승인 뒤 Oracle VM 에 배포한다(DB migration 은 `production-migrate` 승인). 상세는 [CI/CD](docs/runbooks/ci-cd-pipeline.md)를 따른다. 운영은 postgres·qdrant·backend·admin·web·cloudflared 6컨테이너다. Cloudflare의 원격 Public Hostname은 Compose 편집으로 바뀌지 않는다.
 

@@ -71,7 +71,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
   // 홈에는 말씀 본문이 없다 — 정본이 today 에서 `.lede` 를 숨기고 PRD SCR-PWA-002 도 미션 3종만 둔다.
-  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /read 가 갖는다.
+  // 오늘 말씀은 "오늘 읽을 말씀" 판의 제목으로만 드러나고 전문은 /read 가 갖는다.
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
   await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
@@ -114,7 +114,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await expect(page.getByText("이투이님")).toBeVisible();
   await expect(page.locator(".sect__head", { hasText: "이번 주" })).toContainText("연속 1일");
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /훈독하기.*완료/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".home-word__todo")).toHaveText("읽음");
   // 소급 동기화(sync)로 기록된 완료는 설치 안내 자격이 아니다 (Phase 3 E)
   await expect(page.locator(".notice-slot", { hasText: /홈 화면에 추가하면/ })).toHaveCount(0);
 
@@ -125,22 +125,24 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   expect(again.status()).toBe(409);
 });
 
-// PLAN-HD-009 함께 읽는 사람들 1단계 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
+// PLAN-HD-009 함께 읽는 사람들 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
 // 재실행·다른 테스트가 완료를 쌓을 수 있어 두 문구를 모두 허용하고 API 응답과 화면이 맞는지만 본다.
-test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구", async ({ page }) => {
+// 비로그인 홈은 오늘 읽기 전이므로 읽으러 가는 버튼이 함께 보인다.
+test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구 · 읽기 전 버튼", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "함께 읽는 사람들" })).toBeVisible();
   const card = page.locator(".card.together");
   await expect(card).toHaveCount(1);
   await expect(card).toContainText("누가 읽었는지는 보이지 않아요");
+  await expect(card.getByRole("link", { name: "오늘 말씀 읽으러 가기" })).toHaveAttribute("href", "/read");
 
   const together = await (await page.request.get("/api/backend/hoondok/today/together")).json();
   expect(together.threshold).toBe(10);
   if (together.is_shown) {
-    await expect(card).toContainText(`오늘 함께 읽은 식구 ${together.count.toLocaleString("ko-KR")}명`);
+    await expect(card).toContainText(`오늘 ${together.count.toLocaleString("ko-KR")}명이 훈독했어요`);
   } else {
     expect(together.count).toBeNull();
-    await expect(card).toContainText("오늘도 식구들과 함께 읽어요");
+    await expect(card).toContainText("오늘도 식구들이 훈독하고 있어요");
     await expect(card).not.toContainText(/\d+명/);
   }
 });
@@ -160,10 +162,12 @@ test("설치 안내: 직접 완료 뒤 하단 안내 노출 · 방법 보기 펼
   const title = page.locator(".notice-slot").getByText(/홈 화면에 추가하면/);
   await expect(title).toHaveCount(0);
 
-  // 홈 미션 카드 체크 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
-  const check = page.getByRole("button", { name: /훈독하기.*완료/ });
-  await check.click();
-  await expect(check).toHaveAttribute("aria-pressed", "true");
+  // 훈독하기의 훈독 완료 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
+  await page.goto("/read");
+  await page.getByRole("button", { name: "훈독 완료" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "오늘 훈독을 마쳤어요" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.locator(".home-word__todo")).toHaveText("읽음");
   await expect(title).toBeVisible();
   await expect(page.getByRole("button", { name: "설치", exact: true })).toHaveCount(0);
   // "방법 보기" 는 같은 자리에서 펼쳐 브라우저 메뉴 안내를 보이고, "접기" 로 한 줄로 돌아간다
@@ -506,7 +510,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   const missionsBefore = await missions.boundingBox();
   releaseConfig();
   await expect(card.getByText("매일 언제 훈독을 알려 드릴까요?")).toBeVisible();
-  await expect(card).toContainText("오늘의 책갈피가 꽂혀 있어요");
+  await expect(card).toContainText("오늘 읽을 말씀이 있어요");
   // 안내는 탭 바 위 고정 자리에 뜬다 — 나타나도 미션 목록 위치가 그대로다 (밀면 오터치 → "나중에" 거절)
   const missionsAfter = await missions.boundingBox();
   expect(missionsAfter?.y).toBe(missionsBefore?.y);

@@ -88,7 +88,7 @@ GCP→AWS 이전해도 secrets 의 `QDRANT_URL`/`QDRANT_API_KEY` 만 갱신하�
 
 **약점**:
 - GHA 장애 시 (드물지만) cleanup 멈춤 → 그 때만 수동 1회 실행
-- Qdrant 가 외부 (Cloudflare Tunnel) 로 접근 가능해야 함 (이미 그렇게 설정됨)
+- Qdrant 가 외부 (Cloudflare Tunnel `vdb.<zone>`) 로 접근 가능해야 함. 이 경로는 Cloudflare Access 서비스 토큰으로 막혀 있어서 Secret `CF_ACCESS_CLIENT_ID`·`CF_ACCESS_CLIENT_SECRET` 이 없거나 만료되면 403 으로 실패한다 (`infra/oracle-vm/README.md`)
 
 ---
 

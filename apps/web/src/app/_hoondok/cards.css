@@ -1,14 +1,7 @@
-/* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 카드 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
+/* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 나의 책갈피 섹션 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
    값의 원본은 승인 시안 bookmark-final.html(목업 A). 색은 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check).
    사진 카드·내 카드 갤러리 개편은 시안 p4-gallery 를 따른다.
-   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(홈 리본·미리보기 깜박임)과 부채 전환은 동작 줄이기면 끈다. */
-
-/* 홈 리본: 800ms 뒤 2회만 6px 내려왔다 돌아간다 */
-@keyframes hoondok-bm-sway {
-  to {
-    transform: translateY(6px);
-  }
-}
+   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(미리보기 깜박임)과 부채 전환은 동작 줄이기면 끈다. */
 
 /* 사진 카드 미리보기를 불러오는 동안 자리만 은은하게 깜박인다 */
 @keyframes hoondok-pc-pulse {
@@ -147,106 +140,319 @@
     margin-top: 0.4em;
   }
 
-  /* ---------- 2. 홈 카드 (022, 시안 p4 홈): 짙은 바탕 + 금색 리본 + 금색 주 버튼, 아래 타일 두 개 ---------- */
-  .bmhome {
-    padding: 0;
-    overflow: hidden;
+  /* ---------- 2. 홈 "나의 책갈피" 섹션 (022): 따뜻한 책장 그림 + 회색 보조 버튼 ----------
+     주인공 판(home.css .home-word)보다 한 단계 낮다 — 채운 주황·금색 버튼, 남색 밤 판을 쓰지 않는다.
+     더블 베젤(바깥 .bmshelf + 안쪽 __core). 움직임은 transform 만, 곡선은 --bm-ease 하나. */
+  .bmshelf {
+    --bm-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --bm-ring: 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent);
+    padding: 5px;
+    border-radius: 26px;
+    background: color-mix(in srgb, var(--shelf-wall-2) 55%, transparent);
+    box-shadow:
+      var(--bm-ring),
+      var(--shadow-1);
   }
-  .bmhome__env {
+  .bmshelf__core {
+    overflow: hidden;
+    border-radius: 21px;
+    background: var(--surface);
+    box-shadow: inset 0 1px 0 var(--sheen-70);
+  }
+  .bmshelf__scene {
     position: relative;
     display: flex;
-    flex-direction: column;
-    min-height: 272px;
-    padding: 26px 22px 22px;
-    background:
-      radial-gradient(120% 70% at 85% 0%, var(--gold-glow), transparent 60%),
-      radial-gradient(90% 60% at 0% 100%, var(--green-glow), transparent 70%), var(--espresso);
-    color: var(--photo-paper);
-    isolation: isolate;
+    align-items: flex-end;
+    height: 140px;
+    padding: 0 20px;
+    background: linear-gradient(180deg, var(--shelf-wall) 0%, var(--shelf-wall-2) 100%);
+    color: inherit;
   }
-  .bmhome__rib {
+  /* 판이 overflow: hidden 이라 초점 고리를 안쪽으로 그린다 */
+  .bmshelf__scene:focus-visible {
+    outline-offset: -3px;
+  }
+  .bmshelf__plank {
     position: absolute;
-    top: 0;
-    right: 26px;
-    width: 40px;
-    height: 104px;
-    background: linear-gradient(180deg, var(--gold-2), var(--gold));
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
-    transform-origin: 50% 0;
-  }
-  .bmhome__env.is-waiting .bmhome__rib {
-    animation: hoondok-bm-sway 1.6s ease-in-out 0.8s 2 alternate;
-  }
-  .bmhome__kind {
-    font-size: var(--fs-md);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--gold-2);
-    padding-right: 56px;
-  }
-  .bmhome__title {
-    margin: 10px 0 auto;
-    padding-right: 56px;
-    font-size: var(--fs-2xl);
-    font-weight: 700;
-    line-height: 1.45;
-    letter-spacing: -0.02em;
-  }
-  .bmhome__go {
-    margin-top: 24px;
-  }
-  .bmhome > .ps-why {
-    margin: 0;
-    padding-left: 18px;
-    border-top: 0;
-  }
-  .bmhome-tiles {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 12px;
-  }
-  .bmhome-tile {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 14px;
-    min-height: 124px;
-    padding: 16px;
-    border-radius: 22px;
-    background: var(--surface);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 14px;
+    background: linear-gradient(180deg, var(--shelf) 0%, var(--shelf-2) 100%);
     box-shadow:
-      inset 0 0 0 1px var(--line),
-      var(--shadow-2);
+      inset 0 -1px 0 var(--sheen-35),
+      0 -6px 12px -6px var(--umber-18);
   }
-  .bmhome-tile:active {
-    transform: scale(0.98);
-  }
-  .bmhome-tile__spines {
+  .bmshelf__spines {
+    position: relative;
     display: flex;
     align-items: flex-end;
     gap: 3px;
-    height: 40px;
+    padding-bottom: 14px;
   }
-  .bmhome-tile__spines i {
+  .bmshelf__spine {
+    position: relative;
     display: block;
-    border-radius: 3px;
+    width: 13px;
+    border-radius: 3px 3px 1px 1px;
     background: var(--pc-book);
+    box-shadow:
+      inset 2px 0 0 var(--sheen-10),
+      inset -2px 0 0 var(--shade-8);
   }
-  .bmhome-tile__num {
-    min-height: 40px;
-    font-size: var(--fs-3xl);
-    font-weight: 700;
-    line-height: 40px;
+  .bmshelf__spine::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 10px;
+    height: 2px;
+    background: var(--gold-2-34);
   }
-  .bmhome-tile__bd b {
+  .bmshelf__spine.is-gap {
+    margin-left: 9px;
+  }
+  /* 비로그인·0장·불러오는 중: 점선 빈 책등 */
+  .bmshelf__spine.is-ghost {
+    background: none;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--plate-line) 55%, transparent);
+  }
+  .bmshelf__spine.is-ghost::after {
+    display: none;
+  }
+  /* 리본 달린 새 장 한 장. 꺼낸 날은 리본이 내려가 있다 */
+  .bmshelf__new {
+    position: relative;
+    margin-left: 18px;
+    padding-bottom: 14px;
+  }
+  .bmshelf__leaf {
     display: block;
-    font-size: var(--fs-lg);
+    width: 20px;
+    height: 94px;
+    border-radius: 3px 3px 1px 1px;
+    background: var(--photo-paper);
+    box-shadow:
+      inset 0 0 0 1px var(--pages-line),
+      2px 0 6px -2px var(--umber-18);
+    transform: rotate(-4deg);
+    transform-origin: bottom left;
+  }
+  .bmshelf__rib {
+    position: absolute;
+    left: 5px;
+    top: -24px;
+    width: 12px;
+    height: 46px;
+    background: linear-gradient(180deg, var(--gold-2), var(--gold));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+    transition: transform 0.7s var(--bm-ease);
+  }
+  .bmshelf__new.is-out .bmshelf__rib {
+    transform: translateY(14px);
+  }
+  .bmshelf__scene:focus-visible .bmshelf__new:not(.is-out) .bmshelf__rib {
+    transform: translateY(-5px);
+  }
+  .bmshelf__tag {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--gold-ink);
+    white-space: nowrap;
+    box-shadow:
+      inset 0 0 0 1px var(--gold-2-34),
+      0 4px 10px -4px var(--umber-28);
+  }
+  .bmshelf__tag::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    vertical-align: 2px;
+  }
+  .bmshelf__body {
+    padding: 16px 18px 6px;
+  }
+  .bmshelf__legend {
+    margin: 0 0 10px;
+    font-size: var(--fs-sm);
+    color: var(--ink-3);
+  }
+  .bmshelf__today {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+  }
+  .bmshelf__today-tx {
+    flex: 1;
+    min-width: 0;
+  }
+  .bmshelf__title {
+    margin: 0;
+    font-size: var(--fs-md);
     font-weight: 700;
   }
-  .bmhome-tile__bd span {
+  .bmshelf__quote {
+    margin: 0;
     font-size: var(--fs-md);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .bmshelf__sub {
+    margin: 2px 0 0;
+    font-size: var(--fs-sm);
     color: var(--ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 회색 바탕 보조 버튼 + 원형 꼬리(nub) */
+  .bmshelf__pull {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 6px 0 16px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    transition: transform 0.3s var(--bm-ease);
+  }
+  .bmshelf__pull:active {
+    transform: scale(0.98);
+  }
+  .bmshelf__nub {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--gold-ink);
+    box-shadow: var(--bm-ring);
+    transition: transform 0.5s var(--bm-ease);
+  }
+  .bmshelf__login {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .bmshelf__text-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  /* 얇은 줄: 내 카드 갤러리 · 맞춤 주제 */
+  .bmshelf__lite {
+    margin-top: 10px;
+  }
+  .bmshelf__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 6px 2px;
+    box-shadow: inset 0 1px 0 var(--line);
+    color: inherit;
+  }
+  a.bmshelf__row:active {
+    background: var(--surface-2);
+  }
+  .bmshelf__row-ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .bmshelf__row-t {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .bmshelf__row-s {
+    display: block;
+    margin-top: 1px;
+    font-size: var(--fs-sm);
+    font-weight: 400;
+    color: var(--ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bmshelf__chev {
+    flex: none;
+    color: var(--ink-3);
+  }
+  .bmshelf__why-t {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .bmshelf__why-t b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .bmshelf__why-go {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  .bmshelf__skel {
+    display: block;
+    height: 14px;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+  }
+  @media (hover: hover) {
+    .bmshelf__scene:hover .bmshelf__new:not(.is-out) .bmshelf__rib {
+      transform: translateY(-5px);
+    }
+    .bmshelf__pull:hover .bmshelf__nub {
+      transform: translateY(-2px) scale(1.05);
+    }
+    a.bmshelf__row:hover,
+    .bmshelf__why-go:hover {
+      background: var(--surface-2);
+    }
   }
 
   /* ---------- 3. 책갈피 카드 (목업 A) ---------- */
@@ -1715,8 +1921,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bmhome__env.is-waiting .bmhome__rib,
-    .bmhome-tile,
     .bks-spine,
     .bks-fan__arm,
     .bks-fan__card,

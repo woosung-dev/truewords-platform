@@ -8,11 +8,14 @@ export const PRIVACY_EFFECTIVE_DATE = "2026년 11월 19일";
 /** 이전 시행일 (최신이 앞). 첫 판이라 비어 있다. */
 export const PRIVACY_HISTORY: readonly string[] = [];
 
-/** 개인정보 보호책임자 — 문의·열람·삭제 요청을 받는 곳 */
-export const PRIVACY_OFFICER = {
-  name: "장우성",
-  role: "훈독 운영자",
-  email: "jangwooseng97@gmail.com",
+/**
+ * 개인정보 문의·열람·삭제 요청을 받는 곳. 개인정보 보호법 제30조 제1항 제6호는 "보호책임자의 성명 또는
+ * 고충 처리 부서의 명칭과 연락처"를 요구하므로 개인 이름 대신 부서 이름과 실제로 답하는 연락처를 쓴다.
+ */
+// privacy@woosung.dev 는 Cloudflare Email Routing 으로 운영자 메일함에 전달된다(woosung.dev MX)
+export const PRIVACY_CONTACT = {
+  department: "훈독 운영팀",
+  email: "privacy@woosung.dev",
 } as const;
 
 /** 처리를 맡기거나 해외로 옮겨 보관하는 곳 (개인정보 보호법 제26조 위탁 · 제28조의8 국외 이전 고지) */

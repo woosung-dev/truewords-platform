@@ -13,6 +13,7 @@ import type { HighlightItem, WordChunk } from "@truewords/api-client-ts/types";
 import { ArrowDown, BookOpenText, NotebookPen } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
 import {
@@ -55,6 +56,7 @@ const AiExplain = dynamic(() => import("./ai-explain").then((module) => module.A
   loading: () => <p role="status">설명 화면을 불러오고 있어요</p>,
 });
 
+import { AiSegment } from "./ai-segment";
 import { type HighlightActions, HighlightLayer } from "./highlight-layer";
 import { HighlightNotes } from "./highlight-notes";
 import { HighlightGateSheet, MemoSheet } from "./memo-sheet";
@@ -256,6 +258,7 @@ export function WordsScreen({
   const { user } = useCurrentUser();
   const isLoggedIn = Boolean(user);
   const summaries = usePublishedSummaries(volume);
+  const router = useRouter();
 
   const wordsQuery: WordsQuery = { chunkId, section };
   const query = useQuery({
@@ -396,6 +399,10 @@ export function WordsScreen({
     ? (tocSections.find((item) => item.position === currentSection.position) ?? null)
     : null;
   const selectedChunk = doc.chunks.find((chunk) => chunk.chunk_id === selectedChunkId) ?? null;
+  // 지금 장의 공개 요약 — 머리 표지와 같은 기준. AI 설명 탭이 글로 보인다.
+  const sectionSummaries = (summaries.data ?? []).filter(
+    (item) => currentSection != null && item.section_position === currentSection.position,
+  );
   const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
   const workTitle = doc.work_title;
   // 검색으로 들어온 경우에만 밑줄 안내를 보인다. 책갈피 카드로 들어온 단락은 카드 밑줄이 우선이다.
@@ -538,11 +545,7 @@ export function WordsScreen({
       <div className="words__main">
         {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
         {!marksAtStart && (
-          <SummaryMarks
-            items={(summaries.data ?? []).filter(
-              (item) => currentSection != null && item.section_position === currentSection.position,
-            )}
-          />
+          <SummaryMarks items={sectionSummaries} />
         )}
         <div className="masthead">
           {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
@@ -582,12 +585,16 @@ export function WordsScreen({
               </button>
             ))}
           </div>
-          <TtsBar
-            reader={reader}
-            title={`듣기 · ${doc.page}구간`}
-            total={doc.chunks.length}
-            nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
-          />
+          {/* AI 설명 탭은 원문 단락을 읽는 듣기 바와 상관없는 글이라 바를 숨긴다. 듣기 상태는 이 화면이 쥐고 있어
+              재생 중이면 소리는 이어지고 하단 독의 미니 플레이어로 멈출 수 있다 */}
+          {segment !== "ai" && (
+            <TtsBar
+              reader={reader}
+              title={`듣기 · ${doc.page}구간`}
+              total={doc.chunks.length}
+              nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
+            />
+          )}
           {/* 도구를 누른 순간에는 크롬이 보이는 상태다 — 안내를 크롬 안에 두어야 스크롤 위치와 무관하게 보인다 */}
           {hint && (
             <p className="notice" role="status">
@@ -686,7 +693,24 @@ export function WordsScreen({
               <ReadingEnd volume={volume} workTitle={workTitle} page={doc.page} totalPages={doc.total_pages} />
             </>
           )}
-          {segment === "ai" && <AiExplain chunk={selectedChunk} />}
+          {segment === "ai" && (
+            <AiSegment
+              summaries={sectionSummaries}
+              explain={<AiExplain chunk={selectedChunk} />}
+              onBackToText={() => setSegment("text")}
+              onOpenSource={(evidence) => {
+                // 근거 단락이 지금 구간에 있으면 본문 탭에서 그 단락으로, 아니면 그 단락이 있는 구간으로 간다
+                if (doc.chunks.some((chunk) => chunk.chunk_index === evidence.chunk_index)) {
+                  setSegment("text");
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById(`verse-${evidence.chunk_index}`)
+                      ?.scrollIntoView?.({ block: "center", behavior: "smooth" }),
+                  );
+                } else router.push(wordsHref(volume, evidence.chunk_id));
+              }}
+            />
+          )}
           {segment === "note" && (
             <HighlightNotes
               volume={volume}

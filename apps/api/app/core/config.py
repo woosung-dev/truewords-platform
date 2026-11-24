@@ -156,8 +156,12 @@ class Settings(BaseSettings):
     def validate_production(self):
         """프로덕션 환경에서 보안 필수값 검증."""
         if self.environment == "production":
-            if self.admin_jwt_secret.get_secret_value() == "change-me-in-production":
+            secret = self.admin_jwt_secret.get_secret_value()
+            if secret == "change-me-in-production":
                 raise ValueError("ADMIN_JWT_SECRET must be changed in production")
+            # HS256 키는 256비트 이상이어야 한다(RFC 7518 §3.2). 비었거나 짧으면 관리자 토큰을 위조할 수 있다.
+            if len(secret.strip()) < 32:
+                raise ValueError("ADMIN_JWT_SECRET must be at least 32 characters in production")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE must be True in production")
             if self.is_hoondok_google_enabled() and not self.web_frontend_url.strip().lower().startswith("https://"):

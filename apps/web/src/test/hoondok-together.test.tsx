@@ -36,40 +36,72 @@ afterEach(() => {
 });
 
 describe("TogetherCard (홈)", () => {
-  it("기준 이상이면 천 단위 쉼표로 숫자를 보인다", async () => {
+  it("읽기 전 · 기준 이상: 숫자와 읽으러 가는 버튼", async () => {
     respond(shown(1284));
-    render(wrap(<TogetherCard />));
+    render(wrap(<TogetherCard readState="todo" readHref="/read" />));
     expect(screen.getByRole("heading", { name: "함께 읽는 사람들" })).toBeInTheDocument();
     expect(screen.getByTestId("together-skeleton")).toBeInTheDocument();
-    expect(await screen.findByText("오늘 함께 읽은 식구 1,284명")).toBeInTheDocument();
-    expect(screen.getByText("같은 말씀을 읽었어요 · 누가 읽었는지는 보이지 않아요")).toBeInTheDocument();
+    expect(await screen.findByText("오늘 1,284명이 훈독했어요")).toBeInTheDocument();
+    expect(screen.getByText("누가 읽었는지는 보이지 않아요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "오늘 말씀 읽으러 가기" })).toHaveAttribute("href", "/read");
     expect(screen.queryByTestId("together-skeleton")).toBeNull();
-    // 프로토타입의 "새벽" 은 하루 전체 집계와 맞지 않아 뺐다
+    // 숫자는 읽은 말씀과 상관없이 오늘 훈독한 사람 수라 "같은 말씀" 이라고 쓰지 않는다
+    expect(screen.queryByText(/같은 말씀/)).toBeNull();
     expect(screen.queryByText(/새벽/)).toBeNull();
   });
 
-  it("기준 미만이면 숫자 없이 대체 문구를 쓴다", async () => {
+  it("읽기 전 · 기준 미만: 숫자 없이 현재형 문장과 버튼", async () => {
     respond(hidden);
-    render(wrap(<TogetherCard />));
-    // 아직 아무도 안 읽었을 수 있어 현재형이다 (완료 뒤 안내만 과거형)
-    expect(await screen.findByText("오늘도 식구들과 함께 읽어요")).toBeInTheDocument();
+    render(wrap(<TogetherCard readState="todo" readHref="/read" />));
+    expect(await screen.findByText("오늘도 식구들이 훈독하고 있어요")).toBeInTheDocument();
     expect(screen.queryByText(/\d+명/)).toBeNull();
+    expect(screen.getByRole("link", { name: "오늘 말씀 읽으러 가기" })).toBeInTheDocument();
+  });
+
+  it("읽기 전이라도 읽을 곳이 따로 있으면(정성 중) 버튼을 그리지 않는다", async () => {
+    respond(shown(12));
+    render(wrap(<TogetherCard readState="todo" readHref={null} />));
+    await screen.findByText("오늘 12명이 훈독했어요");
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("서버에 기록된 뒤: 완료 표시 · 버튼 없음", async () => {
+    respond(shown(24));
+    const { container } = render(wrap(<TogetherCard readState="done" readHref="/read" />));
+    expect(await screen.findByText("오늘 24명이 함께 훈독했어요")).toBeInTheDocument();
+    expect(container.querySelector(".together")).toHaveAttribute("data-done");
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("이 기기에만 완료(집계 밖)면 숫자를 본인과 엮지 않는다", async () => {
+    respond(shown(24));
+    render(wrap(<TogetherCard readState="done-local" readHref="/read" />));
+    expect(await screen.findByText("오늘 식구들과 함께 훈독했어요")).toBeInTheDocument();
+    expect(screen.queryByText(/\d+명/)).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("내 훈독 여부를 확인하는 동안은 자리만 지킨다(버튼이 떴다 사라지지 않게)", async () => {
+    respond(shown(24));
+    render(wrap(<TogetherCard readState="unknown" readHref="/read" />));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.getByTestId("together-skeleton")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("오류면 카드를 그리지 않는다", async () => {
     respond(() => json({ detail: "boom" }, 500));
-    const { container } = render(wrap(<TogetherCard />));
+    const { container } = render(wrap(<TogetherCard readState="todo" readHref="/read" />));
     await waitFor(() => expect(container).toBeEmptyDOMElement(), { timeout: 4000 }); // 훅의 retry 1회(1초) 뒤
     expect(screen.queryByText("함께 읽는 사람들")).toBeNull();
   });
 
-  it("미완료자·모임 진입을 그리지 않는다", async () => {
+  it("미완료자·모임을 그리지 않는다", async () => {
     respond(shown(12));
-    render(wrap(<TogetherCard />));
-    await screen.findByText("오늘 함께 읽은 식구 12명");
+    render(wrap(<TogetherCard readState="done" readHref={null} />));
+    await screen.findByText("오늘 12명이 함께 훈독했어요");
     expect(screen.queryByText(/아직/)).toBeNull();
     expect(screen.queryByText(/모임/)).toBeNull();
-    expect(screen.queryByRole("link")).toBeNull();
   });
 });
 

@@ -173,7 +173,7 @@ DB 변경 적용 (2026-04-30):
 
 1. **L2(출처 인용) 약점 보강** — paragraph 청킹의 메타데이터(권 번호, 날짜) 결합력 약함.
    Codex가 동일하게 권고함(BM25/exact-match 가중치, 출처명/권수 필수 매칭).
-   별도 plan: `docs/archive/plans/46-paragraph-l2-citation-strengthening.md`
+   별도 plan: `docs/archive/plans/46-paragraph-l2-citation-strengthening.md` (삭제됨, Git 이력 `318ad53b`)
 2. **Backend cache graceful degradation 결함 수정** — 별도 PR.
 3. **`scripts/seed_chatbot_configs.py` 동기화** — `'all'` 봇 default `collection_main`을
    `malssum_poc_v3`로 변경 (본 commit에 포함).
