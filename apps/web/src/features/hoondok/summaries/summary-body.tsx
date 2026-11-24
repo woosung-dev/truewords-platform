@@ -119,12 +119,49 @@ export function bodyHeadings(body: unknown): string[] {
 
 // 문단 끝 근거 번호 "(말씀 5–7)"·"(문단 5–7)" 는 본문보다 한 단계 낮춰 보인다.
 const CITE = /(\((?:말씀|문단) [\d\s,–-]+\))/;
-function withCitations(text: string) {
-  if (!CITE.test(text)) return text;
-  return text.split(CITE).map((part, i) => (i % 2 === 1 ? <span key={i} className="sum-cite">{part}</span> : part));
+
+/** "(말씀 5–7)"·"(문단 3, 8)" → 첫 번호와 끝 번호. 숫자가 없으면 null. */
+export function parseCitation(label: string): { unit: string; from: number; to: number } | null {
+  const unit = label.includes("문단") ? "문단" : "말씀";
+  const numbers = label.match(/\d+/g)?.map(Number) ?? [];
+  if (!numbers.length) return null;
+  return { unit, from: numbers[0], to: numbers[numbers.length - 1] };
 }
 
-export function SummaryBody({ body, assets = [] }: { body: unknown; assets?: SummaryMediaResponse[] }) {
+/** 근거 표기를 눌렀을 때 — 받은 쪽이 근거 원문 미리보기를 연다. */
+export type CiteHandler = (from: number, to: number) => void;
+
+function withCitations(text: string, onCite?: CiteHandler) {
+  if (!CITE.test(text)) return text;
+  return text.split(CITE).map((part, i) => {
+    if (i % 2 === 0) return part;
+    const cite = onCite ? parseCitation(part) : null;
+    if (!onCite || !cite) return <span key={i} className="sum-cite">{part}</span>;
+    const range = cite.from === cite.to ? `${cite.from}` : `${cite.from}–${cite.to}`;
+    return (
+      <button
+        key={i}
+        type="button"
+        className="sum-fn"
+        aria-label={`${cite.unit} ${range} 근거 원문 보기`}
+        onClick={() => onCite(cite.from, cite.to)}
+      >
+        {cite.unit} {range}
+      </button>
+    );
+  });
+}
+
+export function SummaryBody({
+  body,
+  assets = [],
+  onCite,
+}: {
+  body: unknown;
+  assets?: SummaryMediaResponse[];
+  /** 주면 근거 표기를 누를 수 있는 칩으로 그린다(원문 뷰 AI 설명). 없으면 낮춘 글자로 둔다(상세 화면). */
+  onCite?: CiteHandler;
+}) {
   if (!documentNode(body) || body.type !== "doc")
     return <p role="alert">해설을 표시할 수 없어요. 원문을 확인해 주세요.</p>;
   // 렌더러는 원본 노드 객체를 그대로 넘긴다. h2 마다 bodyHeadings 와 같은 순번 id 를 붙인다.
@@ -135,7 +172,7 @@ export function SummaryBody({ body, assets = [] }: { body: unknown; assets?: Sum
     nodeMapping: {
       doc: ({ children }) => <>{children}</>,
       paragraph: ({ node, children }) => <p style={textAlign(node)}>{children}</p>,
-      text: ({ node }) => (node.marks?.length ? (node.text ?? "") : withCitations(node.text ?? "")),
+      text: ({ node }) => (node.marks?.length ? (node.text ?? "") : withCitations(node.text ?? "", onCite)),
       heading: ({ node, children }) => {
         if (node.attrs?.level === 3) return <h3 style={textAlign(node)}>{children}</h3>;
         return (
