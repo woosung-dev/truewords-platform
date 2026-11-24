@@ -163,7 +163,7 @@ export function PrayScreen() {
   }
 
   function handleShareDone(outcome: ShareOutcome) {
-    if (outcome === "file" || outcome === "link") {
+    if (outcome === "file" || outcome === "link" || outcome === "kakao") {
       setIsSheetOpen(false);
       go("done");
       return;

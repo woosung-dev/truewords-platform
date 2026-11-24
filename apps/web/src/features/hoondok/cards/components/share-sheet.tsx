@@ -2,7 +2,8 @@
 
 // SCR-PWA-024 사진 카드로 건네기 (시안 p4 스튜디오). 미리보기는 서버가 그린 이미지 그대로다(보내는 것 = 보이는 것).
 // 고르기: 크기(4:5 카톡·피드 / 9:16 스토리) · 바탕(사진 4장 + 책 색) · 출처 표시(자세히 / 책 이름만). 출처와 훈독 표시는 늘 인쇄한다.
-// 갈래: 카카오톡·다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 사진 저장 · 글로 복사. 인사 한 줄은 없다(결정 1).
+// 갈래: 카카오톡(SDK 피드, 키가 있는 빌드에서만) · 다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 사진 저장 · 글로 복사.
+// 인사 한 줄은 없다(결정 1).
 // 고른 모양은 건넬 때 이 기기에 카드별로 남겨 내 카드 갤러리의 "그대로 다시 건네기" 가 같은 모양으로 연다.
 import { Copy, Download, Loader2, Lock, MessageCircle } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import {
   photoSrc,
   type SourceMode,
 } from "../look";
+import { isKakaoShareConfigured, loadKakaoSdk, sendKakaoFeed } from "../kakao";
 import { type CardShareResult, cardLink, copyCardText, photoCardImagePath, photoFileName, shareCard } from "../share";
 import { readCardLook, writeCardLook } from "../storage";
 import { ChoiceGroup } from "./choice-group";
@@ -61,7 +63,15 @@ export function usePreparedImage(url: string, name: string): PreparedImage {
 }
 
 /** 보내기 버튼. 이미지가 준비될 때까지 "사진 준비 중" 으로 막고, 실패하면 다시 받기를 보인다 */
-export function PreparedShareButton({ prepared, onShare }: { prepared: PreparedImage; onShare: () => void }) {
+export function PreparedShareButton({
+  prepared,
+  onShare,
+  label = "카카오톡·다른 앱으로 건네기",
+}: {
+  prepared: PreparedImage;
+  onShare: () => void;
+  label?: string;
+}) {
   return (
     <>
       {prepared.status === "error" && (
@@ -79,7 +89,7 @@ export function PreparedShareButton({ prepared, onShare }: { prepared: PreparedI
         aria-busy={prepared.status === "loading"}
         onClick={onShare}
       >
-        {prepared.status === "loading" ? "사진 준비 중" : "카카오톡·다른 앱으로 건네기"}
+        {prepared.status === "loading" ? "사진 준비 중" : label}
         <span className="pc-cta__ic" aria-hidden="true">
           {prepared.status === "loading" ? <Loader2 size={22} className="pc-cta__spin" /> : <MessageCircle size={22} />}
         </span>
@@ -138,18 +148,22 @@ export function ImagePreview({
   );
 }
 
-export type ShareOutcome = CardShareResult | "copied" | "copy-failed";
+/** kakao: 카카오톡 공유 창을 열었다(보냈는지는 SDK 가 알려 주지 않는다) */
+export type ShareOutcome = CardShareResult | "kakao" | "copied" | "copy-failed";
 
 const TOAST: Partial<Record<ShareOutcome, string>> = {
   file: "책갈피를 건넸어요",
   link: "책갈피를 건넸어요",
+  kakao: "책갈피를 건넸어요",
   clipboard: "말씀과 출처·링크를 복사했어요. 대화방에 붙여 넣어 주세요",
   copied: "말씀과 출처·링크를 글로 복사했어요",
 };
 
 /** 건넨 셈인 결과(건넴 표시 050 대상) */
 export function isGivenOutcome(outcome: ShareOutcome): boolean {
-  return outcome === "file" || outcome === "link" || outcome === "clipboard" || outcome === "copied";
+  return (
+    outcome === "file" || outcome === "link" || outcome === "kakao" || outcome === "clipboard" || outcome === "copied"
+  );
 }
 
 /** 결과 토스트 문구. 로그인 사용자가 보내면(복사 제외) 나의 책갈피에 남았다고 덧붙인다 */
@@ -168,6 +182,25 @@ export function ShareToast({ message }: { message: string | null }) {
       {message}
     </p>
   );
+}
+
+/**
+ * 카카오 SDK 를 시트가 열릴 때 미리 불러온다. 키가 없는 빌드(localhost 기본·키 빠진 운영)나
+ * SDK 를 못 불러온 기기에서는 끝까지 null 이라 카카오 버튼이 보이지 않는다.
+ */
+function useKakaoSdk() {
+  const [sdk, setSdk] = useState<Awaited<ReturnType<typeof loadKakaoSdk>>>(null);
+  useEffect(() => {
+    if (!isKakaoShareConfigured()) return;
+    let isActive = true;
+    void loadKakaoSdk().then((loaded) => {
+      if (isActive) setSdk(loaded);
+    });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+  return sdk;
 }
 
 const SOURCE_OPTIONS: readonly { value: SourceMode; label: string }[] = [
@@ -195,6 +228,7 @@ export function ShareSheet({
   const prepared = usePreparedImage(imageUrl, fileName);
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
   const book = bookColorIndex(card.work_title);
+  const kakao = useKakaoSdk();
 
   function change(next: Partial<CardLook>) {
     setLook((previous) => ({ ...previous, ...next }));
@@ -205,6 +239,14 @@ export function ShareSheet({
     if (result === "none") setFallbackLink(link);
     if (result !== "cancelled" && result !== "none") writeCardLook(card.id, look);
     onDone(result);
+  }
+  // 버튼을 누른 동작 안에서 바로 연다(모바일은 동작이 끊기면 카톡 앱을 열지 않는다)
+  function handleKakao() {
+    if (!kakao) return;
+    const isOpened = sendKakaoFeed(kakao, card, look, window.location.origin);
+    if (!isOpened) return void handleShare();
+    writeCardLook(card.id, look);
+    onDone("kakao");
   }
   async function handleCopy() {
     const link = cardLink(card.id);
@@ -257,6 +299,12 @@ export function ShareSheet({
           </div>
         )}
         {/* 아래 고정 영역은 주 버튼 하나만 둔다. 보조 버튼까지 고정하면 작은 화면에서 선택지를 가린다 */}
+        {kakao && (
+          <button className="btn btn-line pcs-kakao" type="button" onClick={handleKakao}>
+            <MessageCircle size={20} aria-hidden="true" />
+            카카오톡으로 보내기
+          </button>
+        )}
         <div className="bmk-row2 pcs-more">
           <a className="btn btn-line" href={imageUrl} download={fileName} onClick={() => writeCardLook(card.id, look)}>
             <Download size={20} aria-hidden="true" />
@@ -268,7 +316,11 @@ export function ShareSheet({
           </button>
         </div>
         <div className="pcs-dock">
-          <PreparedShareButton prepared={prepared} onShare={() => void handleShare()} />
+          <PreparedShareButton
+            prepared={prepared}
+            onShare={() => void handleShare()}
+            label={kakao ? "다른 앱으로 건네기" : undefined}
+          />
         </div>
       </div>
     </ReaderSheet>
