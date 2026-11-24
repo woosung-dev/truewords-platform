@@ -5,8 +5,13 @@
   /* ---------- 홈 익명 카드 : 해 아이콘 원 + 굵은 한 줄 + 보조줄 ---------- */
   .together {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
+  }
+  /* 읽기 전 카드의 버튼은 카드 아래 한 줄을 다 쓴다. 홈 주인공 판의 훈독하기와 겹치지 않게 보조(line) 버튼이다 */
+  .together__go {
+    flex-basis: 100%;
   }
   .together__bd {
     flex: 1;
@@ -32,6 +37,11 @@
     flex: none;
     background: var(--accent-soft);
     color: var(--accent-strong);
+  }
+  /* 오늘 읽은 뒤: 함께했다는 확인이라 완료 색으로 바꾼다 */
+  .together[data-done] .tg-ic {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
   }
   /* 불러오는 동안 카드 높이만 지킨다 — `.skeleton` 은 garden.css 공용 */
   .tg-skeleton {

@@ -2,12 +2,16 @@
 
 import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
 import { HandsPrayingIcon } from "@phosphor-icons/react/dist/ssr/HandsPraying";
+import { useSyncExternalStore } from "react";
 import { MissionCard } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
 import { useResumeCard } from "@/features/hoondok/library/use-resume";
+import { useHeroReadButton } from "@/features/hoondok/path/components/path-home-slot";
+import { readPending, subscribePending } from "@/features/hoondok/pending";
 import { useNoticeSignal } from "@/features/hoondok/notice/notice-store";
 import type { TodayResponse } from "@/features/hoondok/today";
-import { TogetherCard } from "@/features/hoondok/together/components/together-card";
+import { TogetherCard, type TogetherReadState } from "@/features/hoondok/together/components/together-card";
+import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 
@@ -99,10 +103,34 @@ export function HomeMissions({ today }: { today: TodayResponse }) {
   );
 }
 
-/** 홈 "함께 읽는 사람들" 익명 카드. 편성 없는 날에는 "같은 말씀을 읽었어요" 가 사실이 아니라 그리지 않는다(C3). */
+/**
+ * 홈 "함께 읽는 사람들" 익명 카드. 편성 없는 날에는 오늘 읽을 말씀이 없어 그리지 않는다(C3).
+ * 내 오늘 훈독 여부는 말씀 판(home-sky.tsx HomeWord)과 같은 판정(요약 today.read + 이 기기 완료 키)이다.
+ * 완료 훅(useMissionCompletion)을 또 부르면 로그인 소급 POST 가 하나 더 생기므로 여기서는 읽기만 한다.
+ * 7일 정성 중이면 오늘 읽을 것은 정성 장이라 판처럼 버튼을 그리지 않는다.
+ */
 export function HomeTogether({ today }: { today: TodayResponse }) {
   const { reading, isResolving, isEmptyDay } = useEffectiveToday(today);
+  const { user, isLoading } = useCurrentUser();
+  const summary = useSummary(Boolean(user));
+  const date = useKstDate();
+  const isLocalDone = useSyncExternalStore(
+    subscribePending,
+    () => readPending("read", date, user?.id) || (Boolean(user) && readPending("read", date)),
+    () => false,
+  );
+  const heroButton = useHeroReadButton();
   // 확인 중인데 말씀이 아직 없으면 기다린다 — 빈 날에 카드가 떴다 사라지거나 숫자를 부르지 않게
   if (isEmptyDay || (!reading && isResolving)) return null;
-  return <TogetherCard />;
+
+  const isServerDone = Boolean(user) && Boolean(summary.data?.today.read);
+  const isDoneKnown = !isLoading && (!user || summary.data !== undefined || summary.isError || isLocalDone);
+  const readState: TogetherReadState = !isDoneKnown
+    ? "unknown"
+    : isServerDone
+      ? "done"
+      : isLocalDone
+        ? "done-local"
+        : "todo";
+  return <TogetherCard readState={readState} readHref={heroButton === "show" ? "/read" : null} />;
 }
