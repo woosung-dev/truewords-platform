@@ -33,7 +33,7 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/hoondok/summaries/api", () => ({
-  summariesAPI: { list: vi.fn(async () => []), detail: vi.fn() },
+  summariesAPI: { list: vi.fn(async () => []), detail: vi.fn(), evidence: vi.fn() },
 }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 vi.mock("@/features/hoondok/ask/ask-stream", async (original) => ({
@@ -847,6 +847,72 @@ describe("AI 설명 탭", () => {
     fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText(/근거 말씀을 찾지 못했어요/)).toBeInTheDocument());
     expect(screen.queryByText("보이면 안 되는 답")).toBeNull();
+  });
+});
+
+describe("AI 설명 탭 — 이 장의 공개 요약", () => {
+  const LIST_ITEM = {
+    id: "s1",
+    content_right_id: "book",
+    work_title: ITEM.work_title,
+    slug: "cheon-01-01-01",
+    group_title: "제1편",
+    position: 1,
+    title: "이웃을 듣는 마음",
+    lead: "핵심",
+    section_position: 2,
+  };
+  const DETAIL = {
+    ...LIST_ITEM,
+    volume: VOLUME,
+    lead: "듣는 마음이 이웃을 살린다는 이야기예요.",
+    key_points: ["요점 하나"],
+    body: {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "먼저 들어야 해요 (말씀 5–7)" }] }],
+    },
+    body_version: 1,
+    evidence: [{ claim: "듣는 마음이 먼저다", from: 5, to: 7, chunk_id: "c1", chunk_index: 1 }],
+    reflection_questions: ["오늘 누구의 말을 끝까지 들었나요?"],
+    source: { edition: "판", locator: "말씀 1–9", text: "", paragraph_from: 1, paragraph_to: 9, chunk_ids: [] },
+    images: [{ kind: "concept" as const, asset_id: "a", alt: "듣는 마음 도해", caption: null, url: "/c.webp" }],
+    assets: [],
+    next_id: null,
+  };
+  it("요약을 글로 보이고, 근거 번호를 누르면 원문 시트가 열린다", async () => {
+    vi.mocked(summariesAPI.list).mockResolvedValue([LIST_ITEM]);
+    vi.mocked(summariesAPI.detail).mockResolvedValue(DETAIL as never);
+    vi.mocked(summariesAPI.evidence).mockResolvedValue({ exact: true, paragraphs: ["근거 원문 단락"] });
+    await showWords();
+    fireEvent.click(await screen.findByRole("tab", { name: "AI 설명" }));
+    expect(await screen.findByRole("heading", { name: "이웃을 듣는 마음", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("듣는 마음이 이웃을 살린다는 이야기예요.")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "듣는 마음 도해" })).toBeInTheDocument();
+    // 단락 질문은 글 아래 보조로 남는다
+    expect(screen.getByRole("heading", { name: "고른 단락만 AI에게 묻기" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "말씀 5–7 근거 원문 보기" }));
+    const sheet = await screen.findByRole("dialog", { name: "말씀 5–7" });
+    expect(await within(sheet).findByText("근거 원문 단락")).toBeInTheDocument();
+    expect(summariesAPI.evidence).toHaveBeenCalledWith("s1", 0, expect.anything());
+    // 원문 뷰 안에서는 페이지를 옮기지 않고 본문 탭으로 돌아간다
+    fireEvent.click(within(sheet).getByRole("button", { name: /원문에서 앞뒤 읽기/ }));
+    await waitFor(() => expect(screen.getByRole("tab", { name: "본문" })).toHaveAttribute("aria-selected", "true"));
+  });
+  it("AI 설명 탭에서는 원문 듣기 바를 숨기고, 본문 탭으로 돌아오면 다시 보인다", async () => {
+    await showWords();
+    const ttsNote = "이 브라우저는 소리 내어 읽기를 지원하지 않아요.";
+    expect(await screen.findByText(ttsNote)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
+    await waitFor(() => expect(screen.queryByText(ttsNote)).toBeNull());
+    fireEvent.click(screen.getByRole("tab", { name: "본문" }));
+    expect(await screen.findByText(ttsNote)).toBeInTheDocument();
+  });
+  it("다른 장의 요약만 있으면 단락 질문만 보인다", async () => {
+    vi.mocked(summariesAPI.list).mockResolvedValue([{ ...LIST_ITEM, section_position: 9 }]);
+    await showWords();
+    fireEvent.click(await screen.findByRole("tab", { name: "AI 설명" }));
+    expect(await screen.findByText(/단락 번호를 눌러 단락을 하나 골라 주세요/)).toBeInTheDocument();
+    expect(summariesAPI.detail).not.toHaveBeenCalled();
   });
 });
 

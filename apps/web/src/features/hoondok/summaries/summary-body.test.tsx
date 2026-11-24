@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { bodyHeadingId, bodyHeadings, parseCitation, SummaryBody } from "./summary-body";
 
 describe("원문 요약 본문", () => {
   it("본문 구조와 서식을 읽기 전용으로 보여준다", () => {
@@ -105,4 +105,23 @@ it("본문 이미지와 영상·표를 공개 자산만으로 표시한다", () 
     "https://www.youtube-nocookie.com/embed/abcdefghijk?start=12",
   );
   expect(screen.getByRole("cell", { name: "핵심 의미" })).toBeVisible();
+});
+
+describe("근거 표기", () => {
+  it("범위·쉼표 표기에서 첫 번호와 끝 번호를 읽는다", () => {
+    expect(parseCitation("(말씀 5–7)")).toEqual({ unit: "말씀", from: 5, to: 7 });
+    expect(parseCitation("(문단 3, 8)")).toEqual({ unit: "문단", from: 3, to: 8 });
+    expect(parseCitation("(말씀 12)")).toEqual({ unit: "말씀", from: 12, to: 12 });
+  });
+  it("onCite 를 주면 근거 표기가 누르는 칩이 되고, 없으면 낮춘 글자로 남는다", () => {
+    const body = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "해설 (말씀 5–7)" }] }] };
+    const onCite = vi.fn();
+    const { unmount } = render(<SummaryBody body={body} onCite={onCite} />);
+    fireEvent.click(screen.getByRole("button", { name: "말씀 5–7 근거 원문 보기" }));
+    expect(onCite).toHaveBeenCalledWith(5, 7);
+    unmount();
+    render(<SummaryBody body={body} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText("(말씀 5–7)")).toHaveClass("sum-cite");
+  });
 });

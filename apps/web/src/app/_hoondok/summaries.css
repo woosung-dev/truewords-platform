@@ -196,3 +196,59 @@
 [data-app="hoondok"] .sum-table table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--fs-sm); }
 [data-app="hoondok"] .sum-table td, [data-app="hoondok"] .sum-table th { border: 1px solid var(--line); padding: 11px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 [data-app="hoondok"] .sum-table th { background: var(--surface-2); font-weight: 650; }
+
+/* ---------- 원문 뷰 AI 설명 : 공개 요약을 한 편의 글로 (summary-article.tsx) ----------
+   읽기 폭 640px · 본문 17px/1.9 · 문단 1.25em. 그림은 글 흐름 안, 설명 글 없이 alt 만.
+   문단 끝 근거 번호는 누르는 칩(.sum-fn) — 누르면 근거 원문 시트가 올라온다. */
+[data-app="hoondok"] .ai-seg { max-width: 640px; margin: 0 auto; }
+[data-app="hoondok"] .sum-art { max-width: 640px; margin: 0 auto; padding: 8px 0 12px; color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
+[data-app="hoondok"] .sum-art__head { display: grid; gap: 10px; margin-bottom: 24px; }
+[data-app="hoondok"] .sum-art__kick { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 650; }
+[data-app="hoondok"] .sum-art__kick svg { color: var(--accent); }
+[data-app="hoondok"] .sum-art__head h2 { margin: 0; font-size: var(--fs-3xl); font-weight: 700; line-height: 1.4; letter-spacing: -0.03em; text-wrap: balance; }
+[data-app="hoondok"] .sum-art__sub { margin: 0 0 4px; color: var(--ink-2); font-size: 1.0625rem; line-height: 1.7; }
+[data-app="hoondok"] .sum-art__tip { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.6; }
+[data-app="hoondok"] .sum-art__fig { margin: 28px 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+[data-app="hoondok"] .sum-art__fig img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: contain; }
+[data-app="hoondok"] .sum-art__body .sum-body { font-size: 1.0625rem; line-height: 1.9; }
+[data-app="hoondok"] .sum-art__body .sum-body p { margin: 0 0 1.25em; }
+[data-app="hoondok"] .sum-art__body .sum-body h2 { margin: 2em 0 0.6em; font-size: var(--fs-xl); letter-spacing: -0.02em; text-wrap: balance; }
+/* 본문 속 원문 인용은 회색 작은 글씨로 흐리지 않는다 — 읽기 크기와 대비를 지킨다 */
+[data-app="hoondok"] .sum-art__body .sum-body blockquote { margin: 1.6em 0; padding: 4px 0 4px 16px; border-left: 3px solid var(--plate-line); border-radius: 0; background: none; color: var(--ink); font-size: var(--fs-lg); line-height: 1.85; }
+
+/* 근거 칩 — 글자 줄높이를 밀지 않으면서 누를 자리는 넉넉히 */
+[data-app="hoondok"] .sum-fn { display: inline-flex; align-items: center; min-height: 26px; margin: 0 2px; padding: 0 8px; border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-xs); font-weight: 700; line-height: 1; white-space: nowrap; vertical-align: 0.1em; transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease; }
+[data-app="hoondok"] button.sum-fn { position: relative; }
+[data-app="hoondok"] button.sum-fn::after { content: ""; position: absolute; inset: -9px -2px; }
+[data-app="hoondok"] button.sum-fn:active { transform: scale(0.95); }
+@media (hover: hover) {
+  [data-app="hoondok"] button.sum-fn:hover { background: var(--accent); color: var(--accent-ink); }
+}
+
+[data-app="hoondok"] .sum-art__box { margin: 28px 0; padding: 18px 18px 6px; border-radius: var(--r-sm); background: var(--surface-2); }
+[data-app="hoondok"] .sum-art__box h3 { margin: 0 0 10px; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 700; }
+[data-app="hoondok"] .sum-art__box ol { margin: 0; padding-left: 20px; }
+[data-app="hoondok"] .sum-art__box li { margin-bottom: 12px; font-size: var(--fs-md); line-height: 1.75; }
+[data-app="hoondok"] .sum-art__ask { margin: 32px 0 0; }
+[data-app="hoondok"] .sum-art__ask h3, [data-app="hoondok"] .sum-art__notes h3 { margin: 0 0 12px; font-size: var(--fs-xl); font-weight: 700; }
+[data-app="hoondok"] .sum-art__ask p { margin: 0 0 14px; padding-left: 14px; border-left: 2px solid var(--accent); font-size: 1.0625rem; line-height: 1.8; }
+[data-app="hoondok"] .sum-art__notes { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-art__notes ol { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
+[data-app="hoondok"] .sum-art__notes li { padding-top: 4px; font-size: var(--fs-md); line-height: 1.7; }
+[data-app="hoondok"] .sum-art__notes p { margin: 0; color: var(--ink); }
+[data-app="hoondok"] .sum-art__cite { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; }
+@media (hover: hover) {
+  [data-app="hoondok"] .sum-art__cite:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
+[data-app="hoondok"] .sum-art__end { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+[data-app="hoondok"] .sum-art__status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 24px 0; color: var(--ink-2); font-size: var(--fs-md); }
+[data-app="hoondok"] .sum-art__status p { margin: 0; }
+[data-app="hoondok"] .sum-art__pick { display: flex; gap: 8px; overflow-x: auto; margin: 4px 0 8px; padding-bottom: 4px; scrollbar-width: none; }
+[data-app="hoondok"] .sum-art__pick button { flex: none; max-width: 80%; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--r-full); background: var(--surface); color: var(--ink-2); font-size: var(--fs-sm); text-align: left; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+[data-app="hoondok"] .sum-art__pick button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); font-weight: 600; }
+[data-app="hoondok"] .sum-art__more { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-art__more h3 { margin: 0 0 4px; font-size: var(--fs-lg); font-weight: 700; }
+[data-app="hoondok"] .sum-art__more .ai-note { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  [data-app="hoondok"] .sum-fn, [data-app="hoondok"] .sum-art__pick button { transition: none; }
+}
