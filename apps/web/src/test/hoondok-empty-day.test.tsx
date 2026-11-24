@@ -272,6 +272,35 @@ describe("홈 · 함께 읽는 사람들", () => {
     show(<HomeTogether today={AVAILABLE} />);
     expect(await screen.findByRole("heading", { name: "함께 읽는 사람들" })).toBeInTheDocument();
   });
+
+  it("비로그인 · 읽기 전이면 읽으러 가는 버튼이 있다", async () => {
+    show(<HomeTogether today={AVAILABLE} />);
+    expect(await screen.findByRole("link", { name: "오늘 말씀 읽으러 가기" })).toHaveAttribute("href", "/read");
+    expect(screen.getByText("오늘도 식구들이 훈독하고 있어요")).toBeInTheDocument();
+  });
+
+  it("로그인 · 오늘 기록이 있으면 함께했다는 확인만 보인다", async () => {
+    vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
+    vi.mocked(missionsAPI.summary).mockResolvedValue({
+      today: { read: true, pray: false, study: false },
+      week: [],
+      streak_days: 12,
+      best_streak_days: 12,
+      total_days: 12,
+    });
+    vi.mocked(togetherAPI.today).mockResolvedValue({ date: DATE, count: 24, is_shown: true, threshold: 10 });
+    show(<HomeTogether today={AVAILABLE} />);
+    expect(await screen.findByText("오늘 24명이 함께 훈독했어요")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "오늘 말씀 읽으러 가기" })).toBeNull();
+  });
+
+  it("비로그인 · 이 기기에서만 완료면 숫자를 본인과 엮지 않는다", async () => {
+    writePending("read");
+    vi.mocked(togetherAPI.today).mockResolvedValue({ date: DATE, count: 24, is_shown: true, threshold: 10 });
+    show(<HomeTogether today={AVAILABLE} />);
+    expect(await screen.findByText("오늘 식구들과 함께 훈독했어요")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "오늘 말씀 읽으러 가기" })).toBeNull();
+  });
 });
 
 describe("훈독하기(/read) · 편성 없는 날", () => {
