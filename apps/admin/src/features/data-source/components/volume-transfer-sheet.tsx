@@ -171,6 +171,7 @@ export default function VolumeTransferSheet({
           <div className="px-6 pt-4 shrink-0">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">분류할 카테고리 선택</label>
             <select
+              aria-label="분류할 카테고리"
               value={selectedCategoryForUncategorized}
               onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
               className="w-full max-w-xs text-sm border rounded-lg px-3 py-2 bg-background"

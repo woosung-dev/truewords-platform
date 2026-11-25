@@ -620,6 +620,7 @@ export default function DataSourcesPage() {
                       <>
                         {/* 소스 선택 */}
                         <select
+                          aria-label={`${pf.file.name} 분류`}
                           value={pf.source}
                           onChange={(e) => updateSource(pf.id, e.target.value)}
                           className="text-xs border rounded-md px-2 py-1.5 bg-background shrink-0 cursor-pointer"
