@@ -145,7 +145,7 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
     expect(await screen.findByText(TODAY_CARD.text)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "오늘 말씀부터 드릴게요" })).toBeInTheDocument();
     expect(
-      screen.getByText("고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요."),
+      screen.getByText("고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘의 한 장을 먼저 드려요."),
     ).toBeInTheDocument();
   });
 

@@ -98,7 +98,7 @@ test("시작 → 숨 고르기 → 본문 → 다 읽었어요 → 마침 → �
   const home = page.locator(".path-home");
   await expect(home.getByText("읽은 장 0/7")).toBeVisible();
   await expect(home.getByText(/^새벽 기도 뒤 · 약 \d+분$/)).toBeVisible();
-  // 오늘 읽을 것은 정성 장 하나 — 히어로 훈독하기는 없고 오늘의 말씀은 접혀 있다
+  // 오늘 읽을 것은 정성 장 하나 — 함께 읽기 카드의 /read 버튼도 숨고 오늘의 말씀은 접혀 있다
   await expect(page.locator(".shot").getByRole("link", { name: /훈독하기/ })).toHaveCount(0);
   const fold = page.locator("details.path-fold");
   await expect(fold).not.toHaveAttribute("open", "");

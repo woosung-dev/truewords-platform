@@ -1,23 +1,18 @@
 "use client";
 
-// 홈 "오늘의 하늘" (SCR-PWA-002). 위쪽이 KST 시간대(새벽·낮·저녁·밤)에 따라 바뀌는 하늘이고, 그 안에 인사와 이번 주 별자리,
-// 지평선에 걸친 "오늘 읽을 말씀" 판이 있다. 그림은 사진 대신 그라데이션 네 장(opacity 전환)과 잔별·해달(transform)이다.
+// 홈 "오늘의 하늘" (SCR-PWA-002). 위쪽이 KST 시간대(새벽·낮·저녁·밤)에 따라 바뀌는 하늘이고, 그 안에 인사와 이번 주 별자리가 있다.
+// 지평선에 걸친 "오늘의 책갈피" 판은 cards/components/home-board.tsx 가 그린다(부엉이·시간대는 여기 SKY_OWL·useSkySlot).
+// 그림은 사진 대신 그라데이션 네 장(opacity 전환)과 잔별·해달(transform)이다.
 // 시간대: 서버가 요청 시각(KST)으로 고른 값을 serverSlot 으로 받아 hydration 은 그 값으로 하고, 직후 이 기기 시각으로 다시 본다
 // (useSyncExternalStore 의 서버 스냅숏). 경계 시각에 서버·기기가 달라도 불일치 경고 없이 하늘만 한 번 바뀐다.
-import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
-import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
-import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
-import { QuotesIcon } from "@phosphor-icons/react/dist/ssr/Quotes";
 import Link from "next/link";
 import { type ReactNode, useSyncExternalStore } from "react";
-import { HoondokMascot, type MascotPose, WeekConstellation } from "@/components/hoondok";
+import { type MascotPose, WeekConstellation } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
-import { useHeroReadButton } from "@/features/hoondok/path/components/path-home-slot";
 import { FIELD_STARS, msUntilNextSlot, type SkySlot, skySlotAt } from "@/features/hoondok/sky";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
-import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
+import { useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 
@@ -130,120 +125,6 @@ export function HomeWeek({ today, todayWeekday }: { today: TodayResponse; todayW
         }
         doneByDay={summary?.week.map((day) => day.done) ?? []}
       />
-    </div>
-  );
-}
-
-/** 주인공 판의 주 버튼. 원형 꼬리(nub) 안에 아이콘을 둔다. 정성 확인 중(hold)에는 자리만 지킨다 */
-function HeroLink({
-  href,
-  label,
-  icon,
-  isSecondary = false,
-  isHeld,
-}: {
-  href: string;
-  label: string;
-  icon: ReactNode;
-  isSecondary?: boolean;
-  isHeld: boolean;
-}) {
-  return (
-    <Link
-      className={`btn ${isSecondary ? "btn-ghost home-word__go home-word__go--2" : "btn-primary home-word__go"}`}
-      href={href}
-      style={isHeld ? { visibility: "hidden" } : undefined}
-      aria-hidden={isHeld || undefined}
-      tabIndex={isHeld ? -1 : undefined}
-    >
-      {label}
-      <span className="home-word__nub" aria-hidden="true">
-        {icon}
-      </span>
-    </Link>
-  );
-}
-
-/**
- * 지평선에 걸친 "오늘 읽을 말씀" 판 = 홈의 오늘 할 일. 말씀 본문은 싣지 않는다 — 제목·저작물·화자·예상 분만 크게 보이고
- * 전문은 `/read` 가 갖는다. 정성 말씀이면 그 제목이다(effective 편성). 오른쪽 칩은 오늘 훈독 완료 여부다
- * (홈 "오늘의 실천" 이 알림 신호에 쓰는 판정과 같다). 칩은 판정이 끝난 뒤에만 그려 "읽기 전" → "읽음" 으로 깜빡이지 않는다.
- * 빈 날은 대체 말씀 없이 서고·검색으로 안내하고, 조회 실패는 빈 날이 아니라 훈독하기에서 다시 불러오게 둔다.
- */
-export function HomeWord({ today, serverSlot }: { today: TodayResponse; serverSlot: SkySlot }) {
-  const slot = useSkySlot(serverSlot);
-  const effective = useEffectiveToday(today);
-  const reading = effective.isPersonalLoading ? null : effective.reading;
-  const isPending = !reading && effective.isResolving;
-  // 7일 정성 중이면 오늘 읽을 것은 정성 장 하나다 — 판의 버튼을 그리지 않는다(확인 중에는 자리만 지킨다)
-  const heroButton = useHeroReadButton();
-  const { user, isLoading } = useCurrentUser();
-  const summary = useSummary(Boolean(user));
-  const completion = useMissionCompletion("read", user, isLoading);
-  const isReadDone = completion.isDone || Boolean(summary.data?.today.read);
-  const isDoneKnown = !isLoading && (!user || summary.data !== undefined || summary.isError || completion.isDone);
-  const isHeld = heroButton === "hold";
-  return (
-    <div className="home-word" aria-busy={isPending || undefined}>
-      <span className="home-word__owl">
-        <HoondokMascot pose={SKY_OWL[slot]} size={64} />
-      </span>
-      <div className="home-word__core">
-        <div className="home-word__top">
-          <h2 className="home-word__kicker">오늘 읽을 말씀</h2>
-          {reading && isDoneKnown && (
-            <span className="home-word__todo" data-done={isReadDone || undefined}>
-              <i aria-hidden="true">{isReadDone && <CheckIcon size={12} weight="bold" />}</i>
-              {isReadDone ? "읽음" : "읽기 전"}
-            </span>
-          )}
-        </div>
-        <div className="home-word__quote">
-          <QuotesIcon className="home-word__mark" size={26} weight="fill" aria-hidden="true" />
-          <p className="home-word__title">
-            {reading ? (
-              reading.title
-            ) : isPending ? (
-              <span className="home-word__skel" aria-hidden="true" />
-            ) : effective.isEmptyDay ? (
-              "오늘은 정해진 말씀이 없어요"
-            ) : (
-              "오늘 말씀을 확인하지 못했어요"
-            )}
-          </p>
-        </div>
-        {reading ? (
-          <p className="home-word__src">
-            <b>{reading.work_title}</b>
-            <span aria-hidden="true">·</span>
-            <span>{reading.speaker}</span>
-            <span className="home-word__min">{reading.estimated_minutes}분</span>
-          </p>
-        ) : isPending ? (
-          <p className="home-word__src" aria-hidden="true">
-            <span className="home-word__skel home-word__skel--short" />
-          </p>
-        ) : effective.isEmptyDay ? (
-          <p className="home-word__src">읽고 싶은 말씀을 직접 골라 읽을 수 있어요.</p>
-        ) : (
-          <p className="home-word__src">훈독하기에서 다시 불러와요</p>
-        )}
-        {heroButton !== "hide" &&
-          (effective.isEmptyDay ? (
-            <>
-              <HeroLink href="/library" label="서고에서 고르기" icon={<BooksIcon size={20} />} isHeld={isHeld} />
-              <HeroLink
-                href="/search"
-                label="말씀 검색"
-                icon={<MagnifyingGlassIcon size={18} />}
-                isSecondary
-                isHeld={isHeld}
-              />
-            </>
-          ) : (
-            <HeroLink href="/read" label="훈독하기" icon={<ArrowRightIcon size={20} />} isHeld={isHeld} />
-          ))}
-      </div>
     </div>
   );
 }

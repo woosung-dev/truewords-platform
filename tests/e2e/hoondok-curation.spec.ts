@@ -79,10 +79,9 @@ test.describe("훈독 편성", () => {
     // 헤더 h1 은 재조회 후 새 제목으로 바뀐다.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(next);
 
-    // 편성 → 노출: web 홈(다른 origin, 공개 라우트).
-    // 홈에는 말씀 전문이 없고(SCR-PWA-002) 편성 제목은 "오늘 읽을 말씀" 판으로 드러난다.
-    await page.goto(`${WEB_ORIGIN}/`);
-    await expect(page.locator(".home-word__title")).toHaveText(next);
+    // 편성 → 노출: web 훈독하기(다른 origin, 공개 라우트). 홈 맨 위 판은 오늘의 책갈피라 제목은 /read 에서 본다.
+    await page.goto(`${WEB_ORIGIN}/read`);
+    await expect(page.getByRole("heading", { name: next })).toBeVisible();
 
     // 원복 — 다른 훈독 스펙은 제목을 단언하지 않지만 시드 상태를 남긴다.
     await page.goto(editUrl);

@@ -35,8 +35,8 @@ function MissionSlot() {
   );
 }
 
-// 홈 "오늘의 실천" — 이어 읽기 · 기도하기(준비 중). 오늘 읽을 말씀(훈독하기)과 빈 날 안내는 위 주인공 판(home-sky.tsx HomeWord)이
-// 말하므로 여기서 되풀이하지 않는다. summary(API-HD-004)·완료(API-HD-005)는 완료 표시와 하단 안내 신호에만 쓴다.
+// 홈 "오늘의 실천" — 이어 읽기 · 기도하기(준비 중). 위 주인공 판은 "오늘의 책갈피"(cards/components/home-board.tsx)이고,
+// 오늘 읽을 말씀 전문은 훈독 탭(/read)이 갖는다. summary(API-HD-004)·완료(API-HD-005)는 완료 표시와 하단 안내 신호에만 쓴다.
 // "이번 주" 는 하늘 안 별자리(home-sky.tsx HomeWeek)가 같은 summary 로 그린다.
 export function HomeMissions({ today }: { today: TodayResponse }) {
   const effective = useEffectiveToday(today);
@@ -105,9 +105,9 @@ export function HomeMissions({ today }: { today: TodayResponse }) {
 
 /**
  * 홈 "함께 읽는 사람들" 익명 카드. 편성 없는 날에는 오늘 읽을 말씀이 없어 그리지 않는다(C3).
- * 내 오늘 훈독 여부는 말씀 판(home-sky.tsx HomeWord)과 같은 판정(요약 today.read + 이 기기 완료 키)이다.
+ * 내 오늘 훈독 여부는 "오늘의 실천"(HomeMissions)과 같은 판정(요약 today.read + 이 기기 완료 키)이다.
  * 완료 훅(useMissionCompletion)을 또 부르면 로그인 소급 POST 가 하나 더 생기므로 여기서는 읽기만 한다.
- * 7일 정성 중이면 오늘 읽을 것은 정성 장이라 판처럼 버튼을 그리지 않는다.
+ * 7일 정성 중이면 오늘 읽을 것은 정성 장이라 버튼을 그리지 않는다.
  */
 export function HomeTogether({ today }: { today: TodayResponse }) {
   const { reading, isResolving, isEmptyDay } = useEffectiveToday(today);
