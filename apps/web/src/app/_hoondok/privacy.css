@@ -1,5 +1,5 @@
-/* 개인정보 처리방침 (/privacy). 긴 안내문이라 장식 없이 굵기·간격·가는 선으로만 구분한다.
-   색은 토큰(var())만 쓰고, 표 대신 이름표/내용 줄(.pv-row)로 좁은 화면에서도 가로로 넘치지 않게 한다. */
+/* 개인정보 처리방침 (/privacy). 조문형 안내문이라 장식 없이 굵기·간격·가는 선으로만 구분한다.
+   색은 토큰(var())만 쓴다. 2열 표는 좁은 화면에 맞추고, 5열 위탁 표만 감싼 상자 안에서 가로로 밀어 본다. */
 [data-app="hoondok"] {
   .pv {
     line-height: 1.65;
@@ -20,115 +20,12 @@
     font-size: var(--fs-xs);
   }
 
-  /* 한눈에 보기 — 결론 먼저 */
-  .pv-sum {
-    padding: 18px 16px 8px;
-  }
-  .pv-sum__title {
-    font-size: var(--fs-lg);
-    font-weight: 600;
-    margin: 0 0 6px;
-  }
-  .pv-sum__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .pv-sum__item {
-    display: flex;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .pv-sum__ic {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--r-full);
-    background: var(--surface-2);
-    color: var(--ink-2);
-  }
-  .pv-sum__bd {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .pv-sum__t {
-    font-size: var(--fs-md);
-    font-weight: 600;
-  }
-  .pv-sum__d {
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
-  }
-  .pv-sum__cta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 48px;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .pv-sum__cta:active {
-    background: var(--surface-2);
-  }
-
-  /* 목차 */
-  .pv-toc {
-    margin: 24px 0 8px;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    padding: 8px 0;
-  }
-  .pv-toc__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .pv-toc__link {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 40px;
-    font-size: var(--fs-sm);
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .pv-toc__link:hover {
-    text-decoration: underline;
-  }
-  .pv-toc__no,
-  .pv-sect__no {
-    flex: none;
-    display: inline-grid;
-    place-items: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 4px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-xs);
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    color: var(--ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
   /* 항목 */
   .pv-sect {
     padding: 28px 0 4px;
     scroll-margin-top: 72px;
   }
   .pv-sect__title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     font-size: var(--fs-lg);
     font-weight: 600;
     margin: 0 0 10px;
@@ -152,54 +49,52 @@
     color: var(--ink-2);
   }
 
-  /* 이름표/내용 줄 — 좁은 화면은 위아래, 넓은 화면은 좌우 */
-  .pv-dl {
-    margin: 0 0 12px;
-    border-top: 1px solid var(--line);
+  .pv-list--num {
+    list-style: decimal;
   }
-  .pv-row {
-    display: grid;
-    gap: 2px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .pv-row__k {
-    font-size: var(--fs-sm);
-    font-weight: 600;
-  }
-  .pv-row__v {
-    margin: 0;
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
+  .pv-list .pv-list--sub {
+    margin: 4px 0 0;
+    list-style: circle;
   }
 
-  /* 맡기는 곳 — 회사마다 한 장 */
-  .pv-procs {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 12px;
+  /* 표 — 가는 선, 머리칸만 옅은 바탕 */
+  .pv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 12px;
+    font-size: var(--fs-sm);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
-  .pv-proc {
+  .pv-table th,
+  .pv-table td {
     border: 1px solid var(--line);
-    border-radius: var(--r-sm);
-    background: var(--surface);
-    padding: 12px 14px 4px;
-    margin: 0;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
   }
-  .pv-proc__name {
-    font-size: var(--fs-md);
+  .pv-table thead th {
+    background: var(--surface-2);
     font-weight: 600;
-    margin-bottom: 4px;
   }
-  .pv-proc__body {
+  .pv-table tbody th {
+    font-weight: 600;
+  }
+  .pv-table td {
+    color: var(--ink-2);
+  }
+  .pv-table--kv tbody th {
+    width: 32%;
+  }
+  .pv-table-wrap {
+    overflow-x: auto;
+    margin: 0 0 12px;
+  }
+  .pv-table-wrap .pv-table {
     margin: 0;
   }
-  .pv-dl--inner {
-    margin: 0;
-    border-top: 0;
-  }
-  .pv-dl--inner .pv-row:last-child {
-    border-bottom: 0;
+  .pv-table--wide {
+    min-width: 560px;
   }
 
   .pv-link {
@@ -217,19 +112,5 @@
     color: var(--ink);
     text-decoration: underline;
     text-underline-offset: 2px;
-  }
-
-  @media (min-width: 768px) {
-    .pv-toc__list {
-      grid-template-columns: 1fr 1fr;
-      column-gap: 16px;
-    }
-    .pv-row {
-      grid-template-columns: 9.5em 1fr;
-      gap: 16px;
-    }
-    .pv-dl--inner .pv-row {
-      grid-template-columns: 4.5em 1fr;
-    }
   }
 }

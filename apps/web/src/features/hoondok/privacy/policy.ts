@@ -5,6 +5,9 @@
 /** 화면에 보이는 시행일. 내용을 바꾸면 새 날짜로 올리고 PRIVACY_HISTORY 에 이전 날짜를 남긴다. */
 export const PRIVACY_EFFECTIVE_DATE = "2026년 11월 19일";
 
+/** 처리방침 버전. 문구·형식만 바꿔도 올린다. */
+export const PRIVACY_VERSION = "1.0";
+
 /** 이전 시행일 (최신이 앞). 첫 판이라 비어 있다. */
 export const PRIVACY_HISTORY: readonly string[] = [];
 
@@ -30,31 +33,31 @@ export type PrivacyProcessor = {
 export const PRIVACY_PROCESSORS: readonly PrivacyProcessor[] = [
   {
     name: "Oracle Corporation (Oracle Cloud)",
-    country: "일본 (도쿄)",
-    purpose: "서버 운영과 데이터베이스·백업 보관",
-    items: "계정 정보와 훈독 기록 전체",
-    period: "계정을 지울 때까지 (백업은 최대 90일)",
+    country: "일본",
+    purpose: "서버 운영, 데이터베이스·백업 보관",
+    items: "계정 정보, 훈독 기록 전체",
+    period: "계정 삭제 시까지 (백업 최대 90일)",
   },
   {
     name: "Google LLC",
     country: "미국",
-    purpose: "구글 로그인, AI 질문의 답 만들기",
-    items: "로그인할 때 구글 계정 확인, AI 질문 내용 (이름·이메일은 보내지 않아요)",
-    period: "요청을 처리하는 동안",
+    purpose: "구글 로그인, AI 질문 답변 생성",
+    items: "구글 계정 확인 정보, AI 질문 내용 (이름·이메일 제외)",
+    period: "요청 처리 동안",
   },
   {
     name: "Cloudflare, Inc.",
-    country: "미국 등 (가까운 지역의 서버)",
-    purpose: "접속 연결과 보안 (해킹·과도한 접속 차단)",
+    country: "미국 등",
+    purpose: "접속 연결과 보안",
     items: "접속 정보 (IP 주소, 브라우저 정보)",
-    period: "연결을 전달하는 동안",
+    period: "연결 전달 동안",
   },
   {
-    name: "브라우저 알림 서비스 (Google · Apple · Mozilla)",
+    name: "브라우저 알림 서비스 (Google, Apple, Mozilla)",
     country: "미국",
-    purpose: "알림을 켠 사람에게 훈독 알림 전달",
-    items: "브라우저가 만든 알림 받을 주소, 알림 문구 (내 기록은 담지 않아요)",
-    period: "알림을 끄거나 계정을 지울 때까지",
+    purpose: "훈독 알림 전달",
+    items: "알림 받을 주소, 알림 문구",
+    period: "알림 해제 또는 계정 삭제 시까지",
   },
 ];
 
