@@ -179,8 +179,10 @@ class DataSourceQdrantService:
 
     async def add_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:
         """문서에 카테고리 태그를 추가. 이미 있으면 무시."""
-        # macOS NFD 정규화
-        volume_name = unicodedata.normalize("NFD", volume)
+        # 적재 시기에 따라 volume 이 NFC·NFD 로 섞여 있어 두 형태를 모두 찾는다.
+        volume_forms = sorted(
+            {unicodedata.normalize("NFC", volume), unicodedata.normalize("NFD", volume)}
+        )
 
         # 해당 volume의 모든 청크 조회 → 같은 source 조합끼리 그룹핑
         groups: dict[frozenset[str], list] = {}
@@ -188,7 +190,7 @@ class DataSourceQdrantService:
         while True:
             points, offset = await self.client.scroll(
                 self.collection_name,
-                scroll_filter=build_filter(must=[field_match("volume", volume_name)]),
+                scroll_filter=build_filter(must=[field_match_any("volume", volume_forms)]),
                 with_payload=["source"],
                 with_vectors=False,
                 limit=1000,
