@@ -1,6 +1,6 @@
 "use client";
 
-// 질문·답변 상세 — 제목·날짜(+ 오른쪽 북마크·공유) → 답한 모델(변경) → 핵심 근거 → 답 → 근거 말씀 → 다시 묻기 → 공개
+// 질문·답변 상세 — 제목·날짜(+ 오른쪽 북마크·공유) → 답한 모델(변경) → 근거 색인 → 답 → 근거 말씀 → 다시 묻기 → 공개
 // → 이어서 한 질문들 → 관련 질문 → 하단 고정 "이어서 질문하기"(같은 session_id 로 잇는다).
 // 북마크는 계정 기록의 saved 다(API 이름만 saved, 화면 이름은 북마크). 앱바에 행동 자리가 없어 본문 메타 줄 오른쪽에 둔다.
 // 원본은 계정에 보관된 대화(`GET /hoondok/me/asks/{session_id}`)다. 지금 답을 받는 중인 질문만 메모리(live.ts)에서 그린다 —
@@ -45,7 +45,7 @@ import { PUBLIC_STATUS_LABEL, publicQuestionsAPI } from "../public-api";
 import { AskLoginGate, AskQuotaNote, DAILY_LIMIT_DONE, useAskQuota } from "./ask-gate";
 import { askNewReturnHref, keepDraft } from "./ask-new";
 import { BookmarkButton } from "./bookmark-button";
-import { EvidenceRail, EvidenceRefs, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
+import { EvidenceIndex, EvidenceRail, EvidenceRefs, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
 import { ModeSheet } from "./mode-sheet";
 
 // react-markdown(unified·micromark) 은 답이 있을 때만 받는다 — 대기·근거 없음 화면의 첫 로드 JS 에서 뺀다.
@@ -263,8 +263,8 @@ function railItems(sources: Source[], original: ReturnType<typeof useOriginalLin
 }
 
 /**
- * 답 + 근거 말씀. 답 끝 근거 번호와 목록의 말씀이 같은 전문 시트를 연다(턴마다 따로).
- * 첫 답은 근거 목록을 제목 있는 구역으로, 이어서 한 답은 접힌 목록으로 둔다.
+ * 답 + 근거 말씀. 색인 칩·답 끝 근거 번호·목록 카드가 같은 전문 시트를 연다(턴마다 따로).
+ * 첫 답은 답 위에 근거 색인을, 아래에 제목 있는 근거 목록을 둔다. 이어서 한 답은 접힌 목록만 둔다.
  */
 function SourcedAnswer({
   answer,
@@ -288,6 +288,7 @@ function SourcedAnswer({
     <>
       {layout === "section" ? (
         <>
+          <EvidenceIndex items={items} onOpen={sheet.show} />
           <div className="sect">{note}</div>
           <div className="sect">
             <div className="sect__head">
@@ -430,7 +431,6 @@ export function AskDetail({ id }: { id: string }) {
   }
 
   const returnTo = isSession ? `/ask/${id}` : "/ask?tab=mine";
-  const keySource = first.sources[0];
   const lastAnswered = [...turns].reverse().find((turn) => turn.status === "answered");
   const followups = lastAnswered?.followups ?? [];
   const related = followups.length > 0 ? followups : FOLLOWUPS;
@@ -522,28 +522,27 @@ export function AskDetail({ id }: { id: string }) {
       )}
 
       {isAnswered && modeInfo && ModeIcon && (
-        <div className="card ask-model">
-          <p className="ask-model__k">이 모델이 답변했어요</p>
-          <div className="ask-model__row">
-            <span className="ask-model__ic" aria-hidden="true">
-              <ModeIcon size={20} />
+        <div className="ask-model">
+          <span className="ask-model__ic" aria-hidden="true">
+            <ModeIcon size={18} />
+          </span>
+          <span className="ask-model__bd">
+            <span className="ask-model__k">이 모델이 답변했어요</span>
+            <span className="ask-model__name">
+              <b>{modeInfo.label}</b> · {modeInfo.description}
             </span>
-            <span className="ask-model__bd">
-              <b>{modeInfo.label}</b>
-              <span>{modeInfo.description}</span>
-            </span>
-            <button
-              className="btn btn-line btn--sm"
-              type="button"
-              aria-haspopup="dialog"
-              aria-label="답변 모델 변경"
-              aria-describedby={quota.isExhausted ? QUOTA_REASON_ID : undefined}
-              disabled={quota.isExhausted}
-              onClick={() => setIsModeSheetOpen(true)}
-            >
-              변경
-            </button>
-          </div>
+          </span>
+          <button
+            className="ask-model__go"
+            type="button"
+            aria-haspopup="dialog"
+            aria-label="답변 모델 변경"
+            aria-describedby={quota.isExhausted ? QUOTA_REASON_ID : undefined}
+            disabled={quota.isExhausted}
+            onClick={() => setIsModeSheetOpen(true)}
+          >
+            변경
+          </button>
         </div>
       )}
 
@@ -571,18 +570,6 @@ export function AskDetail({ id }: { id: string }) {
 
       {isAnswered && (
         <>
-          {keySource && (
-            <article className="ask-key">
-              <p className="ask-key__k">{`근거 말씀 · ${sourceLabel(keySource)}`}</p>
-              <p className="scripture ask-key__t">{keySource.text}</p>
-              {original.canOpen(keySource) && (
-                <Link className="ask-key__go" href={wordsHref(keySource.volume, keySource.chunk_id)}>
-                  원문 보기
-                  <ChevronRight size={16} aria-hidden="true" />
-                </Link>
-              )}
-            </article>
-          )}
 
           <SourcedAnswer
             answer={first.answer}

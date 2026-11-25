@@ -16,7 +16,7 @@ import { askFullDate, sourceLabel } from "../format";
 import { answerModeInfo } from "../modes";
 import { publicQuestionsAPI } from "../public-api";
 import { BookmarkButton } from "./bookmark-button";
-import { EvidenceRail, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
+import { EvidenceIndex, EvidenceRail, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
 
 const AnswerMarkdown = dynamic(() => import("./answer-markdown").then((module) => module.AnswerMarkdown));
 
@@ -118,18 +118,19 @@ export function AskPublic({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="card ask-model">
-        <p className="ask-model__k">이 모델이 답변했어요</p>
-        <div className="ask-model__row">
-          <span className="ask-model__ic" aria-hidden="true">
-            <ModeIcon size={20} />
+      <div className="ask-model">
+        <span className="ask-model__ic" aria-hidden="true">
+          <ModeIcon size={18} />
+        </span>
+        <span className="ask-model__bd">
+          <span className="ask-model__k">이 모델이 답변했어요</span>
+          <span className="ask-model__name">
+            <b>{mode.label}</b> · {mode.description}
           </span>
-          <span className="ask-model__bd">
-            <b>{mode.label}</b>
-            <span>{mode.description}</span>
-          </span>
-        </div>
+        </span>
       </div>
+
+      <EvidenceIndex items={items} onOpen={sheet.show} />
 
       <div className="sect">
         <div className="ai-note">
