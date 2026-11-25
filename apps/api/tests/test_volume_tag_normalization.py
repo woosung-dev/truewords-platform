@@ -3,6 +3,7 @@
 import json
 import unicodedata
 from types import SimpleNamespace
+from typing import Literal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,7 +13,7 @@ from app.modules.datasource.qdrant_service import DataSourceQdrantService
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("form", ["NFC", "NFD"])
-async def test_add_volume_tag_finds_volume_in_either_form(form: str) -> None:
+async def test_add_volume_tag_finds_volume_in_either_form(form: Literal["NFC", "NFD"]) -> None:
     stored = unicodedata.normalize(form, "천성경")
 
     async def scroll(_collection, scroll_filter, **_kwargs):
