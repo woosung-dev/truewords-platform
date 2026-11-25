@@ -299,6 +299,60 @@ class TestSourcesAnswerMode:
         assert _sources_payload(events)["answer_mode"] == expected
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "model_text",
+        ["마음이 많이 무거우셨군요.", ""],  # 모델이 꼬리말을 빠뜨린 답 / 빈 답
+    )
+    @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("app.modules.chat.service.generate_answer_stream")
+    async def test_pastoral_stream_always_carries_hotline(
+        self, mock_stream, mock_search, mock_embed, model_text,
+    ) -> None:
+        """동기 경로처럼 스트림도 위기 답변에 상담전화를 보내고 저장한다."""
+        service, chat_repo, _ = _make_chat_service()
+        mock_search.return_value = _make_search_results(3)
+
+        async def fake_gen(*args, **kwargs):
+            if model_text:
+                yield model_text
+
+        mock_stream.return_value = fake_gen()
+        request = ChatRequest(query="요즘 자살 생각이 들어요", chatbot_id="test")
+        events = [e async for e in service.process_chat_stream(request)]
+
+        streamed = "".join(
+            json.loads(e.split("data: ", 1)[1])["text"] for e in events if e.startswith("event: chunk")
+        )
+        assert streamed.count("1393") == 1
+        saved = chat_repo.create_message.await_args_list[-1].args[0]
+        assert saved.role == MessageRole.ASSISTANT
+        assert saved.content.count("1393") == 1
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("app.modules.chat.service.generate_answer_stream")
+    async def test_pastoral_stream_does_not_repeat_hotline(
+        self, mock_stream, mock_search, mock_embed,
+    ) -> None:
+        from app.modules.chat.pipeline.stages.generation import PASTORAL_HOTLINE_FOOTER
+
+        service, _, _ = _make_chat_service()
+        mock_search.return_value = _make_search_results(3)
+
+        async def fake_gen(*args, **kwargs):
+            yield "마음이 많이 무거우셨군요." + PASTORAL_HOTLINE_FOOTER
+
+        mock_stream.return_value = fake_gen()
+        request = ChatRequest(query="요즘 자살 생각이 들어요", chatbot_id="test")
+        events = [e async for e in service.process_chat_stream(request)]
+        streamed = "".join(
+            json.loads(e.split("data: ", 1)[1])["text"] for e in events if e.startswith("event: chunk")
+        )
+        assert streamed.count("1393") == 1
+
+    @pytest.mark.asyncio
     @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     async def test_cache_hit_reports_mode_without_persisting_it(self, mock_embed) -> None:
         from app.modules.cache.schemas import CacheHit

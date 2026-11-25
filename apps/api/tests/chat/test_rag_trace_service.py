@@ -552,14 +552,13 @@ async def test_span_error_hides_internal_qdrant_url(harness) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pastoral_stream_hotline_gap_is_only_warned(harness) -> None:
+async def test_pastoral_trace_answer_carries_hotline(harness) -> None:
     resp = await harness.service.run(
         RagTraceRequest(query="참사랑이란 무엇인가요?", answer_mode="pastoral")
     )
     assert resp.resolved_answer_mode == "pastoral"
-    assert "pastoral_hotline_missing_in_stream" in resp.warnings
-    # 운영 스트림과 같게 답변 자체는 바꾸지 않는다.
-    assert resp.generation is not None and "1393" not in resp.generation.answer
+    # 운영 스트림과 같게 상담전화가 붙는다.
+    assert resp.generation is not None and "1393" in resp.generation.answer
 
 
 # ---------------------------------------------------------------------------

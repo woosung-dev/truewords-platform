@@ -21,6 +21,7 @@ from app.modules.chat.pipeline.stages.embedding import EmbeddingStage
 from app.modules.chat.pipeline.stages.generation import (
     GenerationStage,
     configure_generation_for_mode,
+    ensure_hotline_in_answer,
     resolve_answer_mode,
 )
 from app.modules.chat.pipeline.stages.input_validation import InputValidationStage
@@ -371,6 +372,14 @@ class ChatService:
             )
             async for released in sanitize_answer_stream(chunks, ctx):
                 yield f"event: chunk\ndata: {json.dumps({'text': released}, ensure_ascii=False)}\n\n"
+
+            # 동기 GenerationStage 와 같게 위기 답변엔 상담전화를 항상 붙인다 (모델 누락·빈 답 방어).
+            if ctx.resolved_answer_mode == "pastoral":
+                streamed = ctx.answer or ""
+                ctx.answer = ensure_hotline_in_answer(streamed)
+                hotline_tail = ctx.answer[len(streamed):]
+                if hotline_tail:
+                    yield f"event: chunk\ndata: {json.dumps({'text': hotline_tail}, ensure_ascii=False)}\n\n"
 
             ctx = await self.safety_output_stage.execute(ctx)
             # 말씀 주제 매칭 LLM 분류를 followups/closing 과 병렬 → 추가 지연 0.

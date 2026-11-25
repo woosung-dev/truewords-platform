@@ -31,8 +31,8 @@ from app.modules.chat.pipeline.stages.cache_check import CacheCheckStage
 from app.modules.chat.pipeline.stages.closing_template import ClosingTemplateStage
 from app.modules.chat.pipeline.stages.embedding import EmbeddingStage
 from app.modules.chat.pipeline.stages.generation import (
-    PASTORAL_HOTLINE_FOOTER,
     configure_generation_for_mode,
+    ensure_hotline_in_answer,
 )
 from app.modules.chat.pipeline.stages.input_validation import InputValidationStage
 from app.modules.chat.pipeline.stages.intent_classifier import IntentClassifierStage
@@ -720,6 +720,9 @@ class RagTraceService:
 
             async for _ in sanitize_answer_stream(observed_chunks(), ctx):
                 pass
+            # 운영 스트림과 같게 위기 답변엔 상담전화를 붙인다.
+            if ctx.resolved_answer_mode == "pastoral":
+                ctx.answer = ensure_hotline_in_answer(ctx.answer or "")
             state.generation.answer = ctx.answer
             # 스트림 경로는 GENERATED 를 남기지 않는다. trace 는 경고 없이 진행하려고 맞춘다.
             ctx.pipeline_state = PipelineState.GENERATED
@@ -730,11 +733,6 @@ class RagTraceService:
                     "sanitizer_aborted": ctx.stream_sanitizer_aborted,
                     "resolved_answer_mode": ctx.resolved_answer_mode,
                 }
-        # [확인 필요] 동기 GenerationStage 는 pastoral 답변에 핫라인을 붙이지만 스트림 경로는
-        # 붙이지 않는다. 수정은 별건 — 여기서는 차이만 경고로 남긴다.
-        footer_marker = PASTORAL_HOTLINE_FOOTER.strip().split("\n")[1]
-        if ctx.resolved_answer_mode == "pastoral" and footer_marker not in (ctx.answer or ""):
-            state.warnings.append("pastoral_hotline_missing_in_stream")
 
     # ---- 디버그 조회 -----------------------------------------------------------
 
