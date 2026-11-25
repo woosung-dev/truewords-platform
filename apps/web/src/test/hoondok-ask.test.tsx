@@ -808,6 +808,28 @@ describe("질문·답변 상세", () => {
     expect(screen.getByText("비공개 · 내 계정에서만 볼 수 있어요.")).toBeInTheDocument();
   });
 
+  it("근거는 결측 칸을 모아 적고, 답 끝 번호·말씀을 누르면 전문 시트가 열려 근거를 넘긴다", async () => {
+    currentUser = { id: "u1" };
+    const second = { volume: "평화경", text: "두 번째 근거 말씀입니다.", score: 0.6, source: "B" };
+    vi.mocked(asksAPI.detail).mockResolvedValue(detail([turn({ sources: [SOURCE, second] })]));
+    render(<AskDetail id={SID} />);
+    await screen.findByText("정성은 기간을 정해 드리는 실천입니다.");
+    // 화자·판본·공식성을 지어내지 않고 생략하지도 않는다 (REQ-PWA-012)
+    expect(screen.getAllByText("화자·판본·공식성 확인되지 않음")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "근거 2 평화경 말씀 보기" }));
+    const sheet = screen.getByRole("dialog", { name: "근거 2 · 평화경" });
+    expect(within(sheet).getByText("두 번째 근거 말씀입니다.")).toBeInTheDocument();
+    expect(within(sheet).getByText("2 / 2")).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "이전 근거" }));
+    expect(screen.getByRole("dialog", { name: "근거 1 · 천성경 1편 3장" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "근거 1 천성경 1편 3장 말씀 전문 보기" }));
+    expect(screen.getByRole("dialog", { name: "근거 1 · 천성경 1편 3장" })).toBeInTheDocument();
+  });
+
   it("근거가 0건인 기록은 답을 보이지 않고 다시 묻기만 둔다", async () => {
     currentUser = { id: "u1" };
     vi.mocked(asksAPI.detail).mockResolvedValue(detail([turn({ sources: [], answer_md: "근거 없는 답" })]));

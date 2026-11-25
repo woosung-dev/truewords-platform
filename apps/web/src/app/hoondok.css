@@ -1200,19 +1200,21 @@
   }
 
   /* ---------- AI 설명 패널 (DES §2.9) : ask · library. 원래 _hoondok/ask.css ---------- */
+  /* 공식 원문(흰 바탕 + 왼쪽 인용 선)과 AI 글을 색이 아닌 형태로 가른다 — 선 없는 단색 면 + 맨 위 라벨 칩.
+     예전 8px 점 격자는 15px 본문 뒤에서 읽기 소음이 돼 걷어냈다 (DES §2.1 AI 설명 박스) */
   .ai-note {
     padding: 16px;
-    border: 1px solid var(--line);
     border-radius: var(--r);
-    background-color: var(--surface);
-    background-image: radial-gradient(var(--line) 1px, transparent 1px);
-    background-size: 8px 8px;
+    background: var(--surface-2);
   }
   .ai-note__lab {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    background: var(--surface);
     font-size: var(--fs-2xs);
     font-weight: 600;
     color: var(--ink-2);

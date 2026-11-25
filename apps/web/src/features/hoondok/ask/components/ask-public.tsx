@@ -16,6 +16,7 @@ import { askFullDate, sourceLabel } from "../format";
 import { answerModeInfo } from "../modes";
 import { publicQuestionsAPI } from "../public-api";
 import { BookmarkButton } from "./bookmark-button";
+import { EvidenceRail, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
 
 const AnswerMarkdown = dynamic(() => import("./answer-markdown").then((module) => module.AnswerMarkdown));
 
@@ -51,6 +52,7 @@ export function AskPublic({ id }: { id: string }) {
   const toast = useReaderToast();
   const bookmarks = useBookmarkToggle({ showToast: toast.show, returnTo: `/ask/p/${encodeURIComponent(id)}` });
   const isLoaded = detail.isSuccess;
+  const sheet = useEvidenceSheet();
 
   // 있는 질문을 연 경우만 센다(404 는 세지 않는다). 실패해도 화면은 그대로다.
   useEffect(() => {
@@ -93,6 +95,12 @@ export function AskPublic({ id }: { id: string }) {
   const mode = answerModeInfo(question.answer_mode);
   const ModeIcon = mode.icon;
   const isBookmarked = question.bookmarked ?? false;
+  // 공개 근거는 원문 위치가 없어 원문 링크를 달지 않는다(파일 머리말). 같은 권이 겹칠 수 있어 순번을 키에 넣는다.
+  const items: RailItem[] = question.sources.map((source, order) => ({
+    key: `${order}-${source.volume}`,
+    label: sourceLabel({ volume: source.volume, display_name: null }),
+    text: source.text,
+  }));
   return (
     <section className="col col--read ask-detail">
       <h2 className="ask-q">{question.question}</h2>
@@ -133,22 +141,16 @@ export function AskPublic({ id }: { id: string }) {
         </div>
       </div>
 
-      {question.sources.length > 0 && (
+      {items.length > 0 && (
         <div className="sect">
           <div className="sect__head">
-            <h3 className="sect__title">{`근거 말씀 ${question.sources.length}`}</h3>
+            <h3 className="sect__title">{`근거 말씀 ${items.length}`}</h3>
+            <span className="sect__meta">누르면 전문을 볼 수 있어요</span>
           </div>
-          {question.sources.map((source, order) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: 근거는 서버가 정한 순서로 고정된 읽기 전용 목록이고 같은 권이 겹칠 수 있다
-            <article className="card ask-ev" key={`${order}-${source.volume}`}>
-              <div className="src">
-                <b className="ask-ev__no">{order + 1}</b>
-                <span className="src__dot" />
-                <span>{sourceLabel({ volume: source.volume, display_name: null })}</span>
-              </div>
-              <p className="scripture">{source.text}</p>
-            </article>
-          ))}
+          <EvidenceRail items={items} onOpen={sheet.show} />
+          {sheet.open !== null && (
+            <EvidenceSheet items={items} index={sheet.open} onMove={sheet.show} onClose={sheet.close} />
+          )}
         </div>
       )}
 
