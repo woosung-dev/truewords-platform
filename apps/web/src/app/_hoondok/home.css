@@ -579,20 +579,21 @@
     right: 18px;
     bottom: 16px;
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 12px;
     margin: 0;
     font-size: var(--fs-sm);
+    line-height: 1.35;
     color: var(--ink-3);
   }
+  /* 책 이름이 길면 말줄임 대신 두 줄로 접는다(390px 에서 "…에서 고른 한 장"이 잘리지 않게) */
   .home-board__note span:first-child {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .home-board__note span:last-child {
     flex: none;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
 

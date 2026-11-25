@@ -411,7 +411,7 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     expect(container).not.toHaveTextContent(CARD.text);
     expect(container).not.toHaveTextContent(CARD.source_label);
     // 비로그인에게는 장수 대신 로그인 안내 줄
-    expect(screen.getByRole("link", { name: "로그인하면 책갈피를 모아 둘 수 있어요" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "로그인하고 책갈피 모아 두기" })).toHaveAttribute(
       "href",
       "/onboarding?returnTo=%2F",
     );

@@ -90,7 +90,7 @@ function ShelfRow({ isIn }: { isIn: boolean }) {
     return (
       <Link className="home-board__shelf" href={onboardingHref("/")} data-row="">
         {spines}
-        <span className="home-board__shelf-t">로그인하면 책갈피를 모아 둘 수 있어요</span>
+        <span className="home-board__shelf-t">로그인하고 책갈피 모아 두기</span>
         {nub}
       </Link>
     );

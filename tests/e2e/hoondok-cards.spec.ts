@@ -64,7 +64,7 @@ test("홈 오늘의 책갈피 꺼내기 → 받기 화면 → 건네기 시트 �
   // 꺼내기 전에는 본문이 없고, 비로그인은 장수 대신 로그인 길을 본다
   await expect(home).toHaveAttribute("data-state", "closed");
   await expect(home).not.toContainText(card.text);
-  await expect(home.getByRole("link", { name: "로그인하면 책갈피를 모아 둘 수 있어요" })).toBeVisible();
+  await expect(home.getByRole("link", { name: "로그인하고 책갈피 모아 두기" })).toBeVisible();
   await home.getByRole("button", { name: "오늘의 책갈피 꺼내기" }).click();
   // 같은 자리에서 카드가 열린다 — 본문·건네기·책에 다시 꽂기(원문 링크)
   await expect(home).toHaveAttribute("data-state", "open");
