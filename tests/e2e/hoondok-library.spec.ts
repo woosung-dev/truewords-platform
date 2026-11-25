@@ -135,6 +135,8 @@ test("AI 질문의 실제 응답 근거에서 인용한 원문 구간으로 이�
   await page.getByLabel("무엇이 궁금하세요?").fill("감사의 의미를 알려주세요");
   await page.getByRole("button", { name: "보내기", exact: true }).click();
   await expect(page.locator("main p").filter({ hasText: "참사랑은 함께 실천하는 사랑입니다." })).toBeVisible();
+  // 답이 끝나면 임시 주소(/ask/live-…)가 대화 주소로 바뀌며 화면을 다시 그린다 — 바뀐 뒤에 근거를 연다
+  await expect(page).toHaveURL(/\/ask\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   // 근거 카드는 전문 시트를 열고, 원문 링크는 시트 안에 있다
   await page.getByRole("button", { name: /^근거 1 .+ 말씀 전문 보기$/ }).click();
   await page.getByRole("dialog").getByRole("link", { name: "원문 보기", exact: true }).click();
