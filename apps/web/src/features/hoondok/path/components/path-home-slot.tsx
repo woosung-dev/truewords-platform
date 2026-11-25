@@ -75,7 +75,7 @@ export function PathHomeSlot({ children }: { children: ReactNode }) {
   );
 }
 
-/** 히어로 "훈독하기" 버튼을 그릴지. 정성 중이면 오늘 읽을 것은 정성 장 하나라 그리지 않고, 확인 중이면 자리만 지킨다. */
+/** 홈에서 훈독하기로 보내는 버튼(함께 읽는 사람들 카드)을 그릴지. 정성 중이면 오늘 읽을 것은 정성 장 하나라 그리지 않고, 확인 중이면 자리만 지킨다. */
 export function useHeroReadButton(): "show" | "hold" | "hide" {
   const state = usePathRun();
   if (state.status === "loading") return "hold";

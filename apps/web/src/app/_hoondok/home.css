@@ -1,4 +1,4 @@
-/* 홈 "오늘의 하늘" (SCR-PWA-002). 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 읽을 말씀" 판, 아래 땅에 판들.
+/* 홈 "오늘의 하늘" (SCR-PWA-002). 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘의 책갈피" 판, 아래 땅에 판들.
    색은 hoondok.css 토큰만 쓴다(hex·rgba 금지, pnpm hoondok:check). 하늘 바탕은 네 장을 겹쳐 opacity 로, 해·달은 transform 으로 바꾼다.
    모션은 transform·opacity 만이고 동작 줄이기면 hoondok.css 전역 규칙이 흐르는 띠·반짝임·전환을 모두 끈다. */
 
@@ -415,141 +415,92 @@
     color: var(--chip-ink);
   }
 
-  /* ---------- 지평선에 걸친 "오늘 읽을 말씀" 판 = 오늘 할 일 ----------
-     더블 베젤: .home-word 가 바깥 쉘(반투명 + 테두리 고리), .home-word__core 가 안쪽 흰 판이다.
-     채운 주황 버튼은 홈에서 이 판 하나뿐이다. 움직임은 transform 만, 곡선은 --home-ease 하나. */
-  .home-word {
+  /* ---------- 지평선에 걸친 "오늘의 책갈피" 판 = 홈의 주인공 ----------
+     더블 베젤: .home-board 가 바깥 쉘(반투명 + 테두리 고리), .home-board__core 가 안쪽 흰 판이다.
+     닫힌 판은 주머니에 꽂힌 종이 한 장, 연 판은 가로형 사진 카드(cards.css .pc--wide)다. 맨 아래 52px 줄이 책장 입구다.
+     채운 주황 버튼은 홈에서 이 판 하나뿐이다. 꺼내기 모션은 home-board.tsx 가 Web Animations 로 건다. */
+  .home-board {
     --home-ease: cubic-bezier(0.32, 0.72, 0, 1);
     --home-ring: 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent);
     position: relative;
     z-index: 2;
     margin-top: -52px;
     padding: 6px;
-    background: color-mix(in srgb, var(--surface) 58%, transparent);
     border-radius: var(--r-sheet);
     box-shadow:
       var(--home-ring),
       var(--shadow-panel);
   }
-  .home-word__core {
-    padding: 22px 20px 20px;
+  /* 반투명 쉘의 흐림은 의사 요소에 둔다. 판 자체에 backdrop-filter 를 걸면
+     안쪽 position: fixed(건네기 결과 토스트)가 화면이 아니라 판 기준으로 놓인다. */
+  .home-board::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--surface) 58%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+  .home-board__core {
+    padding: 22px 22px 20px;
     border-radius: calc(var(--r-sheet) - 6px);
     background: var(--surface);
     box-shadow:
       inset 0 1px 0 var(--sheen-70),
       var(--home-ring);
   }
-  .home-word__owl {
+  .home-board__owl {
     position: absolute;
     z-index: 1;
     top: -50px;
     right: 18px;
     pointer-events: none;
   }
-  .home-word__owl .owl {
+  .home-board__owl .owl {
     width: 56px;
     height: 56px;
   }
-  .home-word__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 30px;
-  }
-  .home-word__kicker {
+  .home-board__kick {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    height: 28px;
     margin: 0;
-    padding: 5px 12px;
+    padding: 0 12px;
     border-radius: var(--r-full);
     background: var(--accent-soft);
     font-size: var(--fs-sm);
     font-weight: 700;
     color: var(--accent-strong);
   }
-  .home-word__kicker::before {
+  .home-board__kick::before {
     content: "";
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent);
+    background: currentColor;
   }
-  /* 오늘 훈독 완료 칩. 읽음이 돼도 축하 연출은 없다(DEC-PWA-019) */
-  .home-word__todo {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    color: var(--ink-3);
-    white-space: nowrap;
+  .home-board[data-state="open"] .home-board__kick {
+    background: var(--gold-2-34);
+    color: var(--gold-ink);
   }
-  .home-word__todo i {
-    display: grid;
-    place-items: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 1.5px var(--line);
-  }
-  .home-word__todo[data-done] {
-    color: var(--ok-strong);
-  }
-  .home-word__todo[data-done] i {
-    background: var(--ok-soft);
-    box-shadow: none;
-  }
-  .home-word__quote {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-  }
-  .home-word__mark {
-    flex: none;
-    margin-top: 2px;
-    color: var(--gold);
-  }
-  .home-word__title {
-    margin: 0;
-    min-width: 0;
+  .home-board__title {
+    margin: 12px 0 0;
     font-size: var(--fs-xl);
     font-weight: 700;
-    line-height: 1.45;
+    line-height: 1.4;
     letter-spacing: -0.02em;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
+    text-wrap: balance;
   }
-  .home-word__src {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 8px;
-    margin: 10px 0 0;
-    padding-left: 36px;
-    font-size: var(--fs-md);
-    line-height: 1.5;
-    color: var(--ink-2);
-  }
-  .home-word__src b {
-    font-weight: 600;
-    color: var(--ink);
-  }
-  .home-word__min {
-    display: inline-flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 0 10px;
-    border-radius: var(--r-full);
-    background: var(--surface-2);
+  .home-board__lede {
+    margin: 4px 0 0;
     font-size: var(--fs-sm);
-    font-weight: 600;
-    color: var(--ink-2);
+    line-height: 1.55;
+    color: var(--ink-3);
   }
-  .home-word__skel {
+  .home-board__skel {
     display: inline-block;
     width: 14em;
     max-width: 100%;
@@ -558,14 +509,99 @@
     border-radius: var(--r-xs);
     background: var(--surface-2);
   }
-  .home-word__skel--short {
+  .home-board__skel--short {
     width: 9em;
   }
+
+  /* 주머니: 책 속지 위에 꽂힌 종이 한 장(리본 + 글줄 4개). 본문은 꺼내기 전까지 그리지 않는다 */
+  .home-board__pocket {
+    position: relative;
+    height: 150px;
+    margin-top: 18px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--card-paper), var(--pages));
+  }
+  .home-board__slip {
+    position: absolute;
+    left: 26px;
+    right: 26px;
+    top: 28px;
+    height: 110px;
+    padding: 16px 18px;
+    border-radius: 12px 12px 0 0;
+    background: var(--photo-paper);
+    box-shadow:
+      inset 0 0 0 1px var(--pages-line),
+      0 10px 20px -14px var(--umber-28);
+    transition: transform 0.5s var(--home-ease);
+  }
+  .home-board__ln {
+    display: block;
+    height: 7px;
+    margin-top: 9px;
+    border-radius: 4px;
+    background: var(--pages-line);
+  }
+  .home-board__ln:first-of-type {
+    width: 34%;
+    margin-top: 0;
+    background: var(--card-paper);
+  }
+  .home-board__ln:nth-of-type(3) {
+    width: 88%;
+  }
+  .home-board__ln:nth-of-type(4) {
+    width: 62%;
+  }
+  .home-board__ribbon {
+    position: absolute;
+    top: -28px;
+    right: 30px;
+    width: 14px;
+    height: 54px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-2) 60%, var(--gold));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  }
+  .home-board__pages {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 60px;
+    border-top: 1px solid var(--plate-line);
+    background: repeating-linear-gradient(180deg, var(--pages) 0 3px, var(--pages-line) 3px 4px);
+    box-shadow: 0 -10px 18px -12px var(--umber-28);
+  }
+  .home-board__note {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-3);
+  }
+  .home-board__note span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-board__note span:last-child {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
   /* 버튼-속-버튼: 꼬리 아이콘은 자기 원(nub) 안에 둔다 */
-  .home-word__go {
+  .home-board__pull,
+  .home-board__go {
     justify-content: space-between;
     min-height: 58px;
-    margin-top: 20px;
+    margin-top: 16px;
     padding: 0 7px 0 24px;
     border-radius: var(--r-full);
     font-size: var(--fs-lg);
@@ -575,10 +611,16 @@
       inset 0 1px 0 var(--sheen-25);
     transition: transform 0.3s var(--home-ease);
   }
-  .home-word__go:active {
+  .home-board__pull:active,
+  .home-board__go:active {
     transform: scale(0.98);
   }
-  .home-word__nub {
+  .home-board__pull--wait {
+    display: block;
+    background: var(--surface-2);
+    box-shadow: none;
+  }
+  .home-board__nub {
     display: grid;
     place-items: center;
     flex: none;
@@ -588,37 +630,197 @@
     background: color-mix(in srgb, var(--accent-ink) 18%, transparent);
     transition: transform 0.5s var(--home-ease);
   }
-  .home-word__go:focus-visible .home-word__nub {
+  .home-board__pull:focus-visible .home-board__nub {
+    transform: translateY(-3px) scale(1.05);
+  }
+  .home-board__go:focus-visible .home-board__nub {
     transform: translateX(3px) scale(1.05);
   }
-  .home-word__go--2 {
+  .home-board__go--2 {
     min-height: 52px;
     margin-top: 10px;
     font-size: var(--fs-md);
     font-weight: 600;
     box-shadow: none;
   }
-  .home-word__go--2 .home-word__nub {
+  .home-board__go--2 .home-board__nub {
     width: 38px;
     height: 38px;
     background: var(--surface);
     box-shadow: var(--home-ring);
   }
+
+  /* 닫힌 판 맨 아래 맞춤 줄(까닭 + 바꾸기/고르기) */
+  .home-board__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin-top: 10px;
+  }
+  .home-board__why {
+    min-width: 0;
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink-3);
+  }
+  .home-board__why b {
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .home-board__tlink {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* 연 판: 가로형 사진 카드 + 책에 다시 꽂기 */
+  .home-board__pk {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  /* 책장 줄: 판 아래 가장자리에 붙은 52px 줄 = 나의 책갈피 입구 */
+  .home-board__shelf {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    margin: 18px -22px -20px;
+    padding: 8px 12px 8px 22px;
+    border-radius: 0 0 calc(var(--r-sheet) - 6px) calc(var(--r-sheet) - 6px);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--shelf-wall) 70%, var(--surface)), var(--shelf-wall));
+    box-shadow: inset 0 1px 0 var(--umber-14);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .home-board__shelf:focus-visible {
+    outline-offset: -3px;
+  }
+  .home-board__shelf--wait {
+    display: block;
+  }
+  .home-board__sps {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    flex: none;
+    height: 26px;
+    padding: 0 2px 3px;
+  }
+  .home-board__sps::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, var(--shelf), var(--shelf-2));
+  }
+  .home-board__sps i {
+    width: 5px;
+    border-radius: 1.5px 1.5px 0 0;
+    box-shadow: inset 0 0 0 1px var(--sheen-10);
+  }
+  .home-board__sps i:nth-child(1) {
+    height: 19px;
+    background: var(--book-1);
+  }
+  .home-board__sps i:nth-child(2) {
+    height: 22px;
+    background: var(--book-3);
+  }
+  .home-board__sps i:nth-child(3) {
+    height: 17px;
+    background: var(--book-2);
+  }
+  .home-board__sps i:nth-child(4) {
+    height: 21px;
+    background: var(--book-4);
+  }
+  .home-board__sps b {
+    width: 4px;
+    height: 23px;
+    margin-left: 2px;
+    background: linear-gradient(var(--gold-2), var(--gold));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  }
+  .home-board__shelf-t {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fs-sm);
+  }
+  .home-board__shelf-t b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .home-board__shelf-t > span {
+    color: var(--ink-3);
+  }
+  .home-board__shelf-n {
+    padding: 0 3px;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+    transition:
+      background-color 0.4s var(--home-ease),
+      color 0.4s var(--home-ease);
+  }
+  .home-board__shelf-n.is-in {
+    background: var(--gold-2-34);
+    color: var(--gold-ink);
+  }
+  .home-board__shelf-nub {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--home-ring);
+    color: var(--ink-2);
+    transition: transform 0.5s var(--home-ease);
+  }
   @media (hover: hover) {
-    .home-word__go:hover .home-word__nub {
+    .home-board:has(.home-board__pull:hover) .home-board__slip {
+      transform: translateY(-6px);
+    }
+    .home-board__pull:hover .home-board__nub {
+      transform: translateY(-3px) scale(1.05);
+    }
+    .home-board__go:hover .home-board__nub,
+    .home-board__shelf:hover .home-board__shelf-nub {
       transform: translateX(3px) scale(1.05);
+    }
+    .home-board__shelf:hover {
+      background: var(--shelf-wall);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-board *,
+    .home-board *::before {
+      transition: none;
     }
   }
 
   /* ---------- 하늘 아래 땅 ---------- */
   .home__practice {
     margin-top: 12px;
-  }
-  .home__bookmark {
-    margin-top: 12px;
-  }
-  .home__bookmark:empty {
-    display: none;
   }
   .home__slices {
     margin-top: 12px;
@@ -647,7 +849,7 @@
     }
   }
 
-  /* ---------- 넓은 화면: 하늘 전체에 별자리 대각선, 말씀 판은 오른쪽 아래, 땅은 두 칸 ---------- */
+  /* ---------- 넓은 화면: 하늘 전체에 별자리 대각선, 책갈피 판은 오른쪽 아래, 땅은 두 칸 ---------- */
   @media (min-width: 1024px) {
     .home__wrap {
       max-width: calc(1120px + 64px);
@@ -748,43 +950,41 @@
       column-gap: 48px;
       align-items: start;
     }
-    .home-word {
+    .home-board {
       grid-column: 2;
       grid-row: 1;
       margin-top: -290px;
     }
-    .home-word__core {
+    .home-board__core {
       padding: 26px 28px 24px;
     }
-    .home-word__owl {
+    .home-board__owl {
       top: -62px;
       right: 30px;
     }
-    .home-word__owl .owl {
+    .home-board__owl .owl {
       width: 68px;
       height: 68px;
     }
-    .home-word__title {
+    .home-board__title {
       font-size: var(--fs-2xl);
-      line-height: 1.55;
     }
-    .home-word__go {
+    .home-board__go {
       display: flex;
       width: fit-content;
       min-width: 260px;
+    }
+    .home-board__shelf {
+      margin: 18px -28px -24px;
+      padding-left: 28px;
     }
     .home__practice {
       grid-column: 1;
       grid-row: 1 / span 2;
       margin-top: 16px;
     }
-    .home__bookmark {
-      grid-column: 2;
-      grid-row: 2;
-      margin-top: 8px;
-    }
     /* 7일 정성 자리(시작·진행 카드, 접어 둔 오늘의 실천)는 판·실천 아래 한 줄을 다 쓴다 */
-    .home__grid > :not(.home-word, .home__practice, .home__bookmark) {
+    .home__grid > :not(.home-board, .home__practice) {
       grid-column: 1 / -1;
     }
     /* 정성 기간 · 함께 읽기는 나란히. 하나만 있으면(빈 날·불러오는 중) 한 줄을 다 쓴다 */

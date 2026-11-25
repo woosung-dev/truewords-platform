@@ -54,19 +54,32 @@ async function grantClipboard(context: BrowserContext, origin: string) {
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
 }
 
-test("홈 나의 책갈피 → 받기 → 읽기 → 건네기 시트 → 원문 밑줄 → 다시 꺼내기 (비로그인)", async ({ page, baseURL }) => {
+test("홈 오늘의 책갈피 꺼내기 → 받기 화면 → 건네기 시트 → 원문 밑줄 → 다시 꺼내기 (비로그인)", async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const card = await todayCard(page);
 
   await page.goto("/");
-  const home = page.locator(".bmshelf");
-  await expect(page.getByRole("heading", { name: "나의 책갈피" })).toBeVisible();
-  // 비로그인은 책 이름·본문 없이 매일 한 장 안내와 로그인 길만 본다
-  await expect(home).toContainText("매일 한 장씩 꽂혀요");
+  const home = page.locator(".home-board");
+  await expect(page.getByRole("heading", { name: "오늘의 책갈피" })).toBeVisible();
+  // 꺼내기 전에는 본문이 없고, 비로그인은 장수 대신 로그인 길을 본다
+  await expect(home).toHaveAttribute("data-state", "closed");
   await expect(home).not.toContainText(card.text);
-  await home.getByRole("link", { name: "오늘 한 장 보기" }).click();
+  await expect(home.getByRole("link", { name: "로그인하면 책갈피를 모아 둘 수 있어요" })).toBeVisible();
+  await home.getByRole("button", { name: "오늘의 책갈피 꺼내기" }).click();
+  // 같은 자리에서 카드가 열린다 — 본문·건네기·책에 다시 꽂기(원문 링크)
+  await expect(home).toHaveAttribute("data-state", "open");
+  await expect(home).toContainText(card.text);
+  await expect(home.getByRole("button", { name: "건네기" })).toBeVisible();
+  await expect(home.getByRole("link", { name: /책에 다시 꽂기/ })).toHaveAttribute(
+    "href",
+    new RegExp(`card=${card.id}`),
+  );
+  expect(await page.evaluate(() => window.localStorage.getItem("hoondok:card:received"))).toContain(card.id);
+  expect(await overflow(page)).toBe(0);
 
-  await expect(page).toHaveURL(/\/bookmark$/);
+  // 받기 화면: 홈에서 이미 꺼냈으므로 모션 없이 읽기
+  await page.goto("/bookmark");
+  await expect(page.locator(".bmk--read")).toBeVisible();
   const reinsert = page.getByRole("button", { name: /책에 다시 꽂기/ });
   await expect(reinsert).toBeEnabled();
   await expect(page.locator(".bmk-card")).toContainText(card.text);

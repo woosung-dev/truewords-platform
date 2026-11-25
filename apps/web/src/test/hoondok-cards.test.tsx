@@ -401,65 +401,68 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     expect(container.querySelector(".bmk-moment")).toHaveAttribute("hidden");
   });
 
-  it("홈 나의 책갈피(비로그인): 받기 전엔 책 이름만, 받은 뒤엔 본문 한 줄과 다시 보기 · 책장은 링크가 아니다", async () => {
-    const { BookmarkShelfHome } = await import("@/features/hoondok/cards/components/home-card");
-    const { unmount, container } = render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(screen.getByRole("heading", { name: "나의 책갈피" })).toBeInTheDocument();
-    expect(await screen.findByText("매일 한 장씩 꽂혀요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "오늘 한 장 보기" })).toHaveAttribute("href", "/bookmark");
-    expect(screen.getByRole("link", { name: "로그인" })).toHaveAttribute("href", "/onboarding?returnTo=%2F");
-    // 받기 전에는 본문·출처를 DOM 에 넣지 않는다
+  it("홈 오늘의 책갈피(비로그인): 닫힌 판엔 본문이 없고, 꺼내면 같은 자리에서 카드·건네기·책에 다시 꽂기가 열린다", async () => {
+    const { HomeBookmarkBoard } = await import("@/features/hoondok/cards/components/home-board");
+    const { container } = render(wrap(<HomeBookmarkBoard card={CARD} dateLabel="9월 28일 월요일" serverSlot="day" />));
+    const pull = await screen.findByRole("button", { name: "오늘의 책갈피 꺼내기" });
+    expect(screen.getByRole("heading", { name: "오늘의 책갈피" })).toBeInTheDocument();
+    expect(screen.getByText("천성경 제1편에서 고른 한 장")).toBeInTheDocument();
+    // 꺼내기 전에는 본문·출처를 DOM 에 넣지 않는다
     expect(container).not.toHaveTextContent(CARD.text);
     expect(container).not.toHaveTextContent(CARD.source_label);
-    expect(screen.queryByRole("link", { name: "나의 책갈피 책장 보기" })).toBeNull();
-    expect(container.querySelectorAll(".bmshelf__spine.is-ghost").length).toBeGreaterThan(0);
-    expect(screen.getByText("새 장")).toBeInTheDocument();
-    // 비로그인에게는 갤러리 줄·장수가 없다
-    expect(screen.queryByRole("link", { name: /내 카드 갤러리/ })).toBeNull();
-    unmount();
-    writeLocalReceipt({ date: TODAY, cardId: CARD.id });
-    render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(await screen.findByRole("link", { name: "다시 보기" })).toHaveAttribute("href", "/bookmark");
-    expect(screen.getByText(`“${CARD.text}”`)).toBeInTheDocument();
-    expect(screen.getByText(CARD.source_label)).toBeInTheDocument();
-    expect(screen.getByText("오늘 꺼냄")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "오늘 한 장 보기" })).toBeNull();
+    // 비로그인에게는 장수 대신 로그인 안내 줄
+    expect(screen.getByRole("link", { name: "로그인하면 책갈피를 모아 둘 수 있어요" })).toHaveAttribute(
+      "href",
+      "/onboarding?returnTo=%2F",
+    );
+    fireEvent.click(pull);
+    expect(readLocalReceipt(TODAY)).toEqual({ date: TODAY, cardId: CARD.id });
+    expect(await screen.findByRole("link", { name: /책에 다시 꽂기/ })).toHaveAttribute("href", cardWordsHref(CARD));
+    expect(container.querySelector(".home-board")).toHaveAttribute("data-state", "open");
+    expect(screen.getByText(CARD.text)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "건네기" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "오늘의 책갈피 꺼내기" })).toBeNull();
+    expect(cardWordsHref(CARD)).toContain("card=");
   });
 
-  it("홈 나의 책갈피(로그인): 받은 장수·권별 책등·범례·건넨 장수는 서버 값, 안 받았으면 꺼내기", async () => {
+  it("홈 오늘의 책갈피: 오늘 이미 꺼냈으면 처음부터 연 판이다", async () => {
+    writeLocalReceipt({ date: TODAY, cardId: CARD.id });
+    const { HomeBookmarkBoard } = await import("@/features/hoondok/cards/components/home-board");
+    render(wrap(<HomeBookmarkBoard card={CARD} dateLabel="9월 28일 월요일" serverSlot="day" />));
+    expect(await screen.findByRole("link", { name: /책에 다시 꽂기/ })).toHaveAttribute("href", cardWordsHref(CARD));
+    expect(screen.queryByRole("button", { name: "오늘의 책갈피 꺼내기" })).toBeNull();
+  });
+
+  it("홈 오늘의 책갈피(로그인): 받은 장수는 서버 값이고, 꺼내면 서버에 받은 기록을 남긴다", async () => {
     const item = { card: CARD, received_on: "2026-01-02", shared_at: null };
-    fetchMock.mockImplementation(async (input) => {
+    fetchMock.mockImplementation(async (input, init) => {
       const url = String(input);
       if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
-      if (url.includes("filter=shared")) return json({ items: [item], shelves: [] });
+      if (url.includes("/receive") && init?.method === "POST") return json(item);
       if (url.includes("/hoondok/me/cards"))
-        return json({
-          items: [item, item, item],
-          shelves: [
-            { work_title: "천성경", count: 2 },
-            { work_title: "평화경", count: 1 },
-          ],
-        });
+        return json({ items: [item, item, item], shelves: [{ work_title: "천성경", count: 3 }] });
       return json({ detail: "not found" }, 404);
     });
-    const { BookmarkShelfHome } = await import("@/features/hoondok/cards/components/home-card");
-    const { container } = render(wrap(<BookmarkShelfHome card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(await screen.findByText("3장")).toHaveClass("sect__meta");
-    expect(screen.getByRole("link", { name: "나의 책갈피 책장 보기" })).toHaveAttribute("href", "/bookmarks");
-    expect(screen.getByText("천성경 2 · 평화경 1")).toBeInTheDocument();
-    const spines = [...container.querySelectorAll(".bmshelf__spine")];
-    expect(spines).toHaveLength(3);
-    expect(spines[0]).toHaveClass(`pc--book-${bookColorIndex("천성경")}`);
-    expect(spines[2]).toHaveClass(`pc--book-${bookColorIndex("평화경")}`, "is-gap");
-    expect(screen.getByText("새 장이 한 장 꽂혔어요")).toBeInTheDocument();
-    expect(screen.getByText("천성경 제1편 · 9월 28일 월요일")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "꺼내기" })).toHaveAttribute("href", "/bookmark");
-    expect(await screen.findByRole("link", { name: /내 카드 갤러리\s*건넨 카드 1장/ })).toHaveAttribute(
-      "href",
-      "/bookmarks?filter=shared",
+    const { HomeBookmarkBoard } = await import("@/features/hoondok/cards/components/home-board");
+    render(wrap(<HomeBookmarkBoard card={CARD} dateLabel="9월 28일 월요일" serverSlot="day" />));
+    expect(await screen.findByRole("link", { name: /나의 책갈피\s*3\s*장/ })).toHaveAttribute("href", "/bookmarks");
+    expect(screen.queryByRole("link", { name: /로그인하면/ })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "오늘의 책갈피 꺼내기" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input, init]) => String(input).includes("/receive") && init?.method === "POST"),
+      ).toBe(true),
     );
-    expect(screen.queryByRole("link", { name: "로그인" })).toBeNull();
+    expect(await screen.findByRole("link", { name: /책에 다시 꽂기/ })).toBeInTheDocument();
+  });
+
+  it("홈 오늘의 책갈피: 오늘 카드가 없으면 서고·검색으로 안내한다", async () => {
+    const { PersonalBookmarkHome } = await import("@/features/hoondok/personal/components/home-bookmark");
+    render(wrap(<PersonalBookmarkHome todayCard={null} dateLabel="9월 28일 월요일" serverSlot="day" />));
+    expect(await screen.findByRole("heading", { name: "말씀 서고" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "서고에서 고르기" })).toHaveAttribute("href", "/library");
+    expect(screen.getByRole("link", { name: "말씀 검색" })).toHaveAttribute("href", "/search");
+    expect(screen.queryByRole("button", { name: "오늘의 책갈피 꺼내기" })).toBeNull();
   });
 });
 
@@ -842,17 +845,5 @@ describe("플래그 · 화면 레지스트리", () => {
     const recipient = screenFor(`/c/${CARD.id}`);
     expect(recipient).toMatchObject({ title: "오늘의 책갈피", tabId: "today" });
     expect(recipient.backHref).toBeUndefined();
-  });
-});
-
-describe("홈 책장 책등 나누기", () => {
-  it("상한 안이면 장수 그대로, 넘으면 비율로 나누되 권마다 최소 1개", async () => {
-    const { spineCounts } = await import("@/features/hoondok/cards/components/home-card");
-    expect(spineCounts([5, 4, 3])).toEqual([5, 4, 3]);
-    // 한 권이 12장 이상이어도 다른 권이 그림에서 사라지지 않는다
-    expect(spineCounts([20, 2, 1])).toEqual([10, 1, 1]);
-    expect(spineCounts([20, 2, 1]).reduce((a, b) => a + b, 0)).toBe(12);
-    // 권이 상한보다 많으면 장수 많은 권부터 1개씩
-    expect(spineCounts(Array.from({ length: 14 }, () => 1))).toEqual([...Array(12).fill(1), 0, 0]);
   });
 });

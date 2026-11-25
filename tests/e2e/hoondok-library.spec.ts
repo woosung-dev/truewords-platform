@@ -86,7 +86,7 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
   );
 });
 
-test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말씀 · 홈/read 일치", async ({ page }) => {
+test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말씀 · /read 반영", async ({ page }) => {
   const { status } = await signInWithGoogleApi(page, { email: `journey-${Date.now()}@example.com`, name: "여정" });
   expect(status).toBe("created");
   const create = await page.request.post("/api/backend/hoondok/me/jeongseong", {
@@ -107,8 +107,7 @@ test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말
   const next = await (await page.request.get("/api/backend/hoondok/me/jeongseong/today")).json();
   expect(next.status).toBe("available");
   expect(next.reading.body).not.toBe(first.reading.body);
-  await page.goto("/");
-  await expect(page.locator("main")).toContainText(next.reading.title);
+  // 홈에는 정성 말씀 제목을 싣는 판이 없다(DEC-PWA-030) — 바뀐 말씀은 /read 에서 본다
   await page.goto("/read");
   await expect(page.locator("main")).toContainText(next.reading.body);
   await page.getByRole("button", { name: "훈독 완료", exact: true }).click();

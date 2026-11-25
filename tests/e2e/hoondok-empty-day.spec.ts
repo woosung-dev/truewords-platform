@@ -65,15 +65,13 @@ test.afterAll(async () => {
   await admin?.dispose();
 });
 
-test("기록 없음: 홈 판은 정해진 말씀 없음 → 서고·검색, 함께 읽기 숫자 없음 · 훈독하기는 서고가 주 버튼", async ({
+test("기록 없음: 홈 실천은 이어 읽기 → 기도하기, 함께 읽기 숫자 없음 · 훈독하기는 서고가 주 버튼", async ({
   page,
 }) => {
   await page.goto("/");
-  const word = page.locator(".home-word");
-  await expect(word.locator(".home-word__title")).toHaveText("오늘은 정해진 말씀이 없어요");
-  await expect(word.getByRole("link", { name: "서고에서 고르기" })).toHaveAttribute("href", "/library");
-  await expect(word.getByRole("link", { name: "말씀 검색" })).toHaveAttribute("href", "/search");
-  await expect(word.getByRole("link", { name: /훈독하기/ })).toHaveCount(0);
+  // 홈 맨 위 판은 오늘의 책갈피라 편성 유무와 무관하다 — 빈 날 안내는 /read 가 갖는다
+  await expect(page.locator(".home-board")).toBeVisible();
+  await expect(page.getByText("오늘은 정해진 말씀이 없어요")).toHaveCount(0);
   await expect.poll(() => missionOrder(page)).toEqual(["말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]);
   await expect(page.locator('.missions a[href="/library"]')).toHaveCount(1);
   await expect(page.getByText(/기다리고 있어요|편성되면|오늘 말씀 대신/)).toHaveCount(0);
