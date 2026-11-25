@@ -43,20 +43,9 @@ export function sourceLabel(source: Pick<Source, "display_name" | "volume">): st
   return stripFileExt(source.display_name?.trim() || source.volume);
 }
 
-/** 출처 줄의 한 칸. `isUnknown` 이면 색을 한 단계 낮춰 값이 아니라 결측임을 형태로도 알린다. */
-export type SourceField = { id: string; text: string; isUnknown: boolean };
-
-/** 등급을 모를 때의 공식성 표기. 초록 `badge--rank` 는 O1·O2 정본 전용이라 쓰지 않는다 (DES §2.3). */
-export const SOURCE_RANK_UNKNOWN = "공식성 확인되지 않음";
-
 /**
- * 근거 카드 출처 줄의 칸들. 순서는 DES-PWA-003 §2.2 의 화자 · 저작물 · 위치 · 판본 · 공식성이고,
- * `/chat/stream` 이 주지 않는 칸은 지어내지 않고 "확인되지 않음"으로 적는다 (REQ-PWA-012 · AC-017-02).
+ * 근거 목록 출처 줄의 둘째 줄. `/chat/stream` 은 화자·판본·권위 등급을 주지 않으므로 지어내지 않고
+ * 결측 칸을 생략하지 않은 채 한 줄로 모아 적는다 (REQ-PWA-012 · AC-017-02, 검색 결과 `.sr-src` 와 같은 축약).
+ * 초록 `badge--rank` 는 O1·O2 정본 전용이라 공식성도 배지가 아닌 글자로 적는다 (DES §2.3).
  */
-export function sourceFields(source: Source): SourceField[] {
-  return [
-    { id: "speaker", text: "화자 확인되지 않음", isUnknown: true },
-    { id: "work", text: sourceLabel(source), isUnknown: false },
-    { id: "edition", text: "판본 확인되지 않음", isUnknown: true },
-  ];
-}
+export const SOURCE_UNVERIFIED = "화자·판본·공식성 확인되지 않음";

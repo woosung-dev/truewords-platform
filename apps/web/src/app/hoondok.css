@@ -1200,45 +1200,47 @@
   }
 
   /* ---------- AI 설명 패널 (DES §2.9) : ask · library. 원래 _hoondok/ask.css ---------- */
+  /* 공식 원문(흰 카드 + 실선 인용)과 AI 글을 색이 아닌 모양으로 가른다 — 카드 없이 열린 글 + 왼쪽 2px 점선 + 점선 라벨 알약.
+     예전 8px 점 격자는 본문 뒤에서 읽기 소음이 돼 걷어냈다 (DES §2.1 AI 설명 박스) */
   .ai-note {
-    padding: 16px;
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    background-color: var(--surface);
-    background-image: radial-gradient(var(--line) 1px, transparent 1px);
-    background-size: 8px 8px;
+    padding: 2px 0 2px 16px;
+    border-left: 2px dashed var(--line);
   }
   .ai-note__lab {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-height: 28px;
     margin-bottom: 8px;
-    font-size: var(--fs-2xs);
+    padding: 0 10px 0 8px;
+    border: 1px dashed var(--ink-3);
+    border-radius: var(--r-full);
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
   }
   .ai-note__body {
     margin: 0;
-    font-size: var(--fs-md);
-    line-height: 1.7;
-    color: var(--ink-2);
+    font-size: var(--fs-lg);
+    line-height: 1.8;
+    color: var(--ink);
   }
   .ai-note__body + .ai-note__body {
     margin-top: 10px;
   }
   /* 답 본문의 마크다운 소제목·목록 (AnswerMarkdown) */
   .ai-note__head {
-    margin: 14px 0 4px;
+    margin: 20px 0 4px;
     font-size: var(--fs-md);
-    font-weight: 600;
-    color: var(--ink);
+    font-weight: 700;
+    color: var(--ink-2);
   }
   .ai-note__list {
     margin: 6px 0 0;
     padding-left: 20px;
-    font-size: var(--fs-md);
-    line-height: 1.7;
-    color: var(--ink-2);
+    font-size: var(--fs-lg);
+    line-height: 1.8;
+    color: var(--ink);
   }
   .ai-note__head + .ai-note__body,
   .ai-note__list + .ai-note__body,

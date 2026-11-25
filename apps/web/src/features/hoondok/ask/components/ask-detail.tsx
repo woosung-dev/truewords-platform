@@ -1,6 +1,6 @@
 "use client";
 
-// 질문·답변 상세 — 제목·날짜(+ 오른쪽 북마크·공유) → 답한 모델(변경) → 핵심 근거 → 답 → 근거 말씀 → 다시 묻기 → 공개
+// 질문·답변 상세 — 제목·날짜(+ 오른쪽 북마크·공유) → 답한 모델(변경) → 근거 색인 → 답 → 근거 말씀 → 다시 묻기 → 공개
 // → 이어서 한 질문들 → 관련 질문 → 하단 고정 "이어서 질문하기"(같은 session_id 로 잇는다).
 // 북마크는 계정 기록의 saved 다(API 이름만 saved, 화면 이름은 북마크). 앱바에 행동 자리가 없어 본문 메타 줄 오른쪽에 둔다.
 // 원본은 계정에 보관된 대화(`GET /hoondok/me/asks/{session_id}`)다. 지금 답을 받는 중인 질문만 메모리(live.ts)에서 그린다 —
@@ -13,7 +13,7 @@ import { ArrowUp, ChevronRight, MessageCircleQuestion, PenLine, RotateCcw, Share
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton, HoondokMascot } from "@/components/hoondok";
 import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
@@ -25,7 +25,7 @@ import { LIBRARY_KEY, PUBLIC_QUESTIONS_KEY } from "../../query-keys";
 import { type AnswerMode, ASK_ERROR_MESSAGE, ASK_QUESTION_MAX, type AskErrorKind, askLength } from "../ask-stream";
 import { ASKS_KEY, askDetailKey, asksAPI, isSessionId } from "../asks-api";
 import { useBookmarkToggle } from "../bookmarks";
-import { askFullDate, SOURCE_RANK_UNKNOWN, sourceFields, sourceLabel } from "../format";
+import { askFullDate, SOURCE_UNVERIFIED, sourceLabel } from "../format";
 import { useClearLegacyAskItems } from "../legacy";
 import {
   EMPTY_LIVE_ASKS,
@@ -45,6 +45,7 @@ import { PUBLIC_STATUS_LABEL, publicQuestionsAPI } from "../public-api";
 import { AskLoginGate, AskQuotaNote, DAILY_LIMIT_DONE, useAskQuota } from "./ask-gate";
 import { askNewReturnHref, keepDraft } from "./ask-new";
 import { BookmarkButton } from "./bookmark-button";
+import { EvidenceIndex, EvidenceRail, EvidenceRefs, EvidenceSheet, type RailItem, useEvidenceSheet } from "./evidence-rail";
 import { ModeSheet } from "./mode-sheet";
 
 // react-markdown(unified·micromark) 은 답이 있을 때만 받는다 — 대기·근거 없음 화면의 첫 로드 JS 에서 뺀다.
@@ -226,7 +227,15 @@ function useOriginalLink(enabled: boolean) {
   };
 }
 
-function AnswerNote({ answer, sources, disclaimer }: { answer: string; sources: Source[]; disclaimer?: string }) {
+function AnswerNote({
+  answer,
+  disclaimer,
+  refs,
+}: {
+  answer: string;
+  disclaimer?: string;
+  refs?: ReactNode;
+}) {
   return (
     <div className="ai-note">
       <div className="ai-note__lab">
@@ -235,48 +244,72 @@ function AnswerNote({ answer, sources, disclaimer }: { answer: string; sources: 
       </div>
       <AnswerMarkdown answer={answer} />
       {/* 근거 번호는 답 끝에 한 번만 붙인다 `[가정]` — 문장 단위 인용 위치는 모델이 주지 않는다 */}
-      {sources.length > 0 && (
-        <p className="ai-note__body">
-          {sources.map((_, order) => (
-            <sup className="ask-ref" key={`ref-${order + 1}`}>
-              {order + 1}
-            </sup>
-          ))}
-        </p>
-      )}
+      {refs}
       {disclaimer && <p className="ai-note__micro">{disclaimer}</p>}
     </div>
   );
 }
 
-function EvidenceList({ sources, original }: { sources: Source[]; original: ReturnType<typeof useOriginalLink> }) {
+/** 근거 목록 한 줄. 말씀보다 출처가 먼저 오고, 모르는 칸은 비우지 않고 "확인되지 않음" 으로 모아 적는다 (REQ-PWA-012). */
+function railItems(sources: Source[], original: ReturnType<typeof useOriginalLink>): RailItem[] {
+  return sources.map((source, order) => ({
+    key: source.chunk_id || `${order}-${source.volume}`,
+    label: sourceLabel(source),
+    text: source.text,
+    meta: SOURCE_UNVERIFIED,
+    href: original.canOpen(source) ? wordsHref(source.volume, source.chunk_id) : undefined,
+    notice: original.isPending ? "원문 공개 권한을 확인하고 있어요" : "이 근거의 원문 공개 권한을 확인할 수 없어요",
+  }));
+}
+
+/**
+ * 답 + 근거 말씀. 색인 칩·답 끝 근거 번호·목록 카드가 같은 전문 시트를 연다(턴마다 따로).
+ * 첫 답은 답 위에 근거 색인을, 아래에 제목 있는 근거 목록을 둔다. 이어서 한 답은 접힌 목록만 둔다.
+ */
+function SourcedAnswer({
+  answer,
+  sources,
+  disclaimer,
+  original,
+  layout,
+}: {
+  answer: string;
+  sources: Source[];
+  disclaimer?: string;
+  original: ReturnType<typeof useOriginalLink>;
+  layout: "section" | "folded";
+}) {
+  const sheet = useEvidenceSheet();
+  const items = railItems(sources, original);
+  const note = (
+    <AnswerNote answer={answer} disclaimer={disclaimer} refs={<EvidenceRefs items={items} onOpen={sheet.show} />} />
+  );
   return (
     <>
-      {sources.map((source, order) => (
-        <article className="card ask-ev" key={source.chunk_id || `${order}-${source.volume}`}>
-          {/* 말씀보다 출처가 먼저 온다 (REQ-PWA-012). 모르는 칸은 비우지 않고 "확인되지 않음" 으로 적는다 */}
-          <div className="src">
-            <b className="ask-ev__no">{order + 1}</b>
-            {sourceFields(source).map((field) => (
-              <Fragment key={field.id}>
-                <span className="src__dot" />
-                <span className={field.isUnknown ? "src__unknown" : undefined}>{field.text}</span>
-              </Fragment>
-            ))}
-            <span className="badge badge--dashed">{SOURCE_RANK_UNKNOWN}</span>
+      {layout === "section" ? (
+        <>
+          <EvidenceIndex items={items} onOpen={sheet.show} />
+          <div className="sect">{note}</div>
+          <div className="sect">
+            <div className="sect__head">
+              <h3 className="sect__title">{`근거 말씀 ${sources.length}`}</h3>
+              <span className="sect__meta">누르면 전문을 볼 수 있어요</span>
+            </div>
+            <EvidenceRail items={items} onOpen={sheet.show} />
           </div>
-          <p className="scripture">{source.text}</p>
-          {original.canOpen(source) ? (
-            <Link className="btn btn-line btn--sm" href={wordsHref(source.volume, source.chunk_id)}>
-              원문 보기
-            </Link>
-          ) : (
-            <p className="notice">
-              {original.isPending ? "원문 공개 권한을 확인하고 있어요" : "이 근거의 원문 공개 권한을 확인할 수 없어요"}
-            </p>
-          )}
-        </article>
-      ))}
+        </>
+      ) : (
+        <>
+          {note}
+          <details className="ask-turn__ev">
+            <summary>{`근거 말씀 ${sources.length}`}</summary>
+            <EvidenceRail items={items} onOpen={sheet.show} />
+          </details>
+        </>
+      )}
+      {sheet.open !== null && (
+        <EvidenceSheet items={items} index={sheet.open} onMove={sheet.show} onClose={sheet.close} />
+      )}
     </>
   );
 }
@@ -398,7 +431,6 @@ export function AskDetail({ id }: { id: string }) {
   }
 
   const returnTo = isSession ? `/ask/${id}` : "/ask?tab=mine";
-  const keySource = first.sources[0];
   const lastAnswered = [...turns].reverse().find((turn) => turn.status === "answered");
   const followups = lastAnswered?.followups ?? [];
   const related = followups.length > 0 ? followups : FOLLOWUPS;
@@ -490,28 +522,27 @@ export function AskDetail({ id }: { id: string }) {
       )}
 
       {isAnswered && modeInfo && ModeIcon && (
-        <div className="card ask-model">
-          <p className="ask-model__k">이 모델이 답변했어요</p>
-          <div className="ask-model__row">
-            <span className="ask-model__ic" aria-hidden="true">
-              <ModeIcon size={20} />
+        <div className="ask-model">
+          <span className="ask-model__ic" aria-hidden="true">
+            <ModeIcon size={18} />
+          </span>
+          <span className="ask-model__bd">
+            <span className="ask-model__k">이 모델이 답변했어요</span>
+            <span className="ask-model__name">
+              <b>{modeInfo.label}</b> · {modeInfo.description}
             </span>
-            <span className="ask-model__bd">
-              <b>{modeInfo.label}</b>
-              <span>{modeInfo.description}</span>
-            </span>
-            <button
-              className="btn btn-line btn--sm"
-              type="button"
-              aria-haspopup="dialog"
-              aria-label="답변 모델 변경"
-              aria-describedby={quota.isExhausted ? QUOTA_REASON_ID : undefined}
-              disabled={quota.isExhausted}
-              onClick={() => setIsModeSheetOpen(true)}
-            >
-              변경
-            </button>
-          </div>
+          </span>
+          <button
+            className="ask-model__go"
+            type="button"
+            aria-haspopup="dialog"
+            aria-label="답변 모델 변경"
+            aria-describedby={quota.isExhausted ? QUOTA_REASON_ID : undefined}
+            disabled={quota.isExhausted}
+            onClick={() => setIsModeSheetOpen(true)}
+          >
+            변경
+          </button>
         </div>
       )}
 
@@ -539,30 +570,14 @@ export function AskDetail({ id }: { id: string }) {
 
       {isAnswered && (
         <>
-          {keySource && (
-            <article className="ask-key">
-              <p className="ask-key__k">{`근거 말씀 · ${sourceLabel(keySource)}`}</p>
-              <p className="scripture ask-key__t">{keySource.text}</p>
-              {original.canOpen(keySource) && (
-                <Link className="ask-key__go" href={wordsHref(keySource.volume, keySource.chunk_id)}>
-                  원문 보기
-                  <ChevronRight size={16} aria-hidden="true" />
-                </Link>
-              )}
-            </article>
-          )}
 
-          <div className="sect">
-            <AnswerNote answer={first.answer} sources={first.sources} disclaimer={first.disclaimer} />
-          </div>
-
-          <div className="sect">
-            <div className="sect__head">
-              <h3 className="sect__title">{`근거 말씀 ${first.sources.length}`}</h3>
-              <span className="sect__meta">원문 공개 권한 확인 후 열기</span>
-            </div>
-            <EvidenceList sources={first.sources} original={original} />
-          </div>
+          <SourcedAnswer
+            answer={first.answer}
+            sources={first.sources}
+            disclaimer={first.disclaimer}
+            original={original}
+            layout="section"
+          />
 
           <div className="sect">
             <div className="ask-acts">
@@ -616,11 +631,13 @@ export function AskDetail({ id }: { id: string }) {
               {turn.resolvedMode && (
                 <p className="ask-turn__by">{answeredByLabel(turn.resolvedMode, "이어서 답했어요")}</p>
               )}
-              <AnswerNote answer={turn.answer} sources={turn.sources} disclaimer={turn.disclaimer} />
-              <details className="ask-turn__ev">
-                <summary>{`근거 말씀 ${turn.sources.length}`}</summary>
-                <EvidenceList sources={turn.sources} original={original} />
-              </details>
+              <SourcedAnswer
+                answer={turn.answer}
+                sources={turn.sources}
+                disclaimer={turn.disclaimer}
+                original={original}
+                layout="folded"
+              />
             </>
           )}
         </section>

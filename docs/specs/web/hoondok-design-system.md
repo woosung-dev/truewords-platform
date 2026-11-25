@@ -72,7 +72,6 @@
 | 책갈피·서가 일러스트 팔레트 | `hoondok.css` 첫 토큰 블록의 `--card-paper`·`--cover`·`--cover-2`·`--pages`·`--pages-line`·`--plate`·`--plate-line`·`--table`·`--table-2`·`--shelf`·`--shelf-2`·`--tassel`·`--rib-heart`, 사진 카드·책장 `--espresso`·`--gold`·`--gold-2`·`--gold-ink`·`--photo-*`·`--book-1~6`·`--book-ink`·`--shelf-wall*`, 알파 단계 `--paper-tint`·`--glow`·`--glow-0`·`--sheen-*`·`--photo-shade-*` | 책·책갈피·탁자·서가·사진 카드를 그리는 그림 색이다. UI 상태 색이 아니므로 액센트 규칙과 글자 대비 판정의 대상이 아니다 |
 | 일러스트 그라데이션 | `_hoondok/cards.css` 의 책 페이지 줄무늬·빛·술 장식(`.bk__pages`·`.bk__glow`·`.bk__tas`), 카드 종이 질감과 가장자리 마스크(`.bm::before`·`.bm__leaves`·`.bm__cup`), 탁자·서가 판(`.bm__table`·`.bks-shelf__board`) | 질감과 입체를 그리는 장식이다. 버튼·카드 표면에는 쓰지 않는다 |
 | 강조 밑줄 | `.wd-card-ul` 의 `linear-gradient(transparent 62%, var(--accent-soft) 62%)` | 글자 아래쪽만 칠하는 형광 밑줄. 색은 `--accent-soft` 한 가지다 |
-| 점 격자 배경 | `.ai-note` 의 `radial-gradient(var(--line) 1px, transparent 1px)` 8px 격자 | AI 노트를 공식 원문과 색이 아닌 형태로 구분한다(§3.3) |
 | 진행 링 | 미니 플레이어 `.wd-mini__pp::before` 의 `conic-gradient` + 링 모양 `mask` | 듣기 진행률을 원 둘레로 보인다 |
 | 반투명 흐림 | 리더 독 `.wd-dock` 의 `backdrop-filter: blur(14px) saturate(1.2)` (`_hoondok/library.css`) | 본문 위에 떠 있는 독의 글자를 읽히게 한다. 흐림은 이 한 곳뿐이다 |
 | 공유 버튼 색 | `--kakao`·`--kakao-ink` | 카카오톡 공유 버튼의 브랜드 지정 색 |
@@ -272,6 +271,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 - **구조**: `[출처 줄] [인용 본문] [보조 행동]`
 - **출처 줄** (`.src-line`): `micro` `--ink-3`, 항목 사이 3px 원형 구분자(`--line`), 줄바꿈 허용. 순서는 **화자 · 저작물 · 위치 · 판본 · 공식성 배지**. 미확인 항목은 생략하지 않고 "확인되지 않음"으로 적는다
 - **인용 본문** (`.quote-official`): `quote` 16.5px/1.7, 왼쪽 `4px solid --ink` 선 + 왼쪽 패딩 14px, 상하 여백 12px. 검색 결과·근거 카드에서는 15px로 줄인다
+- **AI 답 근거** (`SCR-PWA-006`): 답 위에 근거 색인 칩(검은 사각 번호 + 저작물, 44px)을 두고, 답 아래 근거 카드(흰 카드·1px 선, 첫 카드에 "핵심 근거" 띠)를 둔다. 카드 첫 줄은 번호 + 저작물, 둘째 줄은 서버가 주지 않는 칸을 생략하지 않고 "화자·판본·공식성 확인되지 않음" 한 줄로 모아 `--ink-3` 로 적는다(검색 결과 `.sr-src` 와 같은 축약). 인용은 2px 실선, 목록에서 4줄까지. 색인 칩·답 끝 근거 번호·카드 어느 것을 눌러도 같은 전문 시트(번호로 건너뛰기, 이전·다음, 권리가 허용되면 원문 링크)가 열린다. 문장별 근거 번호는 API 가 문장별 인용을 줄 때까지 달지 않는다
 - **인용 표시**: AI 설명 안의 근거 번호는 `<sup>` 숫자 + `--accent`. 숫자가 의미를 담으므로 색만으로 구분하지 않는다
 - **접근성**: 카드 전체가 원문으로 가는 링크일 때 링크 텍스트는 인용문 전체가 아니라 `aria-label`로 "천성경 1편 3장 원문 열기"를 준다. 긴 인용문이 링크 이름이 되면 스크린 리더 탐색이 막힌다
 - **대비**: 본문 `--ink`/`--surface` **16.05:1**, 출처 줄 `--ink-3`/`--surface` **5.35:1**, 검색 하이라이트 `--ink`/`--hl-1` **14.18:1** · `/--hl-2` **13.37:1** · `/--hl-3` **12.90:1**
@@ -402,7 +402,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | **버튼** | 높이 50px, 반지름 16px, `body` 600, 폭 100%. `sm`은 38px `caption`. 변형 4종: primary(`--accent`) · ghost(`--surface-2`) · line(`1px --line` + `--surface`) · dark(`--ink`) | primary **4.98:1**, ghost **13.96:1**, line **16.05:1**, dark **16.05:1** |
 | **용어 칩** (`.term`) | `--accent-soft` 배경 + `--accent-strong` 글자 `meta-sm` 600 + 책갈피 아이콘, 패딩 `2px 8px`, 반지름 8px, **최소 높이 24px**(§6-4) | **5.73:1** |
 | **칩 버튼** (`.chip-btn`) | `1px --line` + `--surface`, 패딩 `9px 12px`, 반지름 12px, `caption` 1.35, 좌측 정렬 여러 줄 허용 | **16.05:1** |
-| **AI 설명 박스** | `--surface` 바탕 + 8px 간격 점 패턴(`--line` 1px radial) + `1px --line` + 반지름 16px. 라벨 "AI 설명 · 공식 해설 아님" `micro-sm` 600 `--ink-2` + sparkle 아이콘 | 라벨 **7.27:1**, 본문 **16.05:1** |
+| **AI 설명 박스** | 카드 없이 열린 글. 왼쪽 2px 점선(`--line`) + 왼쪽 패딩 16px. 맨 위 라벨 알약 "AI 설명 · 공식 해설 아님"(`1px dashed --ink-3`, `micro` 600 `--ink-2` + sparkle 아이콘). 본문 `--ink` 16.5px/1.8. 공식 원문(흰 카드 + 실선 인용)과 선 종류로 구분한다. 점 격자 배경은 본문 뒤 읽기 소음 때문에 2026-11-25 걷어냈다 | 라벨 **7.27:1**, 본문 `--ink`/`--paper` 16:1 이상 |
 | **내 메모 박스** | `1.5px dashed --line` + 반지름 16px + "나만 봄" 표시 | 본문 **16.05:1** |
 | **토글** | 46×28px, off 배경 `--surface-2` + `1.5px --ink-3` 테두리, on 배경 `--accent`. 22px 흰 썸 | on `--accent`/`--surface` **4.98:1**, off 테두리 **5.35:1** |
 | **체크(원형)** | 30×30px(목록 안 24×24), off `2px --ink-3`, on `--ok` 배경 + 흰 bold 체크 | on **5.23:1**, off **5.35:1** |
@@ -521,7 +521,7 @@ background: linear-gradient(180deg,
 | 활성 세그먼트 | `--ink` | 굵기 700 + 밑줄(또는 썸 배경) |
 | 권위 등급 | 초록(O1·O2) / 중립(O3~O5) | **등급 숫자 + 한국어 라벨**(유일한 6단계 구분자) + 형태 3단계 |
 | 완료 배지 vs O1 배지 (같은 초록) | `--ok-soft` | 완료는 체크 아이콘, 등급은 등급 숫자 + 라벨 |
-| 권위 층 컨테이너 | 없음 | 굵은 왼쪽 선(공식 원문) / 점 패턴(AI 설명) / 점선 테두리(내 메모) + 각각 라벨 텍스트 |
+| 권위 층 컨테이너 | 없음 | 굵은 왼쪽 선(공식 원문) / 점선 세로선 + 점선 라벨(AI 설명) / 점선 테두리(내 메모) + 각각 라벨 텍스트 |
 | 형광펜 3색 | `--hl-1/2/3` | 노트 목록에 단락 번호와 색 이름을 함께 표시 |
 | 챌린지 진행률 | `--accent` 바 | 퍼센트 숫자 + "13 / 21일" 병기 |
 | 필수 입력 | 없음 | "(필수)" 텍스트. 별표·빨간색만으로 표시하지 않는다 |

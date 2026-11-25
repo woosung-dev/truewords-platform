@@ -803,9 +803,44 @@ describe("질문·답변 상세", () => {
     expect(await screen.findByText("정성은 기간을 정해 드리는 실천입니다.")).toBeInTheDocument();
     expect(screen.getByText("이 모델이 답변했어요")).toBeInTheDocument();
     expect(screen.getByText("깊은 해설")).toBeInTheDocument();
-    expect(screen.getByText("근거 말씀 · 천성경 1편 3장")).toBeInTheDocument();
+    // 답 위 근거 색인 — 이름만 보이고 말씀 본문은 목록에서 한 번만 나온다
+    // (색인 칩 + 답 끝 번호 = 2)
+    expect(screen.getAllByRole("button", { name: "근거 1 천성경 1편 3장 말씀 보기" })).toHaveLength(2);
+    expect(screen.getAllByText(SOURCE.text)).toHaveLength(1);
     expect(screen.getByText("내 계정에만 보관돼요")).toBeInTheDocument();
     expect(screen.getByText("비공개 · 내 계정에서만 볼 수 있어요.")).toBeInTheDocument();
+  });
+
+  it("근거는 결측 칸을 모아 적고, 색인 칩·답 끝 번호·카드를 누르면 같은 전문 시트가 열려 근거를 넘긴다", async () => {
+    currentUser = { id: "u1" };
+    const second = { volume: "평화경", text: "두 번째 근거 말씀입니다.", score: 0.6, source: "B" };
+    vi.mocked(asksAPI.detail).mockResolvedValue(detail([turn({ sources: [SOURCE, second] })]));
+    render(<AskDetail id={SID} />);
+    await screen.findByText("정성은 기간을 정해 드리는 실천입니다.");
+    // 화자·판본·공식성을 지어내지 않고 생략하지도 않는다 (REQ-PWA-012)
+    expect(screen.getAllByText("화자·판본·공식성 확인되지 않음")).toHaveLength(2);
+
+    // 색인 칩과 답 끝 번호가 같은 근거를 가리킨다
+    const refs = screen.getAllByRole("button", { name: "근거 2 평화경 말씀 보기" });
+    expect(refs).toHaveLength(2);
+    fireEvent.click(refs[0]);
+    const sheet = screen.getByRole("dialog", { name: "근거 2 · 평화경" });
+    expect(within(sheet).getByText("두 번째 근거 말씀입니다.")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "근거 2 평화경" })).toHaveAttribute("aria-current", "true");
+    expect(within(sheet).getByRole("button", { name: "다음 근거" })).toBeDisabled();
+    fireEvent.click(within(sheet).getByRole("button", { name: "이전 근거" }));
+    expect(screen.getByRole("dialog", { name: "근거 1 · 천성경 1편 3장" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "근거 2 평화경" }));
+    expect(screen.getByRole("dialog", { name: "근거 2 · 평화경" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(refs[1]);
+    expect(screen.getByRole("dialog", { name: "근거 2 · 평화경" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "근거 1 천성경 1편 3장 말씀 전문 보기" }));
+    expect(screen.getByRole("dialog", { name: "근거 1 · 천성경 1편 3장" })).toBeInTheDocument();
   });
 
   it("근거가 0건인 기록은 답을 보이지 않고 다시 묻기만 둔다", async () => {
