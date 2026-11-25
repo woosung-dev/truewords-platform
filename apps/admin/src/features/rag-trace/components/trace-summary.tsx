@@ -15,7 +15,6 @@ const WARNING_LABEL: Record<string, { label: string; tone: StatusTone }> = {
   meta_terminated: { label: "meta 조기 종료", tone: "info" },
   cache_would_hit: { label: "캐시 적중 예정", tone: "info" },
   history_ignored_multiturn_off: { label: "멀티턴 꺼짐 · 이력 무시", tone: "neutral" },
-  pastoral_hotline_missing_in_stream: { label: "스트림 답변에 상담 안내 없음", tone: "warning" },
   filter_loss: { label: "필터 손실", tone: "warning" },
   duplicates: { label: "중복", tone: "warning" },
   rrf_mismatch: { label: "RRF 불일치", tone: "danger" },
