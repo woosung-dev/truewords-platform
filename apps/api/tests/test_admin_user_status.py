@@ -132,6 +132,87 @@ async def test_same_value_is_idempotent_no_write():
     repo.commit.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_status_change_and_audit_commit_once_together():
+    """상태 변경을 먼저 commit 하면 감사 기록 실패 시 변경만 남는다.
+
+    상태 전환은 flush 만 하고, 감사 insert 뒤의 commit 한 번으로 함께 확정한다.
+    """
+    user = _make_user(is_active=True)
+    repo = _make_repo(user)
+    calls: list[str] = []
+    repo.set_user_active = AsyncMock(side_effect=lambda u, v: calls.append("set_active") or u)
+    repo.create_audit_log = AsyncMock(side_effect=lambda log: calls.append("audit") or log)
+    repo.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
+    actor_id = uuid.uuid4()
+
+    result = await AdminService(repo).set_admin_active_with_audit(
+        user_id=user.id, is_active=False, actor_id=actor_id, ip_address="127.0.0.1"
+    )
+
+    assert result is user
+    assert calls == ["set_active", "audit", "commit"]
+    log = repo.create_audit_log.await_args.args[0]
+    assert log.action == "admin_user.deactivate"
+    assert log.admin_user_id == actor_id
+    assert log.target_id == user.id
+
+
+@pytest.mark.asyncio
+async def test_status_change_rolls_back_when_audit_fails():
+    user = _make_user(is_active=True)
+    repo = _make_repo(user)
+    repo.create_audit_log = AsyncMock(side_effect=RuntimeError("audit failure"))
+    repo.rollback = AsyncMock()
+
+    with pytest.raises(RuntimeError, match="audit failure"):
+        await AdminService(repo).set_admin_active_with_audit(
+            user_id=user.id, is_active=False, actor_id=uuid.uuid4()
+        )
+
+    repo.commit.assert_not_awaited()
+    repo.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_status_unchanged_writes_no_audit():
+    """멱등 요청(이미 같은 값)은 감사 로그도 commit 도 남기지 않는다."""
+    user = _make_user(is_active=False)
+    repo = _make_repo(user)
+    repo.create_audit_log = AsyncMock()
+
+    await AdminService(repo).set_admin_active_with_audit(
+        user_id=user.id, is_active=False, actor_id=uuid.uuid4()
+    )
+
+    repo.create_audit_log.assert_not_awaited()
+    repo.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_create_admin_records_audit_without_password():
+    from app.modules.admin.schemas import CreateAdminRequest
+
+    repo = MagicMock()
+    repo.get_user_by_email = AsyncMock(return_value=None)
+    calls: list[str] = []
+    repo.create_user = AsyncMock(side_effect=lambda u: calls.append("create") or u)
+    repo.create_audit_log = AsyncMock(side_effect=lambda log: calls.append("audit") or log)
+    repo.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
+
+    user = await AdminService(repo).create_admin_with_audit(
+        CreateAdminRequest(email="new@example.com", password="secret-pw", role="admin"),
+        actor_id=uuid.uuid4(),
+    )
+
+    assert calls == ["create", "audit", "commit"]
+    log = repo.create_audit_log.await_args.args[0]
+    assert log.action == "admin_user.create"
+    assert log.target_id == user.id
+    assert log.changes == {"email": "new@example.com", "role": "admin"}
+    assert "secret-pw" not in str(log.changes)
+
+
 # --- 비활성 계정은 로그인 불가 (차단이 실제로 성립하는지) ---
 
 
@@ -195,8 +276,7 @@ async def test_status_endpoint_returns_updated_state():
     updated.created_at = datetime(2026, 7, 7, 9, 0, 0, tzinfo=timezone.utc)
 
     service = MagicMock()
-    service.set_admin_active = AsyncMock(return_value=(updated, True))
-    service.log_audit = AsyncMock()
+    service.set_admin_active_with_audit = AsyncMock(return_value=updated)
 
     with patch("app.main.init_db", new_callable=AsyncMock):
         from app.main import app
@@ -221,52 +301,8 @@ async def test_status_endpoint_returns_updated_state():
 
     assert res.status_code == 200
     assert res.json()["is_active"] is False
-    # 실제 변경이 있었으므로 감사 로그가 남는다
-    service.log_audit.assert_awaited_once()
-    assert service.log_audit.await_args.kwargs["action"] == "admin_user.deactivate"
-
-
-@pytest.mark.asyncio
-async def test_no_audit_log_when_unchanged():
-    """멱등 요청(changed=False)은 감사 로그를 남기지 않는다."""
-    from datetime import datetime, timezone
-
-    from httpx import ASGITransport, AsyncClient
-
-    from app.modules.admin.dependencies import get_admin_service
-
-    target_id = uuid.uuid4()
-    unchanged = MagicMock()
-    unchanged.id = target_id
-    unchanged.email = "trial@example.com"
-    unchanged.role = "admin"
-    unchanged.is_active = False
-    unchanged.created_at = datetime(2026, 7, 7, 9, 0, 0, tzinfo=timezone.utc)
-
-    service = MagicMock()
-    service.set_admin_active = AsyncMock(return_value=(unchanged, False))
-    service.log_audit = AsyncMock()
-
-    with patch("app.main.init_db", new_callable=AsyncMock):
-        from app.main import app
-
-    app.dependency_overrides[get_current_admin] = lambda: {
-        "user_id": uuid.uuid4(),
-        "role": "admin",
-        "email": "demo-admin@example.com",
-    }
-    app.dependency_overrides[get_admin_service] = lambda: service
-    try:
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            res = await client.patch(
-                f"/admin/users/{target_id}/status",
-                json={"is_active": False},
-                headers={"X-Requested-With": "XMLHttpRequest"},
-            )
-    finally:
-        app.dependency_overrides.pop(get_current_admin, None)
-        app.dependency_overrides.pop(get_admin_service, None)
-
-    assert res.status_code == 200
-    service.log_audit.assert_not_awaited()
+    # 상태 전환과 감사 기록은 서비스의 한 트랜잭션에서 처리한다
+    service.set_admin_active_with_audit.assert_awaited_once()
+    kwargs = service.set_admin_active_with_audit.await_args.kwargs
+    assert kwargs["user_id"] == target_id
+    assert kwargs["is_active"] is False

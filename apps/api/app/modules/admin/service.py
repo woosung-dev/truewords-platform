@@ -36,7 +36,7 @@ class AdminService:
         )
         return AdminLoginResponse(access_token=token)
 
-    async def create_admin(self, data: CreateAdminRequest) -> AdminUser:
+    async def create_admin(self, data: CreateAdminRequest, *, commit: bool = True) -> AdminUser:
         existing = await self.repo.get_user_by_email(data.email)
         if existing:
             raise ConflictError(
@@ -48,11 +48,27 @@ class AdminService:
             role=AdminRole(data.role),
         )
         saved = await self.repo.create_user(user)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
         return saved
 
+    async def create_admin_with_audit(
+        self, data: CreateAdminRequest, actor_id: uuid.UUID, ip_address: str | None = None
+    ) -> AdminUser:
+        """계정 생성과 감사 기록을 한 트랜잭션으로 확정한다. 감사 기록에 비밀번호는 넣지 않는다."""
+        user = await self.create_admin(data, commit=False)
+        await self.log_audit(
+            admin_user_id=actor_id,
+            action="admin_user.create",
+            target_table="admin_users",
+            target_id=user.id,
+            changes={"email": user.email, "role": AdminRole(data.role).value},
+            ip_address=ip_address,
+        )
+        return user
+
     async def set_admin_active(
-        self, user_id: uuid.UUID, is_active: bool, actor_id: uuid.UUID
+        self, user_id: uuid.UUID, is_active: bool, actor_id: uuid.UUID, *, commit: bool = True
     ) -> tuple[AdminUser, bool]:
         """관리자 계정 활성/비활성 전환. ``(계정, 실제로 변경됐는지)`` 를 반환한다.
 
@@ -80,8 +96,35 @@ class AdminService:
         if user.is_active == is_active:
             return user, False
         await self.repo.set_user_active(user, is_active)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
         return user, True
+
+    async def set_admin_active_with_audit(
+        self,
+        user_id: uuid.UUID,
+        is_active: bool,
+        actor_id: uuid.UUID,
+        ip_address: str | None = None,
+    ) -> AdminUser:
+        """상태 전환과 감사 기록을 한 트랜잭션으로 확정한다.
+
+        감사 기록이 실패하면 상태 변경도 취소된다. 값이 이미 같으면(멱등 재요청)
+        아무것도 쓰지 않아 이력을 오염시키지 않는다.
+        """
+        user, changed = await self.set_admin_active(
+            user_id=user_id, is_active=is_active, actor_id=actor_id, commit=False
+        )
+        if changed:
+            await self.log_audit(
+                admin_user_id=actor_id,
+                action="admin_user.activate" if is_active else "admin_user.deactivate",
+                target_table="admin_users",
+                target_id=user.id,
+                changes={"email": user.email, "is_active": is_active},
+                ip_address=ip_address,
+            )
+        return user
 
     async def list_admins(
         self, limit: int = 100, offset: int = 0

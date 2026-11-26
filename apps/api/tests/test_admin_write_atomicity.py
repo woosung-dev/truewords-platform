@@ -151,6 +151,16 @@ async def prepare(session, case, audit, actor):
         return lambda: service.update_with_audit(
             row.id, CardAdminUpdate(status="retired"), audit, actor
         ), WordCard
+    if case.startswith("admin-user"):
+        from app.modules.admin.schemas import CreateAdminRequest
+
+        if case == "admin-user-create":
+            data = CreateAdminRequest(email="new@example.com", password="local-test")
+            return lambda: audit.create_admin_with_audit(data, actor), AdminUser
+        target = AdminUser(email="trial@example.com", hashed_password="test")
+        session.add(target)
+        await session.commit()
+        return lambda: audit.set_admin_active_with_audit(target.id, False, actor), AdminUser
     service = ChatbotService(ChatbotRepository(session))
     data = ChatbotConfigCreate(chatbot_id="test", display_name="시연")
     if case == "chatbot-create":
@@ -171,6 +181,8 @@ CASES = [
     "card-update",
     "chatbot-create",
     "chatbot-update",
+    "admin-user-create",
+    "admin-user-update",
 ]
 
 
