@@ -116,7 +116,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정으로 가는 링크만 있다
     expect(document.querySelector('input[type="time"]')).toBeNull();
     expect(screen.queryByLabelText(/알림 시각/)).toBeNull();
-    expect(screen.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: "관리 › 훈독하기" })).toHaveAttribute("href", "/settings");
     expect(screen.getByText(/에서 켜고 시각을 정해요/)).toBeInTheDocument();
   });
 
@@ -132,7 +132,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/", { scroll: false }));
     const post = lastPost();
     expect(post.url).toBe("/api/backend/hoondok/me/jeongseong");
-    // reminder_time 은 보내지 않는다 (알림 시각은 설정 › 훈독하기 한 곳)
+    // reminder_time 은 보내지 않는다 (알림 시각은 관리 › 훈독하기 한 곳)
     expect(post.body).toEqual({
       topic: "감사",
       duration_days: 21,

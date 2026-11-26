@@ -21,7 +21,7 @@ export type HoondokScreen = {
    * 프로토타입에서 `col--read` 를 쓰는 화면만 read 다. onb = 질문 흐름 — 앱바를 시각적으로 접고(h1 은 보조기기용) 화면이 자기 머리를 그린다.
    */
   variant: "home" | "read" | "app" | "onb";
-  /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
+  /** true 면 앱바·헤더의 사람(관리)·종(알림센터) 아이콘을 함께 숨긴다. 탭 밖 흐름(온보딩·검색 등)이다 */
   hideSettingsLink?: true;
   /** true 면 앱바의 검색 아이콘을 숨긴다(검색 화면 자신·AI 질문 계열). 헤더(≥1024px) 검색 자리는 남는다 */
   hideSearchLink?: true;
@@ -121,15 +121,9 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "garden",
     variant: "app",
   },
-  // 알림 아이콘이 가리키는 화면 자신이라 아이콘을 숨긴다
-  {
-    match: "/settings",
-    title: "알림·설치",
-    backHref: "/garden",
-    tabId: "garden",
-    variant: "app",
-    hideSettingsLink: true,
-  },
+  // 사람 아이콘(관리)·종(알림센터)이 가리키는 화면. 아이콘은 남기고 현재 위치만 표시한다(앱 셸 aria-current)
+  { match: "/settings", title: "관리", backHref: "/", backToHistory: true, tabId: "garden", variant: "app" },
+  { match: "/notifications", title: "알림센터", backHref: "/", backToHistory: true, tabId: "today", variant: "app" },
   // AI 질문 계열도 모바일 앱바에 말씀 검색을 둔다 — PC 헤더와 같게. 질문 검색(홈 돋보기)은 라벨이 "질문 검색"이라 구분된다.
   // /ask/log 는 홈 "내 질문" 탭으로 리다이렉트만 하므로 항목이 없다.
   { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read" },

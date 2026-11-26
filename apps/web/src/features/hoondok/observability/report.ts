@@ -22,6 +22,7 @@ export function safeHoondokPath(pathname: string): string {
     "/ask/new",
     "/garden",
     "/settings",
+    "/notifications",
     "/onboarding",
     "/offline",
     "/bookmark",

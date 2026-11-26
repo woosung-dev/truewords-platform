@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
 import { BellSimpleIcon } from "@phosphor-icons/react/dist/ssr/BellSimple";
 import { ListIcon } from "@phosphor-icons/react/dist/ssr/List";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { UserCircleIcon } from "@phosphor-icons/react/dist/ssr/UserCircle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type FocusEvent, type ReactNode, useCallback, useState } from "react";
@@ -13,6 +14,9 @@ import { HOONDOK_LOGO } from "@/features/hoondok/pwa";
 import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
 import { HOONDOK_TABS } from "@/features/hoondok/tabs";
+
+const ACCOUNT_HREF = "/settings";
+const INBOX_HREF = "/notifications";
 
 // 고정 탐색 뒤에 가려진 키보드 초점만 읽기 영역 가운데로 옮긴다.
 function revealFocusedControl(event: FocusEvent<HTMLElement>) {
@@ -30,7 +34,7 @@ function revealFocusedControl(event: FocusEvent<HTMLElement>) {
 // 앱 셸 = 앱바(헤더) + 탭 내비. 탭 정의 한 목록을 <1024px 하단 5탭, ≥1024px 상단 헤더 4 로 렌더한다
 // (DES-PWA-003 §8 2026-09-16 결정). 형태 차이는 hoondok.css .nav 가 담당하고 마크업은 하나다.
 // 제목·뒤로 링크·본문 폭·활성 탭은 화면 레지스트리(features/hoondok/screens.ts) 가 pathname 으로 정한다.
-// 종 옆 햄버거는 전체 메뉴(즐겨찾기) 드로어를 연다 — 탭이 있는 화면에서만 보인다.
+// 오른쪽 끝은 사람(관리) · 종(알림센터) · 햄버거(전체 메뉴 드로어) 순이다. 햄버거는 탭이 있는 화면에서만 보인다.
 export function HoondokAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const screen = screenFor(pathname);
@@ -77,9 +81,24 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             )}
             {!screen.hideSettingsLink && (
-              <Link className="icon-btn icon-btn--bell" href="/settings" aria-label="알림·설치">
-                <BellSimpleIcon size={22} aria-hidden="true" />
-              </Link>
+              <>
+                <Link
+                  className="icon-btn icon-btn--account"
+                  href={ACCOUNT_HREF}
+                  aria-label="관리"
+                  aria-current={screen.match === ACCOUNT_HREF ? "page" : undefined}
+                >
+                  <UserCircleIcon size={24} aria-hidden="true" />
+                </Link>
+                <Link
+                  className="icon-btn icon-btn--bell"
+                  href={INBOX_HREF}
+                  aria-label="알림센터"
+                  aria-current={screen.match === INBOX_HREF ? "page" : undefined}
+                >
+                  <BellSimpleIcon size={22} aria-hidden="true" />
+                </Link>
+              </>
             )}
             {!screen.hideNav && (
               <button
@@ -135,9 +154,24 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             말씀 검색
           </Link>
           {!screen.hideSettingsLink && (
-            <Link className="nav__user" href="/settings" aria-label="알림·설치">
-              <BellSimpleIcon size={18} aria-hidden="true" />
-            </Link>
+            <>
+              <Link
+                className="nav__user"
+                href={ACCOUNT_HREF}
+                aria-label="관리"
+                aria-current={screen.match === ACCOUNT_HREF ? "page" : undefined}
+              >
+                <UserCircleIcon size={22} aria-hidden="true" />
+              </Link>
+              <Link
+                className="nav__user nav__user--bell"
+                href={INBOX_HREF}
+                aria-label="알림센터"
+                aria-current={screen.match === INBOX_HREF ? "page" : undefined}
+              >
+                <BellSimpleIcon size={18} aria-hidden="true" />
+              </Link>
+            </>
           )}
           <button
             className="nav__menu"

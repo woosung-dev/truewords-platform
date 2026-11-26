@@ -83,7 +83,7 @@ const nextConfig: NextConfig = {
       { source: "/about", destination: "/", permanent: false },
       // 삭제한 훈독 모임 화면(DEC-PWA-027). 카톡으로 퍼진 참여 링크(/groups/join?code=…)·예전 /hoondok/groups/* 308 뒤 주소를 홈으로 보낸다.
       { source: "/groups/:path*", destination: "/", permanent: false },
-      // 기존 사용자 origin에 남은 관리 URL을 독립 관리자 앱으로 연결한다. `settings` 는 훈독 알림·설치 화면(/settings)이라 뺐다.
+      // 기존 사용자 origin에 남은 관리 URL을 독립 관리자 앱으로 연결한다. `settings` 는 훈독 관리 화면(/settings)이라 뺐다.
       ...["dashboard", "chatbots", "data-sources", "analytics", "feedback", "audit-logs"].map((route) => ({
         source: `/${route}/:path*`,
         destination: `${ADMIN_ORIGIN}/${route}/:path*`,

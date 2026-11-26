@@ -1,4 +1,4 @@
-/* SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S).
+/* SCR-PWA-015 관리(계정·알림·설치) (PLAN-HD-002 W1-S).
    프로토타입 app.html 의 .st-* 마크업에는 CSS 가 없어(DES-PWA-003 §2.12 와 같은 사정) 여기서 처음 정의한다.
    값은 프로토타입 hoondok.css 의 이웃 규칙에서 가져왔다 — 행 제목 15/600 · 설명 12.5 --ink-2 · 구분선 1px --line ·
    반지름·색·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
@@ -555,5 +555,345 @@
     flex: none;
     color: var(--ink-2);
     border-radius: var(--r-sm);
+  }
+}
+
+/* ---------- 관리 화면 머리 카드 · 알림센터 (C안) ---------- */
+/* 겹 테두리(바깥 껍데기 + 안쪽 카드)와 아래 띠가 두꺼운 통통한 버튼. 값은 모두 토큰이다 */
+[data-app="hoondok"] {
+  .ac-screen {
+    gap: 28px;
+  }
+  .ac-shell {
+    padding: 6px;
+    border-radius: calc(var(--r) + 14px);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .ac-core {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px;
+    border-radius: calc(var(--r) + 8px);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+  }
+  .ac-skel--hero {
+    min-height: 300px;
+  }
+
+  .ac-hero__id {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .ac-hero__av {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: var(--fs-xl);
+    font-weight: 800;
+  }
+  .ac-hero__who {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .ac-hero__name {
+    font-size: var(--fs-xl);
+    font-weight: 800;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ac-hero__mail {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ac-hero__err {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .ac-hero__data {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ac-skel--stats {
+    min-height: 92px;
+  }
+  .ac-skel--week {
+    min-height: 56px;
+  }
+
+  .ac-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+  }
+  .ac-stat {
+    padding: 12px 10px;
+    border-radius: calc(var(--r) + 2px);
+    background: var(--paper);
+    box-shadow: inset 0 0 0 1px var(--line);
+    min-width: 0;
+  }
+  .ac-stat dt {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ac-stat dd {
+    margin: 4px 0 0;
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .ac-stat b {
+    font-size: var(--fs-3xl);
+    font-weight: 900;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    margin-right: 2px;
+  }
+  .ac-stat--hot {
+    background: var(--accent-soft);
+    box-shadow: none;
+  }
+  .ac-stat--hot b {
+    color: var(--accent-strong);
+  }
+
+  .ac-week {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ac-week__lab {
+    margin: 0;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+  .ac-hero .week__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    justify-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ac-hero .week__day {
+    position: relative;
+    width: 100%;
+    max-width: 40px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-md);
+    color: var(--ink-3);
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .ac-hero .week__day[data-done] {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .ac-hero .week__day[data-today] {
+    border: 2px solid var(--accent);
+    color: var(--accent-strong);
+    font-weight: 700;
+  }
+  .ac-hero .week__check {
+    position: absolute;
+    right: -3px;
+    bottom: -1px;
+    width: 14px;
+    height: 14px;
+    background: var(--surface);
+    color: var(--ok);
+    border-radius: 50%;
+  }
+
+  .ac-hero__cta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  /* 아래 띠가 두꺼운 버튼 — 누르면 띠만큼 내려앉는다 */
+  .ac-chunky {
+    gap: 8px;
+    box-shadow: 0 4px 0 var(--accent-strong);
+    margin-bottom: 4px;
+    transition:
+      transform 160ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 160ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .ac-chunky:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--accent-strong);
+  }
+  .ac-chunky--ghost {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 4px 0 var(--line);
+  }
+  .ac-chunky--ghost:active {
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 0 0 var(--line);
+  }
+  .ac-chunky__ic {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @media (hover: hover) {
+    .ac-chunky:hover .ac-chunky__ic {
+      transform: translateX(2px);
+    }
+  }
+
+  .ac-guest {
+    align-items: center;
+    text-align: center;
+    padding: 28px 20px;
+  }
+  .ac-guest__title {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .ac-guest__body {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .ac-guest .ac-chunky {
+    align-self: stretch;
+  }
+
+  /* ---------- 알림센터 ---------- */
+  .nc-screen {
+    gap: 20px;
+  }
+  .nc-tabs {
+    align-self: stretch;
+  }
+  .nc-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .nc-empty {
+    align-items: center;
+    text-align: center;
+    padding: 28px 20px;
+  }
+  .nc-empty__title {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .nc-empty__body {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .nc-empty .ac-chunky {
+    align-self: stretch;
+  }
+  .nc-status {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .nc-status__ic {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-full);
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .nc-status__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .nc-status__title {
+    margin: 0;
+    font-weight: 800;
+    color: var(--ink);
+    font-size: var(--fs-lg);
+  }
+  .nc-status__body {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .nc-settings {
+    align-self: center;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 12px;
+    color: var(--accent-strong);
+    font-weight: 700;
+  }
+
+  @media (min-width: 1024px) {
+    .ac-hero {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      align-items: start;
+      column-gap: 28px;
+    }
+    .ac-hero__id,
+    .ac-hero__cta {
+      grid-column: 1;
+    }
+    .ac-hero__data,
+    .ac-hero__err {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ac-chunky,
+    .ac-chunky__ic {
+      transition: none;
+    }
+    .ac-chunky:active {
+      transform: none;
+    }
   }
 }

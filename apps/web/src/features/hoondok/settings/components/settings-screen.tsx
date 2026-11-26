@@ -2,17 +2,22 @@
 
 import { ChevronRight, Smartphone } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
 import { usePushNotifications } from "@/features/hoondok/notifications/use-push-notifications";
+import { useCurrentUser } from "@/features/identity/use-current-user";
+import { useLogout } from "@/features/identity/use-logout";
+import { AccountHero, GuestHero } from "./account-hero";
+import { AccountSection } from "./account-section";
 import { DeleteAccountCard } from "./delete-account-card";
 import { DisplayNameCard } from "./display-name-card";
 import { LoginMethodsCard } from "./login-methods-card";
 
-// SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S · PLAN-HD-006 알림).
+// SCR-PWA-015 관리 — 헤더 사람 아이콘이 여는 계정·설정 화면. 위에서부터 주요 카드(기록 요약) · 알림 · 화면 · 계정 · 안내.
+// 로그아웃은 나의 정원에서 이 화면 "계정" 묶음으로 옮겼다 — 정원은 기록을 보는 곳, 관리는 계정·기기를 다루는 곳이다.
 // 실제로 켜고 끄는 알림은 "훈독하기" 한 종류뿐이다 — 기도·가정예배·공지는 보낼 내용이 없어 "준비 중" 한 줄로 접는다.
 // 조용한 시간도 "준비 중" 이고 알림함은 없다 — 누를 수 있는 줄(›)로 그리지 않는다.
 
@@ -48,12 +53,30 @@ function InstallSection() {
   return <InstallCard />;
 }
 
-export function SettingsScreen() {
+export function SettingsScreen({ todayWeekday }: { todayWeekday: number }) {
   const push = usePushNotifications();
+  const { user, isLoading: isUserLoading } = useCurrentUser();
+  // 로그아웃하면 계정 묶음이 사라지므로 상태는 화면이 든다 — 성공이면 맨 위 카드 제목이 "로그아웃했어요" 가 된다
+  const logout = useLogout();
+  const guestTitleRef = useRef<HTMLHeadingElement>(null);
+  const hasLoggedOut = logout.isSuccess && !user;
+
+  // 누른 버튼이 사라져 초점이 body 로 떨어진다 — 결과를 알리는 제목으로 옮긴다
+  useEffect(() => {
+    if (hasLoggedOut) guestTitleRef.current?.focus();
+  }, [hasLoggedOut]);
 
   return (
-    <section className="col">
-      <InstallSection />
+    <section className="col ac-screen">
+      {isUserLoading ? (
+        <div className="ac-shell" aria-busy="true" aria-label="계정을 불러오는 중">
+          <span className="ac-core skeleton ac-skel--hero" />
+        </div>
+      ) : user ? (
+        <AccountHero user={user} todayWeekday={todayWeekday} />
+      ) : (
+        <GuestHero hasLoggedOut={hasLoggedOut} titleRef={guestTitleRef} />
+      )}
 
       <div className="sect">
         <div className="sect__head">
@@ -70,26 +93,34 @@ export function SettingsScreen() {
               </span>
               <span className="st-row__soon">{SOON}</span>
             </div>
+            <div className="st-row">
+              <span className="st-row__bd">
+                <b className="st-row__t">조용한 시간</b>
+                <span className="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span>
+              </span>
+              <span className="st-row__soon">{SOON}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="sect">
         <div className="sect__head">
-          <h2 className="sect__title">그 밖의 설정</h2>
+          <h2 className="sect__title">화면</h2>
         </div>
-        <div className="st-group">
-          <div className="st-row">
-            <span className="st-row__bd">
-              <b className="st-row__t">조용한 시간</b>
-              <span className="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span>
-            </span>
-            <span className="st-row__soon">{SOON}</span>
-          </div>
+        <InstallSection />
+      </div>
+
+      <div className="sect">
+        <div className="sect__head">
+          <h2 className="sect__title">계정</h2>
         </div>
-        <DisplayNameCard />
-        <LoginMethodsCard />
-        <DeleteAccountCard />
+        <div className="st-stack">
+          <DisplayNameCard />
+          <LoginMethodsCard />
+          {user && <AccountSection user={user} logout={logout} />}
+          <DeleteAccountCard />
+        </div>
       </div>
 
       <div className="sect">

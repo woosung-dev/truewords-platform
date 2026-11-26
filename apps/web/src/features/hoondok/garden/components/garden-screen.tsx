@@ -2,7 +2,6 @@
 
 import { ChevronRight, Flame, Sprout } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokCardsEnabled, isHoondokMascotEnabled } from "@/features/hoondok/flag";
@@ -16,8 +15,6 @@ import { useJeongseong } from "@/features/hoondok/use-jeongseong";
 import { useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { useLogout } from "@/features/identity/use-logout";
-import { AccountSection } from "./account-section";
 
 // SCR-PWA-014 나의 정원. 프로필 → 통계 3칸 → 월 달력 → 진행 중인 정성 (프로토타입 data-screen="garden" 순서).
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
@@ -111,16 +108,6 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
   const summary = useSummary(isLoggedIn);
   const history = useMonthHistory(month, isLoggedIn);
   const jeongseong = useJeongseong(isLoggedIn);
-  // 로그아웃하면 계정 묶음이 사라지므로 상태는 화면이 든다 — 성공이면 비로그인 카드 제목이 "로그아웃했어요" 가 된다
-  const logout = useLogout();
-  const loggedOutTitleRef = useRef<HTMLHeadingElement>(null);
-  const hasLoggedOut = logout.isSuccess && !user;
-
-  // 누른 버튼이 사라져 초점이 body 로 떨어진다 — 결과를 알리는 제목으로 옮긴다
-  useEffect(() => {
-    if (hasLoggedOut) loggedOutTitleRef.current?.focus();
-  }, [hasLoggedOut]);
-
   if (isUserLoading)
     return (
       <section className="col gd-screen">
@@ -137,14 +124,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             <span className="empty__ic" aria-hidden="true">
               <Sprout size={28} />
             </span>
-            <h2 className="empty__title" ref={loggedOutTitleRef} tabIndex={-1}>
-              {hasLoggedOut ? "로그아웃했어요" : "로그인하면 훈독 기록과 정성을 볼 수 있어요"}
-            </h2>
-            <p className="empty__body">
-              {hasLoggedOut
-                ? "다시 로그인하면 기록과 정성을 이어서 볼 수 있어요."
-                : "연속일 · 월 달력 · 진행 중인 정성 · 형광펜과 노트가 여기에 모여요."}
-            </p>
+            <h2 className="empty__title">로그인하면 훈독 기록과 정성을 볼 수 있어요</h2>
+            <p className="empty__body">연속일 · 월 달력 · 진행 중인 정성 · 형광펜과 노트가 여기에 모여요.</p>
             {/* 이 화면의 유일한 행동이라 주 버튼이다 (DES §4 한 화면에 primary 하나) */}
             <p className="gd-cta">
               <Link className="btn btn-primary" href={onboardingHref("/garden")}>
@@ -233,8 +214,6 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
       <DeviceRecordsEntry />
 
       <BookmarksEntrySection />
-
-      <AccountSection user={user} logout={logout} />
 
       <GardenNotice />
     </section>

@@ -20,7 +20,7 @@ export const READ_TIME_QUESTION = "언제 알려 드릴까요?";
 export const SAVED_TEXT = "저장했어요";
 
 /** 켤 수 없는 이유를 글자로 밝힌다 — 꺼진 토글만으로는 왜인지 알 수 없다 (DES §3.3). */
-const SUPPORT_HINTS = {
+export const SUPPORT_HINTS = {
   unsupported: "이 브라우저는 알림을 지원하지 않아요",
   "ios-not-installed": "홈 화면에 추가한 뒤 켤 수 있어요",
   denied: "브라우저 설정에서 알림을 허용해 주세요",

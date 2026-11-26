@@ -23,8 +23,8 @@ import { NoticeFrame } from "./notice-frame";
 
 // 하단 안내 자리 (hoondok layout 에만 마운트). 설치 권유·알림 제안은 모두 여기서만 그린다 — 화면은 useNoticeSignal 로
 // 지금이 어떤 순간인지만 알린다. 한 번에 하나만 보이고 설치가 먼저다: 설치하면(standalone) 같은 자리에 알림 제안이 온다.
-// 설정(자기 설치 카드가 있음)·질문 흐름·로그인·오프라인·탭 바 없는 화면에는 싣지 않는다.
-const SKIP_MATCHES = new Set(["/settings", "/onboarding", "/offline"]);
+// 관리(자기 설치 카드가 있음)·알림센터(자기 알림 켜기 버튼이 있음)·질문 흐름·로그인·오프라인·탭 바 없는 화면에는 싣지 않는다.
+const SKIP_MATCHES = new Set(["/settings", "/notifications", "/onboarding", "/offline"]);
 
 export const INSTALL_NOTICE_SUB: Record<Exclude<InstallVariant, "hidden">, string> = {
   ios: "한 번만 해 두면 돼요",
