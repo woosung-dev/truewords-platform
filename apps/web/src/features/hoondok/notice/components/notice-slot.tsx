@@ -98,6 +98,7 @@ function InstallNotice({
   if (isExpanded && variant !== "prompt") {
     return (
       <NoticeFrame
+        isDelayedEnter={isAfterRead}
         lead={owl}
         title={INSTALL_HOWTO_TITLE}
         sub={variant === "ios" ? "Safari 메뉴를 열었다 닫아도 여기 그대로 있어요" : undefined}
@@ -120,6 +121,7 @@ function InstallNotice({
   return (
     <NoticeFrame
       tone={isAfterRead ? "done" : "plain"}
+      isDelayedEnter={isAfterRead}
       lead={isAfterRead ? <Check size={18} /> : owl}
       title={isAfterRead ? INSTALL_AFTER_READ_TITLE : INSTALL_CARD_TITLE}
       sub={isAfterRead ? INSTALL_AFTER_READ_SUB : INSTALL_NOTICE_SUB[variant]}

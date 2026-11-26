@@ -13,6 +13,7 @@ export function NoticeFrame({
   closeLabel,
   onClose,
   tone = "plain",
+  isDelayedEnter = false,
   isStatus = false,
   children,
 }: {
@@ -22,8 +23,13 @@ export function NoticeFrame({
   action?: ReactNode;
   closeLabel: string;
   onClose: () => void;
-  /** done = 방금 훈독을 마친 순간 (완료 색, 1.2초 뒤 조용히 나타남) */
+  /** done = 완료 색 (훈독을 마친 순간·알림 설정 완료) */
   tone?: "plain" | "done";
+  /**
+   * 1.2초 뒤 조용히 나타난다 — 방금 훈독을 마친 순간 "오늘 훈독을 마쳤어요" 를 먼저 보게 한다.
+   * 펼침·접힘으로 값이 바뀌면 애니메이션이 다시 돌아 카드가 잠시 사라지므로, 같은 안내 안에서는 값을 유지한다.
+   */
+  isDelayedEnter?: boolean;
   isStatus?: boolean;
   children?: ReactNode;
 }) {
@@ -32,6 +38,7 @@ export function NoticeFrame({
     <aside
       className="notice-slot"
       data-tone={tone}
+      data-enter={isDelayedEnter ? "delayed" : undefined}
       data-expanded={children ? "" : undefined}
       aria-labelledby={titleId}
       role={isStatus ? "status" : undefined}
