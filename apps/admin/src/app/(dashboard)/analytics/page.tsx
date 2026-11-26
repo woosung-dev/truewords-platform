@@ -140,6 +140,10 @@ function TopQueriesTable({
 // ─────────────────────────────────────────────
 // 메인 페이지
 // ─────────────────────────────────────────────
+// 조회 조건이 응답을 정하므로 쿼리 키에 함께 넣는다. 같은 키를 다른 조건으로 쓰면 캐시가 섞인다.
+const DAYS = 30;
+const TOP_QUERY_LIMIT = 10;
+
 export default function AnalyticsPage() {
   const [selectedQuery, setSelectedQuery] = useState<{ query: string; open: boolean } | null>(null);
 
@@ -150,8 +154,8 @@ export default function AnalyticsPage() {
     isFetching: statsFetching,
     refetch: refetchStats,
   } = useQuery({
-    queryKey: ["search-stats"],
-    queryFn: () => analyticsAPI.getSearchStats(30),
+    queryKey: ["search-stats", DAYS],
+    queryFn: () => analyticsAPI.getSearchStats(DAYS),
   });
 
   const {
@@ -161,8 +165,8 @@ export default function AnalyticsPage() {
     isFetching: trendFetching,
     refetch: refetchTrend,
   } = useQuery({
-    queryKey: ["daily-trend"],
-    queryFn: () => analyticsAPI.getDailyTrend(30),
+    queryKey: ["daily-trend", DAYS],
+    queryFn: () => analyticsAPI.getDailyTrend(DAYS),
   });
 
   const {
@@ -172,8 +176,8 @@ export default function AnalyticsPage() {
     isFetching: topQueriesFetching,
     refetch: refetchTopQueries,
   } = useQuery({
-    queryKey: ["top-queries"],
-    queryFn: () => analyticsAPI.getTopQueries(30, 10),
+    queryKey: ["top-queries", DAYS, TOP_QUERY_LIMIT],
+    queryFn: () => analyticsAPI.getTopQueries(DAYS, TOP_QUERY_LIMIT),
   });
 
   const {
@@ -183,8 +187,8 @@ export default function AnalyticsPage() {
     isFetching: dailyModesFetching,
     refetch: refetchDailyModes,
   } = useQuery({
-    queryKey: ["daily-modes"],
-    queryFn: () => analyticsAPI.getDailyModes(30),
+    queryKey: ["daily-modes", DAYS],
+    queryFn: () => analyticsAPI.getDailyModes(DAYS),
   });
 
   // 차트용 날짜 포맷 (MM/DD)
@@ -293,7 +297,7 @@ export default function AnalyticsPage() {
             setSelectedQuery((current) => (current ? { ...current, open } : null));
           }}
           queryText={selectedQuery.query}
-          days={30}
+          days={DAYS}
         />
       )}
     </div>

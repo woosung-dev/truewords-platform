@@ -62,11 +62,14 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (err: Error) => {
-      const msg = err.message.includes("409")
-        ? "이미 존재하는 이메일입니다"
-        : err.message.includes("연결")
-          ? "서버에 연결할 수 없습니다"
-          : "계정 생성에 실패했습니다";
+      // 오류 메시지 문자열에는 HTTP 상태가 들어 있지 않으므로 status 로 분기한다.
+      // fetch 자체가 실패하면(네트워크) ApiError 가 아니라 TypeError 가 온다.
+      const msg =
+        err instanceof ApiError && err.status === 409
+          ? "이미 존재하는 이메일입니다"
+          : err instanceof TypeError
+            ? "서버에 연결할 수 없습니다"
+            : "계정 생성에 실패했습니다";
       toast.error(msg);
     },
   });

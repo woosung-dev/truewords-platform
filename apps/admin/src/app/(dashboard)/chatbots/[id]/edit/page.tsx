@@ -42,7 +42,8 @@ export default function EditChatbotPage({ params }: { params: Promise<{ id: stri
       queryClient.invalidateQueries({ queryKey: ["chatbots"] });
     },
     onError: (err: Error) => {
-      toast.error(err.message.includes("연결") ? "서버에 연결할 수 없습니다" : "저장에 실패했습니다");
+      // 메시지에는 "연결" 같은 문구가 없다. fetch 자체가 실패하면(네트워크) TypeError 가 온다.
+      toast.error(err instanceof TypeError ? "서버에 연결할 수 없습니다" : "저장에 실패했습니다");
     },
   });
 
