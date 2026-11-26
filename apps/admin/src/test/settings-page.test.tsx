@@ -202,3 +202,41 @@ describe("설정 — 관리자 계정 목록", () => {
     });
   });
 });
+
+describe("설정 — 관리자 계정 생성", () => {
+  async function submitNewAdmin() {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("trial@example.com");
+    await user.type(screen.getByLabelText(/이메일/), "trial@example.com");
+    await user.type(screen.getByLabelText(/^비밀번호/, { selector: "#admin-password" }), "pw-12345");
+    await user.type(screen.getByLabelText(/비밀번호 확인/), "pw-12345");
+    await user.click(screen.getByRole("button", { name: "관리자 추가" }));
+  }
+
+  it("409 이면 중복 이메일 안내를 띄운다 (메시지에는 상태 숫자가 없다)", async () => {
+    mockFetchAPI.mockImplementation((path: string, init?: RequestInit) => {
+      if (path === "/admin/users" && init?.method === "POST")
+        return Promise.reject(new ApiError(409, { message: "이미 등록된 이메일입니다" }));
+      if (path === "/admin/users") return Promise.resolve(ADMINS);
+      return Promise.resolve({});
+    });
+
+    await submitNewAdmin();
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("이미 존재하는 이메일입니다"));
+  });
+
+  it("네트워크 실패면 연결 안내를 띄운다", async () => {
+    mockFetchAPI.mockImplementation((path: string, init?: RequestInit) => {
+      if (path === "/admin/users" && init?.method === "POST") return Promise.reject(new TypeError("Failed to fetch"));
+      if (path === "/admin/users") return Promise.resolve(ADMINS);
+      return Promise.resolve({});
+    });
+
+    await submitNewAdmin();
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("서버에 연결할 수 없습니다"));
+  });
+});
+

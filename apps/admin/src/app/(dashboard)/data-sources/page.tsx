@@ -26,7 +26,12 @@ import DuplicateConfirmDialog, {
   type DuplicateDecision,
 } from "@/features/data-source/components/duplicate-confirm-dialog";
 import { JobsManager } from "@/features/data-source/components/jobs-manager";
-import { ingestStatusQuery, useActiveCategories } from "@/features/data-source/hooks";
+import {
+  ingestProgressSignature,
+  ingestStatusQuery,
+  ingestStatusRefetchInterval,
+  useActiveCategories,
+} from "@/features/data-source/hooks";
 import type {
   DuplicateCheckResponse,
   IngestionJobInfo,
@@ -96,10 +101,16 @@ export default function DataSourcesPage() {
   const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
+  // 진행 중 작업의 진척이 마지막으로 바뀐 시각 — 멈춘 작업 때문에 5초 폴링이 끝없이 돌지 않게 한다.
+  const progressRef = useRef({ signature: "", since: 0 });
   const { data: status } = useQuery({
     ...ingestStatusQuery,
-    // 처리 중 파일이 있을 때만 5초 폴링. 없으면 OFF (페이지 진입 시 1회만)
-    refetchInterval: hasProcessing ? 5000 : false,
+    refetchInterval: (query) => {
+      const now = Date.now();
+      const signature = ingestProgressSignature(query.state.data);
+      if (signature !== progressRef.current.signature) progressRef.current = { signature, since: now };
+      return ingestStatusRefetchInterval(hasProcessing, query.state.data, now - progressRef.current.since);
+    },
   });
 
   // 파일별 IngestionJob 목록 — display_name 인라인 편집용. completed row 와

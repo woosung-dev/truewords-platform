@@ -42,6 +42,12 @@ test("@media 안의 허용 밖 브레이크포인트는 여전히 거부한다",
 test("@media 밖 min-width 선언은 브레이크포인트로 보지 않는다", () => {
   assert.deepEqual(checkSource(`${ok}\n[data-app="hoondok"] { .t { min-width: 24px; } }`), []);
 });
+test("스코프 블록 안에 중첩한 @keyframes 를 거부하고 최상위는 허용한다", () => {
+  const nested = '[data-app="hoondok"] { .n { animation: a-in 1s; } @keyframes a-in { from { opacity: 0; } } }';
+  assert.ok(checkSource(nested, { hasTokens: false }).some((f) => f.includes("@keyframes a-in")));
+  const top = '@keyframes a-in { from { opacity: 0; } }\n[data-app="hoondok"] { .n { animation: a-in 1s; } }';
+  assert.deepEqual(checkSource(top, { hasTokens: false }), []);
+});
 test("실제 hoondok.css 가 통과한다", () => {
   assert.deepEqual(checkSource(readFileSync(path.join(root, HOONDOK_CSS), "utf8")), []);
 });

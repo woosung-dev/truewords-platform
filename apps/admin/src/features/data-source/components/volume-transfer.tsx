@@ -17,6 +17,13 @@ interface VolumeTransferProps {
   categoryMap: Map<string, { name: string; color: string }>;
 }
 
+/** 검색어 조건. 화면 목록과 '전체 선택'이 같은 기준으로 걸러야 보이는 항목만 선택된다. */
+function filterByQuery(volumes: VolumeInfo[], searchQuery: string): VolumeInfo[] {
+  const query = searchQuery.normalize("NFC").toLowerCase().trim();
+  if (!query) return volumes;
+  return volumes.filter((v) => v.volume.normalize("NFC").toLowerCase().includes(query));
+}
+
 function TransferPanel({
   title,
   variant,
@@ -41,10 +48,9 @@ function TransferPanel({
   categoryMap?: Map<string, { name: string; color: string }>;
 }) {
   const filteredVolumes = useMemo(() => {
-    const query = searchQuery.normalize("NFC").toLowerCase().trim();
-    const filtered = volumes.filter((v) => !query || v.volume.normalize("NFC").toLowerCase().includes(query));
+    const filtered = filterByQuery(volumes, searchQuery);
     if (!disabledVolumes || disabledVolumes.size === 0) return filtered;
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const aDisabled = disabledVolumes.has(a.volume) ? 1 : 0;
       const bDisabled = disabledVolumes.has(b.volume) ? 1 : 0;
       return aDisabled - bDisabled;
@@ -192,9 +198,7 @@ export default function VolumeTransfer({ allVolumes, includedVolumes, onMove, ca
     setSelected: (s: Set<string>) => void,
     disabled?: Set<string>,
   ) => {
-    const filtered = volumes
-      .filter((v) => v.volume.toLowerCase().includes(searchQuery.toLowerCase()))
-      .filter((v) => !disabled?.has(v.volume));
+    const filtered = filterByQuery(volumes, searchQuery).filter((v) => !disabled?.has(v.volume));
     const allSelected = filtered.every((v) => selected.has(v.volume));
     if (allSelected) {
       const next = new Set(selected);

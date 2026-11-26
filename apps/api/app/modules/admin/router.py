@@ -87,10 +87,15 @@ async def get_me(
 )
 async def create_admin_user(
     data: CreateAdminRequest,
+    request: Request,
     service: AdminService = Depends(get_admin_service),
     current_admin: AdminPrincipal = Depends(get_current_admin),
 ) -> AdminUserResponse:
-    user = await service.create_admin(data)
+    user = await service.create_admin_with_audit(
+        data,
+        actor_id=current_admin["user_id"],
+        ip_address=request.client.host if request.client else None,
+    )
     return AdminUserResponse(
         id=user.id,
         email=user.email,
@@ -140,21 +145,12 @@ async def update_admin_user_status(
     계정을 삭제하지 않고 로그인만 막는다(되돌릴 수 있음). 체험단 등 한시 계정의
     접근을 종료할 때 사용한다.
     """
-    user, changed = await service.set_admin_active(
+    user = await service.set_admin_active_with_audit(
         user_id=user_id,
         is_active=data.is_active,
         actor_id=current_admin["user_id"],
+        ip_address=request.client.host if request.client else None,
     )
-    # 실제 변경이 있었을 때만 감사 로그 — 멱등 재요청이 이력을 오염시키지 않도록.
-    if changed:
-        await service.log_audit(
-            admin_user_id=current_admin["user_id"],
-            action="admin_user.activate" if data.is_active else "admin_user.deactivate",
-            target_table="admin_users",
-            target_id=user.id,
-            changes={"email": user.email, "is_active": data.is_active},
-            ip_address=request.client.host if request.client else None,
-        )
     return AdminUserResponse(
         id=user.id,
         email=user.email,

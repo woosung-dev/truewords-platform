@@ -3,6 +3,16 @@
    값은 프로토타입 hoondok.css 의 이웃 규칙에서 가져왔다 — 행 제목 15/600 · 설명 12.5 --ink-2 · 구분선 1px --line ·
    반지름·색·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
    `.st-lead`·`.st-row__soon` 은 가족·친구 화면도 쓰게 돼 PLAN-HD-002 W3 CSS 정리에서 hoondok.css 로 올렸다. */
+/* 하단 안내 등장 — transform·opacity 만. @keyframes 는 중첩할 수 없어 파일 최상위에 둔다.
+   기다리는 동안(지연 + both)은 visibility 도 숨겨, 보이지 않는 카드의 버튼이 눌리지 않게 한다. */
+@keyframes hoondok-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    visibility: hidden;
+  }
+}
+
 [data-app="hoondok"] {
   /* ---------- 설치 : standalone 이면 카드 대신 한 줄 ---------- */
   .st-installed {
@@ -388,16 +398,13 @@
   .notice-slot[data-expanded] {
     border-color: var(--accent);
   }
-  /* 방금 훈독을 마친 순간 — "오늘 훈독을 마쳤어요" 를 먼저 보게 1.2초 뒤에 조용히 나타난다. 동작 줄이기면 포괄 규칙이 끈다. */
   .notice-slot[data-tone="done"] {
     background: var(--ok-soft);
-    animation: notice-in 280ms ease-out 1.2s both;
   }
-  @keyframes notice-in {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
+  /* 방금 훈독을 마친 순간 — "오늘 훈독을 마쳤어요" 를 먼저 보게 1.2초 뒤에 조용히 나타난다. 동작 줄이기면 포괄 규칙이 끈다.
+     완료 색(data-tone)과 분리한다: 알림 설정 완료처럼 이미 보이던 카드가 색만 바뀔 때는 사라졌다 나타나지 않는다. */
+  .notice-slot[data-enter="delayed"] {
+    animation: hoondok-notice-in 280ms ease-out 1.2s both;
   }
   .notice-slot__row {
     display: flex;

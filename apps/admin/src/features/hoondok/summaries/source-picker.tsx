@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog } from "@base-ui/react/dialog";
 import { DialogContent } from "@/components/ui/dialog";
@@ -14,6 +14,9 @@ import type {
   SourcePassages,
   SourceRangeResult,
 } from "@truewords/api-client-ts/types";
+
+// 책을 다시 불러온 뒤 늦게 끝난 이전 작업을 멈추는 신호. task 가 조용히 삼켜 오류로 보이지 않는다.
+class StaleLoad extends Error {}
 
 export function SourcePicker({
   contentRightId,
@@ -37,42 +40,66 @@ export function SourcePicker({
   const [group, setGroup] = useState("");
   const [ranges, setRanges] = useState<SourceRangeResult[]>([]);
   const [active, setActive] = useState<SourceRangeResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  // 현재 세대의 진행 중 작업 수. 겹친 작업 중 먼저 끝난 쪽이 잠금을 풀지 않게 개수로 세고,
+  // 다른 책을 불러오면 새 세대로 다시 센다 — 버려진 이전 작업이 새 책 화면을 잠가 두지 않도록.
+  const [pending, setPending] = useState({ seq: 0, count: 0 });
+  const busy = pending.count > 0;
   const [error, setError] = useState("");
+  // 책을 (다시) 불러올 때마다 올리는 세대 번호. 작업은 시작할 때의 번호를 끝까지 들고 다니며, await 뒤 번호가
+  // 바뀌었으면(그 사이 다른 책을 불러옴) 남은 단계를 멈춘다. 그래서 이전 책의 늦은 응답이 화면을 덮지 않는다.
+  const loadSeq = useRef(0);
+  function ensureCurrent(seq: number) {
+    if (seq !== loadSeq.current) throw new StaleLoad();
+  }
   const books = useQuery({
     queryKey: ["summary-source-books"],
     queryFn: () => fetchAPI<SourceBook[]>("/admin/hoondok/source-books"),
     enabled: open,
   });
-  async function task(fn: () => Promise<void>) {
-    setBusy(true);
+  /** 작업 하나를 실행한다. reload 면 책을 새로 불러오는 작업이라 새 세대를 연다. */
+  async function task(fn: (seq: number) => Promise<void>, { reload = false } = {}) {
+    const seq = reload ? ++loadSeq.current : loadSeq.current;
+    setPending((p) => (p.seq === seq ? { seq, count: p.count + 1 } : { seq, count: 1 }));
     setError("");
     try {
-      await fn();
+      await fn(seq);
     } catch (e) {
+      // 그 사이 다른 책을 불러왔다면 이 작업의 결과·오류는 새 책 화면과 무관하다.
+      if (e instanceof StaleLoad || seq !== loadSeq.current) return;
       setError(e instanceof Error ? e.message : "원문을 불러올 수 없어요. 다시 시도해 주세요.");
     } finally {
-      setBusy(false);
+      setPending((p) => (p.seq === seq ? { seq, count: p.count - 1 } : p));
     }
   }
-  async function passages(info: SourceSnapshotInfo, offset = 0, blockId?: string) {
+  async function passages(info: SourceSnapshotInfo, seq: number, offset = 0, blockId?: string) {
     const query = new URLSearchParams({ offset: String(offset), limit: "40" });
     if (blockId) query.set("start_block_id", blockId);
     const data = await fetchAPI<SourcePassages>(`/admin/hoondok/source-snapshots/${info.id}/passages?${query}`);
+    ensureCurrent(seq);
     setBlocks((old) => (offset && !blockId ? [...old, ...data.blocks] : data.blocks));
     setNext(data.next_offset ?? null);
   }
-  async function loadBook(id: string) {
+  async function refreshRanges(contentRightId: string, seq: number) {
+    const list = await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${contentRightId}`);
+    ensureCurrent(seq);
+    setRanges(list);
+  }
+  // task(..., { reload: true }) 가 연 세대 번호를 받는다.
+  async function loadBook(id: string, seq: number) {
     setBook(id);
     setStart(null);
     setEnd(null);
     setActive(null);
     setSnapshot(null);
     setBlocks([]);
+    setNext(null);
+    // 이전 책의 구간을 남겨 두면, 불러오기가 실패했을 때 그 구간을 '사용'해 다른 책이 적용될 수 있다.
+    setRanges([]);
     const info = await fetchAPI<SourceSnapshotInfo>(`/admin/hoondok/source-books/${id}/snapshots`, { method: "POST" });
+    ensureCurrent(seq);
     setSnapshot(info);
-    await passages(info);
-    setRanges(await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${id}`));
+    await passages(info, seq);
+    await refreshRanges(id, seq);
   }
   // 저장한 구간의 첫·끝 블록을 함께 조회한다.
   async function rangeEdges(snapshotId: string, range: SourceRangeResult) {
@@ -106,7 +133,7 @@ export function SourcePicker({
     }
   }
   const last = end ?? start;
-  async function saveRange() {
+  async function saveRange(seq: number) {
     if (!snapshot || !start || !last || !title.trim()) throw new Error("원문 범위와 구간 이름을 정해 주세요.");
     if (
       active &&
@@ -132,14 +159,16 @@ export function SourcePicker({
         ...(active ? { version: active.version } : {}),
       }),
     });
+    ensureCurrent(seq);
     setActive(result);
-    setRanges(await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${book}`));
+    await refreshRanges(book, seq);
     return result;
   }
-  async function restoreRange(range: SourceRangeResult) {
+  async function restoreRange(range: SourceRangeResult, seq: number) {
     if (!snapshot || snapshot.id !== range.snapshot_id)
-      throw new Error("원문이 갱신됐어요. 범위를 다시 선택해 주세요.");
+      throw new Error("원문이 갱신됐어요. 현재 원문에서 범위를 다시 선택해 주세요.");
     const { first, last } = await rangeEdges(snapshot.id, range);
+    ensureCurrent(seq);
     setStart(first.blocks[0]);
     setEnd(last.blocks[0]);
     setStartOffset(range.start_offset ?? 0);
@@ -160,7 +189,7 @@ export function SourcePicker({
         onClick={() => {
           setOpen(true);
           if (contentRightId && (!snapshot || snapshot.content_right_id !== contentRightId))
-            void task(() => loadBook(contentRightId));
+            void task((seq) => loadBook(contentRightId, seq), { reload: true });
         }}
       >
         말씀 선택·변경
@@ -185,7 +214,7 @@ export function SourcePicker({
               value={book}
               onChange={(e) => {
                 const id = e.target.value;
-                if (id) void task(() => loadBook(id));
+                if (id) void task((seq) => loadBook(id, seq), { reload: true });
               }}
             >
               <option value="">책을 선택하세요</option>
@@ -200,7 +229,7 @@ export function SourcePicker({
             type="button"
             variant="outline"
             disabled={!book || busy}
-            onClick={() => void task(() => loadBook(book))}
+            onClick={() => void task((seq) => loadBook(book, seq), { reload: true })}
           >
             원문 다시 불러오기
           </Button>
@@ -233,8 +262,8 @@ export function SourcePicker({
                 key={s.id}
                 disabled={busy}
                 onClick={() =>
-                  void task(async () => {
-                    await passages(snapshot, 0, s.start_block_id);
+                  void task(async (seq) => {
+                    await passages(snapshot, seq, 0, s.start_block_id);
                     setGroup(s.title);
                   })
                 }
@@ -285,7 +314,7 @@ export function SourcePicker({
               </button>
             ))}
             {next !== null && snapshot && (
-              <Button type="button" disabled={busy} onClick={() => void task(() => passages(snapshot, next))}>
+              <Button type="button" disabled={busy} onClick={() => void task((seq) => passages(snapshot, seq, next))}>
                 원문 더 보기
               </Button>
             )}
@@ -333,8 +362,8 @@ export function SourcePicker({
               type="button"
               disabled={busy || !start || !title.trim()}
               onClick={() =>
-                void task(async () => {
-                  await saveRange();
+                void task(async (seq) => {
+                  await saveRange(seq);
                 })
               }
             >
@@ -346,19 +375,11 @@ export function SourcePicker({
                 <button
                   type="button"
                   className="text-left text-sm font-medium underline"
+                  disabled={busy}
                   onClick={() =>
-                    void task(async () => {
-                      if (!snapshot || snapshot.id !== r.snapshot_id)
-                        throw new Error("원문이 갱신됐어요. 현재 원문에서 범위를 다시 선택해 주세요.");
-                      const { first, last } = await rangeEdges(snapshot.id, r);
-                      setStart(first.blocks[0]);
-                      setEnd(last.blocks[0]);
-                      setStartOffset(r.start_offset ?? 0);
-                      setEndOffset(r.end_offset ?? null);
-                      setActive(r);
-                      setTitle(r.title);
-                      setGroup(r.group_title ?? "");
-                      await passages(snapshot, 0, r.start_block_id);
+                    void task(async (seq) => {
+                      await restoreRange(r, seq);
+                      if (snapshot) await passages(snapshot, seq, 0, r.start_block_id);
                     })
                   }
                 >
@@ -375,7 +396,7 @@ export function SourcePicker({
                     variant="outline"
                     disabled={busy || !start}
                     onClick={() =>
-                      void task(async () => {
+                      void task(async (seq) => {
                         const divided = await fetchAPI<SourceRangeResult[]>(
                           `/admin/hoondok/source-ranges/${r.id}/split`,
                           {
@@ -389,10 +410,9 @@ export function SourcePicker({
                             }),
                           },
                         );
-                        setRanges(
-                          await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${book}`),
-                        );
-                        await restoreRange(divided[0]);
+                        ensureCurrent(seq);
+                        await refreshRanges(book, seq);
+                        await restoreRange(divided[0], seq);
                       })
                     }
                   >
@@ -404,7 +424,7 @@ export function SourcePicker({
                     variant="outline"
                     disabled={busy || !active || active.id === r.id}
                     onClick={() =>
-                      void task(async () => {
+                      void task(async (seq) => {
                         const merged = await fetchAPI<SourceRangeResult>(
                           `/admin/hoondok/source-ranges/${active?.id}/merge`,
                           {
@@ -417,10 +437,9 @@ export function SourcePicker({
                             }),
                           },
                         );
-                        setRanges(
-                          await fetchAPI<SourceRangeResult[]>(`/admin/hoondok/source-ranges?content_right_id=${book}`),
-                        );
-                        await restoreRange(merged);
+                        ensureCurrent(seq);
+                        await refreshRanges(book, seq);
+                        await restoreRange(merged, seq);
                       })
                     }
                   >
@@ -436,8 +455,8 @@ export function SourcePicker({
             type="button"
             disabled={busy || (!active && (!start || !title.trim()))}
             onClick={() =>
-              void task(async () => {
-                const range = start ? await saveRange() : active;
+              void task(async (seq) => {
+                const range = start ? await saveRange(seq) : active;
                 if (range) apply(range);
               })
             }

@@ -23,6 +23,7 @@ import {
   INSTALL_AFTER_READ_TITLE,
   INSTALL_CARD_TITLE,
   INSTALL_HOWTO_LABEL,
+  INSTALL_HOWTO_TITLE,
   InstallCard,
   IOS_INSTALL_STEPS,
 } from "@/features/hoondok/install/components/install-card";
@@ -328,6 +329,8 @@ describe("HoondokNoticeSlot — 설치 안내", () => {
       fireEvent.click(screen.getByRole("button", { name: "접기" }));
       await waitFor(() => expect(screen.queryByText(IOS_INSTALL_STEPS[0])).toBeNull());
       expect(screen.getByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
+      // 훈독 완료 순간이 아니면 늦게 나타나지 않는다
+      expect(screen.getByText(INSTALL_CARD_TITLE).closest("aside")).not.toHaveAttribute("data-enter");
     } finally {
       restore();
     }
@@ -417,6 +420,16 @@ describe("완료 출처 (use-missions → 설치 자격)", () => {
       fireEvent.click(button);
       expect(await screen.findByText(INSTALL_AFTER_READ_SUB)).toBeInTheDocument();
       expect(screen.getAllByText(INSTALL_AFTER_READ_TITLE).length).toBeGreaterThan(0);
+      // 완료 순간에만 늦게 나타나고, 펼쳤다 접어도 같은 카드·같은 값이라 다시 사라지지 않는다
+      const aside = screen.getByText(INSTALL_AFTER_READ_SUB).closest("aside");
+      expect(aside).toHaveAttribute("data-enter", "delayed");
+      fireEvent.click(screen.getByRole("button", { name: INSTALL_HOWTO_LABEL }));
+      expect(screen.getByText(INSTALL_HOWTO_TITLE).closest("aside")).toBe(aside);
+      expect(aside).toHaveAttribute("data-enter", "delayed");
+      fireEvent.click(screen.getByRole("button", { name: "접기" }));
+      expect(await screen.findByText(INSTALL_AFTER_READ_SUB)).toBeInTheDocument();
+      expect(screen.getByText(INSTALL_AFTER_READ_SUB).closest("aside")).toBe(aside);
+      expect(aside).toHaveAttribute("data-enter", "delayed");
     } finally {
       restore();
       mockPathname.mockReturnValue("/read");

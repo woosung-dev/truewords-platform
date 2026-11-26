@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 훈독 CSS 스코프 검사 (PLAN-HD-001 Phase 1 sub-PR 1, DES-PWA-003 §7 · PLAN-HD-002 W0-W 화면 그룹 CSS).
 // 1) :root 선언 0  2) 첫 토큰 블록 밖 hex·rgb()·rgba()·hsl()·hsla() 색 0  3) `@media` 의 min-width 브레이크포인트 ⊆ {768,1024,1224}  4) 폐기값 #d4562e 0
+// 5) @keyframes 는 파일 최상위에만 (스타일 규칙 안에 중첩하면 무효라 빌드가 버린다)
 // 메인 hoondok.css 만 토큰 블록(색 리터럴 허용 구역)을 가진다. _hoondok/*.css 는 토큰이 없어 색 리터럴을 전부 거부하고 --accent 를 묻지 않는다.
 const root = fileURLToPath(new URL("../../", import.meta.url));
 export const HOONDOK_CSS = "apps/web/src/app/hoondok.css";
@@ -65,6 +66,12 @@ export function checkSource(source, { hasTokens = true } = {}) {
       if (!ALLOWED_BREAKPOINTS.has(px)) failures.push(`허용되지 않은 브레이크포인트 ${px}px (허용: 768·1024·1224)`);
     }
   }
+  // CSS 중첩은 @media·@supports 같은 조건 규칙만 허용한다. 스코프 블록 안 @keyframes 는 무효라 애니메이션이 사라진다.
+  for (const match of css.matchAll(/@keyframes\s+([\w-]+)/g)) {
+    const before = css.slice(0, match.index);
+    const depth = (before.match(/\{/g)?.length ?? 0) - (before.match(/\}/g)?.length ?? 0);
+    if (depth > 0) failures.push(`@keyframes ${match[1]} 이 블록 안에 중첩돼 있습니다 — 파일 최상위로 옮기세요`);
+  }
   if (hasTokens && hasScope && !/--accent\s*:\s*#c24721/i.test(tokens))
     failures.push("--accent 는 #c24721 이어야 합니다 (DES-PWA-003 §1.1)");
   return failures;
@@ -82,6 +89,6 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     process.exitCode = 1;
   } else
     console.log(
-      `훈독 CSS 스코프 통과 (${files.length}개 파일 · :root 0 · 토큰 밖 hex·rgba·hsl 0 · 브레이크포인트 768/1024/1224 · #d4562e 0)`,
+      `훈독 CSS 스코프 통과 (${files.length}개 파일 · :root 0 · 토큰 밖 hex·rgba·hsl 0 · 브레이크포인트 768/1024/1224 · #d4562e 0 · 중첩 @keyframes 0)`,
     );
 }

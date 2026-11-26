@@ -295,6 +295,10 @@ describe("PushPromptCard — ready", () => {
     expect(Notification.requestPermission).toHaveBeenCalledOnce();
 
     expect(await screen.findByText("매일 오전 7:30에 알려 드릴게요")).toBeInTheDocument();
+    // 방금 누른 카드가 완료 색으로만 바뀐다 — 늦게 나타나는 등장(1.2초 숨김)은 붙지 않는다
+    const confirmation = screen.getByText("매일 오전 7:30에 알려 드릴게요").closest("aside");
+    expect(confirmation).toHaveAttribute("data-tone", "done");
+    expect(confirmation).not.toHaveAttribute("data-enter");
     expect(notificationsAPI.subscribe).toHaveBeenCalledWith({
       endpoint: ENDPOINT,
       keys: { p256dh: "p256", auth: "auth" },
