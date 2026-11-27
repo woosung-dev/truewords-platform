@@ -1,7 +1,7 @@
 import { ChevronDown, Star } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { ScheduleStockNavBadge } from "@/features/hoondok/components/schedule-stock";
 import { cn } from "@/lib/utils";
 import { findActiveNavItem, NAV_GROUPS, NAV_ITEMS, type NavItem, navItemByHref } from "./nav-items";
@@ -125,6 +125,17 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const allCollapsed = ALL_SECTION_IDS.every((id) => collapsed.includes(id));
   const favoritesOpen = !collapsed.includes(FAVORITES_ID);
   const favoriteItems = favorites.map(navItemByHref).filter((item): item is NavItem => Boolean(item));
+  const navRef = useRef<HTMLElement>(null);
+
+  // 화면이 낮을 때 아래쪽 메뉴(감사 로그 등)의 현재 표시가 잘려 보이지 않도록 목록을 그 자리로 옮긴다.
+  // 저장된 즐겨찾기·접힘은 마운트 뒤에 읽혀 위치가 밀리므로 그때도 다시 맞춘다.
+  const favoriteCount = favorites.length;
+  const collapsedKey = collapsed.join();
+  useEffect(() => {
+    void favoriteCount;
+    void collapsedKey;
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+  }, [pathname, favoriteCount, collapsedKey]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -141,7 +152,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         </button>
       </div>
 
-      <nav aria-label="관리자 메뉴" className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-4 pt-1">
+      <nav
+        ref={navRef}
+        aria-label="관리자 메뉴"
+        // 어두운 사이드바 위에서 기본 밝은 스크롤바가 튀지 않게 얇고 어둡게 둔다
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-4 pt-1 [scrollbar-color:var(--sidebar-border)_transparent] [scrollbar-width:thin]"
+      >
         <div>
           <SectionHead
             label="즐겨찾기"
