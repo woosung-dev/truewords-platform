@@ -1,13 +1,13 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { ChevronRight, LogOut, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import type { HoondokUser } from "@/features/identity/types";
 import type { useLogout } from "@/features/identity/use-logout";
 
-// 나의 정원 맨 아래 계정 묶음. 어느 계정으로 들어와 있는지 이메일로 보여 주고 로그아웃을 둔다.
-// 로그아웃은 서버 기록을 지우지 않으므로 위험 행이 아니다 — 되돌릴 수 없는 "내 데이터 삭제" 는 알림·설치 화면에 따로 있다.
+// 관리 화면 계정 묶음의 로그아웃 줄. 어느 계정으로 들어와 있는지 이메일로 보여 주고 로그아웃을 둔다.
+// 로그아웃은 서버 기록을 지우지 않으므로 위험 행이 아니다 — 되돌릴 수 없는 "내 데이터 삭제" 는 같은 묶음 맨 아래에 따로 있다.
 // 한 번 탭으로 끝내지 않고 확인 카드를 거친다: 이 기기에만 있는 기록을 함께 지울지 여기서 고른다.
 // 기본은 지우기 — 여럿이 쓰는 기기에서 다음 사람이 앞 사람의 질문을 보지 않게 한다(온보딩 로그아웃과 같은 동작).
 const FAILURE_TEXT = "로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요";
@@ -34,12 +34,10 @@ export function AccountSection({ user, logout }: AccountSectionProps) {
   }, [isConfirming]);
 
   return (
-    <div className="sect">
-      <div className="sect__head">
-        <h2 className="sect__title">계정</h2>
-      </div>
+    <>
       {isConfirming ? (
-        <fieldset className="card gd-logout" aria-label="로그아웃 확인" ref={cardRef}>
+        <div className="ra-sub ra-sub--wide">
+        <fieldset className="gd-logout ra-confirm" aria-label="로그아웃 확인" ref={cardRef}>
           <p className="st-danger__lead">
             <span className="st-danger__ic" aria-hidden="true">
               <LogOut size={20} />
@@ -90,24 +88,31 @@ export function AccountSection({ user, logout }: AccountSectionProps) {
             </p>
           )}
         </fieldset>
+        </div>
       ) : (
-        <div className="st-group">
-          <div className="st-row">
-            <span className="st-row__bd">
-              <b className="st-row__t gd-account__email">{user.email}</b>
-              <span className="st-row__d">이 계정으로 로그인돼 있어요</span>
+        <>
+          <div className="ra-row">
+            <span className="ra-chip" aria-hidden="true">
+              <Mail size={20} />
+            </span>
+            <span className="ra-row__bd">
+              <b className="ra-row__t gd-account__email">{user.email}</b>
+              <span className="ra-row__d">이 계정으로 로그인돼 있어요</span>
             </span>
           </div>
-          <button className="st-row st-row--link" type="button" onClick={() => setIsConfirming(true)}>
-            <span className="st-row__bd">
-              <b className="st-row__t">로그아웃</b>
-            </span>
-            <span className="st-go" aria-hidden="true">
+          <button className="ra-row" type="button" onClick={() => setIsConfirming(true)}>
+            <span className="ra-chip" aria-hidden="true">
               <LogOut size={20} />
             </span>
+            <span className="ra-row__bd">
+              <b className="ra-row__t">로그아웃</b>
+            </span>
+            <span className="ra-go" aria-hidden="true">
+              <ChevronRight size={20} />
+            </span>
           </button>
-        </div>
+        </>
       )}
-    </div>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import type { BrowserContext, Page } from "@playwright/test";
 import { expect, signInWithGoogle, signInWithGoogleApi, test } from "./hoondok-test";
 
-// SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S). 계정을 지우는 흐름이라 **매번 새 계정**을 만든다 —
+// SCR-PWA-015 관리(계정·알림·설치) (PLAN-HD-002 W1-S). 계정을 지우는 흐름이라 **매번 새 계정**을 만든다 —
 // 시드 사용자(hoondok@example.com)는 다른 spec 이 계속 쓰므로 절대 삭제하지 않는다.
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
@@ -143,7 +143,7 @@ const prefsSaved = (page: Page) =>
 
 /** 네이티브 라디오는 모양 칸(label) 안에 숨어 있다 — 사람처럼 칸을 누른다. */
 function presetLabel(page: Page, name: RegExp) {
-  return page.locator("label.st-preset").filter({ has: page.getByRole("radio", { name }) });
+  return page.locator("label.ra-time").filter({ has: page.getByRole("radio", { name }) });
 }
 
 test("설정: 훈독 시간 — 06:00 은 직접 정하기 · 칸을 고르면 PUT 1회 · 화살표 이동 · 직접 21:00 · 끄면 비활성", async ({
@@ -176,7 +176,7 @@ test("설정: 훈독 시간 — 06:00 은 직접 정하기 · 칸을 고르면 P
   await expect(page.locator("main").getByText("알림함")).toHaveCount(0);
   await expect(page.locator("main").getByText("4종")).toHaveCount(0);
   await expect(page.locator("main").getByText(/아침 훈독/)).toHaveCount(0);
-  await expect(page.locator(".st-row", { hasText: "조용한 시간" }).locator("a, button")).toHaveCount(0);
+  await expect(page.locator(".ra-row", { hasText: "조용한 시간" }).locator("a, button")).toHaveCount(0);
 
   // ② 새벽 5:30 → PUT 한 번, '저장했어요'(status) · 요약 문장, 새로고침해도 그대로
   puts.length = 0;
@@ -194,7 +194,7 @@ test("설정: 훈독 시간 — 06:00 은 직접 정하기 · 칸을 고르면 P
 
   // ⑦ 키보드: 화살표로 다음 칸 → 그 칸이 선택되고 저장된다(포커스가 사라지지 않는다). 칸은 44px 이상
   for (const box of await Promise.all(
-    (await page.locator("label.st-preset").all()).map((label) => label.boundingBox()),
+    (await page.locator("label.ra-time").all()).map((label) => label.boundingBox()),
   )) {
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);

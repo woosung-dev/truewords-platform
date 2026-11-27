@@ -1,7 +1,8 @@
-// SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S). 앱바 제목 "알림·설치"·뒤로 /garden 은 screens.ts 레지스트리가 준다.
-// 이 화면은 서버에서 읽을 것이 없다 — 설치 판정은 localStorage·navigator, 계정은 쿠키 기반 /hoondok/auth/me 라 전부 클라이언트다.
+// SCR-PWA-015 관리 (계정·알림·설치). 앱바 제목 "관리"·뒤로는 screens.ts 레지스트리가 준다.
+// 요일은 서버에서 한 번만 계산해 내려보낸다 — 클라이언트가 다시 계산하면 자정 경계에서 hydration 이 어긋난다.
 import { SettingsScreen } from "@/features/hoondok/settings/components/settings-screen";
+import { formatKstDate } from "@/features/hoondok/today";
 
 export default function HoondokSettingsPage() {
-  return <SettingsScreen />;
+  return <SettingsScreen todayWeekday={formatKstDate(new Date()).weekday} />;
 }

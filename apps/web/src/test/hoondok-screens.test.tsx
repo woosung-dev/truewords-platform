@@ -18,7 +18,8 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/read")).toEqual(["훈독하기", "/", "today", "read"]);
     expect(pick("/onboarding")).toEqual(["시작하기", "/", "today", "app"]);
     expect(pick("/garden")).toEqual(["나의 정원", undefined, "garden", "app"]);
-    expect(pick("/settings")).toEqual(["알림·설치", "/garden", "garden", "app"]);
+    expect(pick("/settings")).toEqual(["관리", "/", "garden", "app"]);
+    expect(pick("/notifications")).toEqual(["알림센터", "/", "today", "app"]);
     expect(pick("/privacy")).toEqual(["개인정보 처리방침", "/", "garden", "read"]);
     expect(pick("/ask")).toEqual(["AI 질문", undefined, "ask", "read"]);
     expect(pick("/ask/new")).toEqual(["새 질문하기", undefined, "ask", "onb"]);
@@ -94,7 +95,7 @@ describe("훈독 앱 셸", () => {
     }
   });
 
-  it("/settings: 제목 알림·설치 · 뒤로 → /garden · 정원 탭 활성 · 검색은 항상 활성", async () => {
+  it("/settings: 제목 관리 · 뒤로 → / · 정원 탭 활성 · 사람 아이콘이 현재 위치 · 검색은 항상 활성", async () => {
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/settings" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");
@@ -103,8 +104,9 @@ describe("훈독 앱 셸", () => {
         <p>본문</p>
       </HoondokAppShell>,
     );
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("알림·설치");
-    expect(screen.getByRole("link", { name: "뒤로" })).toHaveAttribute("href", "/garden");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("관리");
+    expect(screen.getByRole("link", { name: "뒤로" })).toHaveAttribute("href", "/");
+    for (const link of screen.getAllByRole("link", { name: "관리" })) expect(link).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /나의 정원/ })).toHaveAttribute("aria-current", "page");
     expect(container.querySelector("main")).toHaveClass("app__main--app");
     expect(screen.getAllByRole("link", { name: "말씀 검색" })).toHaveLength(2);
@@ -126,7 +128,7 @@ describe("훈독 앱 셸", () => {
   });
 });
 
-describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
+describe("훈독 관리·알림센터 도달 경로 · 온보딩 탭바", () => {
   async function shell(pathname: string) {
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => pathname }));
@@ -138,11 +140,23 @@ describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
     );
   }
 
-  it("홈: 앱바 아이콘과 헤더 계정 자리 둘 다 /settings 로 간다", async () => {
+  it("홈: 앱바와 헤더 모두 사람 아이콘은 /settings(관리), 종은 /notifications(알림센터)로 간다", async () => {
     await shell("/");
-    const links = screen.getAllByRole("link", { name: "알림·설치" });
-    expect(links).toHaveLength(2);
-    for (const link of links) expect(link).toHaveAttribute("href", "/settings");
+    const accounts = screen.getAllByRole("link", { name: "관리" });
+    expect(accounts).toHaveLength(2);
+    for (const link of accounts) expect(link).toHaveAttribute("href", "/settings");
+    const bells = screen.getAllByRole("link", { name: "알림센터" });
+    expect(bells).toHaveLength(2);
+    for (const link of bells) {
+      expect(link).toHaveAttribute("href", "/notifications");
+      expect(link).not.toHaveAttribute("aria-current");
+    }
+  });
+
+  it("알림센터에서는 종이 현재 위치로 표시된다", async () => {
+    await shell("/notifications");
+    for (const link of screen.getAllByRole("link", { name: "알림센터" }))
+      expect(link).toHaveAttribute("aria-current", "page");
   });
 
   it("검색 화면 자신에서는 앱바 검색 아이콘을 숨기고 헤더 검색 자리를 현재 위치로 표시한다", async () => {
@@ -160,10 +174,11 @@ describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
     for (const link of links) expect(link).not.toHaveAttribute("aria-current");
   });
 
-  it("온보딩·검색·오프라인·새 질문·알림 설정 자신에는 알림 아이콘이 없다", async () => {
-    for (const pathname of ["/onboarding", "/search", "/offline", "/ask/new", "/settings"]) {
+  it("온보딩·검색·오프라인·새 질문에는 관리·알림센터 아이콘이 없다", async () => {
+    for (const pathname of ["/onboarding", "/search", "/offline", "/ask/new"]) {
       const view = await shell(pathname);
-      expect(screen.queryByRole("link", { name: "알림·설치" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "관리" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "알림센터" })).toBeNull();
       view.unmount();
     }
   });

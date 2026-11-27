@@ -20,7 +20,7 @@ export const READ_TIME_QUESTION = "언제 알려 드릴까요?";
 export const SAVED_TEXT = "저장했어요";
 
 /** 켤 수 없는 이유를 글자로 밝힌다 — 꺼진 토글만으로는 왜인지 알 수 없다 (DES §3.3). */
-const SUPPORT_HINTS = {
+export const SUPPORT_HINTS = {
   unsupported: "이 브라우저는 알림을 지원하지 않아요",
   "ios-not-installed": "홈 화면에 추가한 뒤 켤 수 있어요",
   denied: "브라우저 설정에서 알림을 허용해 주세요",
@@ -53,14 +53,17 @@ export function ReadNotificationCard({ push }: { push: PushState }) {
   }
 
   return (
-    <div className="card">
-      <div className="st-row">
-        <span className="st-row__bd">
-          <b className="st-row__t">{READ_TITLE}</b>
-          <span className="st-row__d">{READ_DESCRIPTION}</span>
+    <>
+      <div className="ra-row">
+        <span className="ra-chip ra-chip--accent" aria-hidden="true">
+          <BellRing size={20} />
         </span>
-        <span className="st-row__side">
-          {isPending && <span className="st-row__soon">{SOON}</span>}
+        <span className="ra-row__bd">
+          <b className="ra-row__t">{READ_TITLE}</b>
+          <span className="ra-row__d">{READ_DESCRIPTION}</span>
+        </span>
+        <span className="ra-row__side">
+          {isPending && <span className="ra-soon">{SOON}</span>}
           <button
             className="toggle"
             type="button"
@@ -76,106 +79,109 @@ export function ReadNotificationCard({ push }: { push: PushState }) {
         </span>
       </div>
 
-      {isActive ? (
-        <div className="st-time">
-          {/* 꺼져 있거나 켜고 끄는 중이면 칸 전체가 비활성이다. 시각 저장 중에는 막지 않는다 —
-              막으면 화살표 키로 옮기던 포커스가 사라진다(저장은 훅이 한 줄로 세운다). */}
-          <fieldset className="st-time__fs" disabled={!isOn || (push.isSaving && lastAction === "toggle")}>
-            <legend className="st-time__q">{READ_TIME_QUESTION}</legend>
-            <div className="st-presets">
-              {READ_TIME_PRESETS.map((preset) => {
-                const isChecked = !isCustom && readTime === preset.time;
-                return (
-                  <label className="st-preset" key={preset.time} data-on={isChecked ? "" : undefined}>
-                    <input
-                      type="radio"
-                      name={nameId}
-                      value={preset.time}
-                      checked={isChecked}
-                      onChange={() => {
-                        setCustomOpen(false);
-                        if (preset.time !== readTime) saveTime(preset.time);
-                      }}
-                    />
-                    <span className="st-preset__k">{preset.label}</span>
-                    <b className="st-preset__v">{formatKoreanTime(preset.time)}</b>
-                    <Check className="st-preset__ck" size={18} aria-hidden="true" />
-                  </label>
-                );
-              })}
-            </div>
-            <label className="st-preset st-preset--custom" data-on={isCustom ? "" : undefined}>
-              <input
-                type="radio"
-                name={nameId}
-                value="custom"
-                checked={isCustom}
-                onChange={() => setCustomOpen(true)}
-              />
-              <span className="st-preset__k">직접 정하기</span>
-              {isCustom && <span className="st-preset__v">{formatKoreanTime(readTime)}</span>}
-            </label>
-            {isCustom && (
-              <label className="st-custom">
-                <span className="st-custom__k">시간</span>
-                <input
-                  className="st-custom__in"
-                  type="time"
-                  value={readTime}
-                  onChange={(event) => {
-                    // 값을 지우면 "" 가 되어 서버가 422 를 낸다 — 비운 상태는 저장하지 않는다.
-                    const { value } = event.target;
-                    if (value && value !== readTime) saveTime(value);
-                  }}
-                  aria-label={`${READ_TITLE} 알림 시간`}
-                />
-              </label>
+      <div className="ra-sub">
+        {isActive ? (
+          <>
+            {/* 꺼져 있거나 켜고 끄는 중이면 칸 전체가 비활성이다. 시각 저장 중에는 막지 않는다 —
+                막으면 화살표 키로 옮기던 포커스가 사라진다(저장은 훅이 한 줄로 세운다). */}
+            <fieldset className="st-time__fs" disabled={!isOn || (push.isSaving && lastAction === "toggle")}>
+              <legend className="ra-sub__lab">{READ_TIME_QUESTION}</legend>
+              <div className="ra-times">
+                {READ_TIME_PRESETS.map((preset) => {
+                  const isChecked = !isCustom && readTime === preset.time;
+                  return (
+                    <label className="ra-time" key={preset.time} data-on={isChecked ? "" : undefined}>
+                      <input
+                        type="radio"
+                        name={nameId}
+                        value={preset.time}
+                        checked={isChecked}
+                        onChange={() => {
+                          setCustomOpen(false);
+                          if (preset.time !== readTime) saveTime(preset.time);
+                        }}
+                      />
+                      <small>{preset.label}</small>
+                      <b>{formatKoreanTime(preset.time)}</b>
+                    </label>
+                  );
+                })}
+                <label className="ra-time ra-time--own" data-on={isCustom ? "" : undefined}>
+                  <input
+                    type="radio"
+                    name={nameId}
+                    value="custom"
+                    checked={isCustom}
+                    onChange={() => setCustomOpen(true)}
+                  />
+                  <b>직접 정하기</b>
+                  {isCustom && <span>{formatKoreanTime(readTime)}</span>}
+                </label>
+              </div>
+              {isCustom && (
+                <label className="st-custom">
+                  <span className="st-custom__k">시간</span>
+                  <input
+                    className="st-custom__in"
+                    type="time"
+                    value={readTime}
+                    onChange={(event) => {
+                      // 값을 지우면 "" 가 되어 서버가 422 를 낸다 — 비운 상태는 저장하지 않는다.
+                      const { value } = event.target;
+                      if (value && value !== readTime) saveTime(value);
+                    }}
+                    aria-label={`${READ_TITLE} 알림 시간`}
+                  />
+                </label>
+              )}
+            </fieldset>
+
+            {isOn && (
+              <p className="st-sum" role="status">
+                <Check className="st-sum__ic" size={18} aria-hidden="true" />
+                <span>
+                  <b>매일 {formatKoreanTime(readTime)}</b>에 알려드려요
+                  {isSaved && (
+                    <span className="st-sum__saved">
+                      <Check size={14} aria-hidden="true" />
+                      {SAVED_TEXT}
+                    </span>
+                  )}
+                  <small className="st-sum__sub">그날 훈독을 마쳤으면 알리지 않아요</small>
+                </span>
+              </p>
             )}
-          </fieldset>
+          </>
+        ) : (
+          <button className="st-sub" type="button" disabled aria-disabled="true">
+            <span className="st-sub__k">시간</span>
+            <span className="st-sub__v">{formatKoreanTime(push.prefs.read_time)}</span>
+          </button>
+        )}
 
-          {isOn && (
-            <p className="st-sum" role="status">
-              <BellRing className="st-sum__ic" size={18} aria-hidden="true" />
-              <span>
-                <b>매일 {formatKoreanTime(readTime)}</b>에 알려드려요
-                {isSaved && (
-                  <span className="st-sum__saved">
-                    <Check size={14} aria-hidden="true" />
-                    {SAVED_TEXT}
-                  </span>
-                )}
-                <small className="st-sum__sub">그날 훈독을 마쳤으면 알리지 않아요</small>
-              </span>
-            </p>
-          )}
-        </div>
-      ) : (
-        <button className="st-sub" type="button" disabled aria-disabled="true">
-          <span className="st-sub__k">시간</span>
-          <span className="st-sub__v">{formatKoreanTime(push.prefs.read_time)}</span>
-        </button>
-      )}
-
-      {hint && (
-        <p className="st-note" role="status">
-          {hint}
-        </p>
-      )}
-      {isReady && !push.isSignedIn && !push.isUserLoading && (
-        <p className="st-note">
-          <Link href={onboardingHref(SETTINGS_PATH)}>로그인하면 알림을 켤 수 있어요</Link>
-        </p>
-      )}
-      {isActive && push.isDeviceMissing && (
-        <p className="st-note" role="status">
-          {PUSH_MESSAGES.otherDevice}
-        </p>
-      )}
-      {push.message && (
-        <p className="st-note" role="alert">
-          {push.message}
-        </p>
-      )}
-    </div>
+        {hint && (
+          <p className="st-note" role="status">
+            {hint}
+          </p>
+        )}
+        {isReady && !push.isSignedIn && !push.isUserLoading && (
+          <p className="st-note">
+            <Link className="ra-hint" href={onboardingHref(SETTINGS_PATH)}>
+              로그인하면 알림을 켤 수 있어요
+            </Link>
+          </p>
+        )}
+        {isActive && push.isDeviceMissing && (
+          <p className="st-note" role="status">
+            {PUSH_MESSAGES.otherDevice}
+          </p>
+        )}
+        {push.message && (
+          <p className="st-note" role="alert">
+            {push.message}
+          </p>
+        )}
+      </div>
+    </>
   );
 }

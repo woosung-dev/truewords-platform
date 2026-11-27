@@ -9,6 +9,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGl
 import { PlantIcon } from "@phosphor-icons/react/dist/ssr/Plant";
 import { ScrollIcon } from "@phosphor-icons/react/dist/ssr/Scroll";
 import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
+import { UserCircleIcon } from "@phosphor-icons/react/dist/ssr/UserCircle";
 import { UserPlusIcon } from "@phosphor-icons/react/dist/ssr/UserPlus";
 import { UsersThreeIcon } from "@phosphor-icons/react/dist/ssr/UsersThree";
 import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
@@ -80,7 +81,8 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
         isAvailable: isHoondokCardsEnabled,
       },
       { id: "family", label: "가족·친구", href: "/family", icon: UsersThreeIcon, isAvailable: isComingSoon },
-      { id: "settings", label: "알림·설치", href: "/settings", icon: BellSimpleIcon },
+      { id: "notifications", label: "알림센터", href: "/notifications", icon: BellSimpleIcon },
+      { id: "settings", label: "관리", href: "/settings", icon: UserCircleIcon },
     ],
   },
 ];

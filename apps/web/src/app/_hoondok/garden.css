@@ -473,7 +473,7 @@
     }
   }
 
-  /* ---------- 계정 : 이메일 + 로그아웃 (행·확인 버튼 줄은 settings.css 의 .st-* 를 그대로 쓴다) ---------- */
+  /* ---------- 계정 : 이메일 + 로그아웃 — 관리 화면(settings) 계정 묶음이 쓴다. 행·확인 버튼 줄은 settings.css 의 .st-* ---------- */
   .gd-account__email {
     overflow-wrap: anywhere;
   }

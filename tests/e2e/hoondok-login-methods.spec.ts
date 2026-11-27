@@ -69,12 +69,13 @@ test("가입 직후 이름 확인: 구글 이름을 고쳐 시작하면 계정�
 
   // 설정의 이름 항목에서 다시 바꾼다
   await page.goto("/settings");
-  await expect(page.getByText("새벽이", { exact: true })).toBeVisible();
+  // 이름은 맨 위 기록 카드와 계정의 이름 항목 두 곳에 보인다
+  await expect(page.getByText("새벽이", { exact: true })).toHaveCount(2);
   await page.getByRole("button", { name: "이름 바꾸기" }).click();
   await page.getByRole("form", { name: "이름 바꾸기" }).getByLabel("이름", { exact: true }).fill("아침이");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByText("이름을 바꿨어요")).toBeVisible();
-  await expect(page.getByText("아침이", { exact: true })).toBeVisible();
+  await expect(page.getByText("아침이", { exact: true })).toHaveCount(2);
   expect((await me(page)).display_name).toBe("아침이");
 
   // CSRF 헤더 없는 변경은 서버가 거절한다
@@ -97,7 +98,8 @@ test("구글 로그인을 취소하면 온보딩에 안내가 뜨고 로그인�
 test("설정: 로그인 수단이 구글 하나뿐이면 연결 해제 버튼이 비활성이다", async ({ page }) => {
   const identity = await signInWithGoogle(page, { name: "수단하나", email: `e2e-single-${Date.now()}@example.com` });
   await page.goto("/settings");
-  await expect(page.getByText(identity.email)).toBeVisible();
+  // 이메일은 계정 묶음과 로그인 수단 행 두 곳에 보인다
+  await expect(page.getByText(identity.email)).toHaveCount(2);
   const unlink = page.getByRole("button", { name: "구글 연결 해제" });
   await expect(unlink).toBeDisabled();
   await expect(page.getByText("마지막 로그인 수단은 해제할 수 없어요")).toBeVisible();

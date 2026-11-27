@@ -106,7 +106,7 @@ function readToggle() {
 
 describe("훈독하기 알림 켜기", () => {
   it("권한 요청 → 구독 → POST /hoondok/me/push → PUT read_enabled=true", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toBeEnabled());
 
     fireEvent.click(readToggle());
@@ -138,7 +138,7 @@ describe("훈독하기 알림 켜기", () => {
       permission: "default",
       requestPermission: vi.fn(async () => "denied" as NotificationPermission),
     });
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toBeEnabled());
 
     fireEvent.click(readToggle());
@@ -154,7 +154,7 @@ describe("훈독하기 알림 켜기", () => {
     vi.mocked(notificationsAPI.subscribe).mockRejectedValue(
       new ApiError(409, { error_code: "PUSH_DISABLED", message: "push disabled" }),
     );
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toBeEnabled());
 
     fireEvent.click(readToggle());
@@ -168,7 +168,7 @@ describe("훈독하기 알림 켜기", () => {
 
   it("그 밖의 실패는 push_subscribe 로 보고하고 사용자에게는 한 줄만 보인다", async () => {
     vi.mocked(notificationsAPI.subscribe).mockRejectedValue(new ApiError(503, { message: "down" }));
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toBeEnabled());
 
     fireEvent.click(readToggle());
@@ -185,7 +185,7 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
   });
 
   it("이 기기 구독을 해제하고 DELETE 한 뒤 read_enabled=false 로 저장한다", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.click(readToggle());
@@ -200,7 +200,7 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
   });
 
   it("시간은 구독을 건드리지 않고 PUT 만 한다", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     // 서버 설정을 읽기 전(기본값 = 꺼짐)에는 시각 칸이 비활성이다 — 켜짐을 확인한 뒤 바꾼다
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
     const time = screen.getByLabelText("훈독하기 알림 시간");
@@ -219,7 +219,7 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
 
   it("서버는 켜졌는데 이 기기 구독이 없으면 다시 켜라고 알린다", async () => {
     pushManager.getSubscription.mockResolvedValue(null);
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
 
     expect(await screen.findByText(PUSH_MESSAGES.otherDevice)).toBeInTheDocument();
   });
@@ -235,7 +235,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
   const summary = () => screen.getByText(/에 알려드려요/).closest("p");
 
   it("켠 상태는 radio 4칸 + 직접 정하기이고, 칸에 없는 기본 06:00 은 '직접 정하기' 로 보인다", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
 
     const group = screen.getByRole("group", { name: "언제 알려 드릴까요?" });
@@ -253,7 +253,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
   });
 
   it("칸을 고르면 PUT 한 번으로 바로 저장하고 '저장했어요' 와 요약 문장을 보인다 — 권한·구독은 건드리지 않는다", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.click(radio(/새벽\s*오전 5:30/));
@@ -277,7 +277,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
 
   it("직접 정하기는 여는 것만으로는 저장하지 않고, 시각을 바꾸면 그 값으로 한 번 저장한다", async () => {
     serverPrefs = { ...serverPrefs, read_time: "07:30" };
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(radio(/아침\s*오전 7:30/)).toBeChecked());
     expect(screen.queryByLabelText("훈독하기 알림 시간")).toBeNull();
 
@@ -296,7 +296,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
 
   it("저장에 실패하면 원래 칸으로 돌아가고 '저장했어요' 없이 한 줄 안내만 남는다", async () => {
     vi.mocked(notificationsAPI.savePrefs).mockRejectedValueOnce(new ApiError(503, { message: "down" }));
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.click(radio(/점심\s*오후 12:30/));
@@ -309,7 +309,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
   });
 
   it("끄면 칸이 모두 비활성이 되고 요약 문장이 사라진다", async () => {
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
 
     fireEvent.click(readToggle());
@@ -324,7 +324,7 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
 describe("켤 수 없는 상태", () => {
   it("서버 설정이 없으면 훈독하기도 '준비 중' 이다 (그 밖의 알림 · 조용한 시간과 함께 3곳)", async () => {
     vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: false, public_key: null });
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
 
     await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(3));
     const toggle = screen.getByRole("button", { name: READ_TOGGLE });
@@ -354,7 +354,7 @@ describe("켤 수 없는 상태", () => {
     ];
     for (const { setup, text } of cases) {
       setup();
-      const view = render(wrap(<SettingsScreen />));
+      const view = render(wrap(<SettingsScreen todayWeekday={1} />));
       expect(await screen.findByText(text)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: READ_TOGGLE })).toBeDisabled();
       expect(screen.queryAllByRole("radio")).toHaveLength(0);
@@ -364,7 +364,7 @@ describe("켤 수 없는 상태", () => {
 
   it("비로그인은 켜기 대신 로그인 안내를 본다", async () => {
     vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "로그인이 필요합니다" }));
-    render(wrap(<SettingsScreen />));
+    render(wrap(<SettingsScreen todayWeekday={1} />));
 
     expect(await screen.findByRole("link", { name: "로그인하면 알림을 켤 수 있어요" })).toHaveAttribute(
       "href",
