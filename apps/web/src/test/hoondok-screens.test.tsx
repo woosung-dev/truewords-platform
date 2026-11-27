@@ -25,11 +25,8 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/ask/new")).toEqual(["새 질문하기", undefined, "ask", "onb"]);
     expect(pick("/ask/q-123")).toEqual(["질문", "/ask", "ask", "read"]);
     expect(pick("/ask/p/pq1")).toEqual(["공개 질문", "/ask", "ask", "read"]);
-    // AI 질문 계열도 앱바에 말씀 검색을 둔다(PC 헤더와 같게). 앱바를 접는 새 질문 화면만 숨긴다
-    for (const pathname of ["/ask", "/ask/q-123", "/ask/p/pq1"])
-      expect(screenFor(pathname).hideSearchLink).toBeUndefined();
-    expect(screenFor("/ask/new").hideSearchLink).toBe(true);
-    expect(pick("/search")).toEqual(["말씀 검색", "/library", "library", "app"]);
+    // 검색은 독립 탭의 첫 화면이라 ← 가 없다
+    expect(pick("/search")).toEqual(["말씀 검색", undefined, "search", "app"]);
     expect(pick("/words")).toEqual(["원문 읽기", "/library", "library", "read"]);
     // 미등록 경로는 홈 항목으로 떨어진다
     expect(pick("/hoondok/unknown")).toEqual(["오늘 훈독", undefined, "today", "home"]);
@@ -39,15 +36,21 @@ describe("훈독 화면 레지스트리", () => {
     const { activeTabId } = await import("../features/hoondok/tabs");
     expect(activeTabId("/read")).toBe("today");
     expect(activeTabId("/settings")).toBe("garden");
-    expect(activeTabId("/search")).toBe("library");
+    expect(activeTabId("/search")).toBe("search");
   });
 });
 
 describe("훈독 탭 단계", () => {
-  it("4탭 모두 이동한다", async () => {
+  it("5탭 모두 이동한다", async () => {
     const { HOONDOK_TABS, TAB_STAGE } = await import("../features/hoondok/tabs");
-    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
-    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live" });
+    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual([
+      "today",
+      "ask",
+      "library",
+      "search",
+      "garden",
+    ]);
+    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", search: "live" });
   });
 });
 
@@ -109,10 +112,9 @@ describe("훈독 앱 셸", () => {
     for (const link of screen.getAllByRole("link", { name: "관리" })) expect(link).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /나의 정원/ })).toHaveAttribute("aria-current", "page");
     expect(container.querySelector("main")).toHaveClass("app__main--app");
-    expect(screen.getAllByRole("link", { name: "말씀 검색" })).toHaveLength(2);
   });
 
-  it("홈: 앱바 아이콘·헤더 검색이 /search 링크가 된다", async () => {
+  it("홈: 검색은 탭 하나로만 있고 앱바에 검색 아이콘이 없다", async () => {
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");
@@ -121,9 +123,8 @@ describe("훈독 앱 셸", () => {
         <p>본문</p>
       </HoondokAppShell>,
     );
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(2);
-    for (const link of links) expect(link).toHaveAttribute("href", "/search");
+    expect(screen.getByRole("link", { name: "검색" })).toHaveAttribute("href", "/search");
+    expect(screen.queryByRole("link", { name: "말씀 검색" })).toBeNull();
     expect(screen.queryByRole("link", { name: "뒤로" })).toBeNull();
   });
 });
@@ -159,23 +160,15 @@ describe("훈독 관리·알림센터 도달 경로 · 온보딩 탭바", () => 
       expect(link).toHaveAttribute("aria-current", "page");
   });
 
-  it("검색 화면 자신에서는 앱바 검색 아이콘을 숨기고 헤더 검색 자리를 현재 위치로 표시한다", async () => {
+  it("검색 화면에서는 검색 탭이 현재 위치이고, 다른 탭처럼 관리·알림센터가 있다", async () => {
     await shell("/search");
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveClass("nav__search");
-    expect(links[0]).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "검색" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "말씀" })).not.toHaveAttribute("aria-current");
+    expect(screen.getAllByRole("link", { name: "관리" })).toHaveLength(2);
   });
 
-  it("AI 질문도 앱바·헤더 둘 다 말씀 검색이 있고, 현재 위치로 표시하지 않는다", async () => {
-    await shell("/ask");
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(2);
-    for (const link of links) expect(link).not.toHaveAttribute("aria-current");
-  });
-
-  it("온보딩·검색·오프라인·새 질문에는 관리·알림센터 아이콘이 없다", async () => {
-    for (const pathname of ["/onboarding", "/search", "/offline", "/ask/new"]) {
+  it("온보딩·오프라인·새 질문에는 관리·알림센터 아이콘이 없다", async () => {
+    for (const pathname of ["/onboarding", "/offline", "/ask/new"]) {
       const view = await shell(pathname);
       expect(screen.queryByRole("link", { name: "관리" })).toBeNull();
       expect(screen.queryByRole("link", { name: "알림센터" })).toBeNull();

@@ -3,7 +3,6 @@
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
 import { BellSimpleIcon } from "@phosphor-icons/react/dist/ssr/BellSimple";
 import { ListIcon } from "@phosphor-icons/react/dist/ssr/List";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { UserCircleIcon } from "@phosphor-icons/react/dist/ssr/UserCircle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,7 +30,7 @@ function revealFocusedControl(event: FocusEvent<HTMLElement>) {
   if (!visible) control.scrollIntoView({ block: "center", behavior: "instant" });
 }
 
-// 앱 셸 = 앱바(헤더) + 탭 내비. 탭 정의 한 목록을 <1024px 하단 5탭, ≥1024px 상단 헤더 4 로 렌더한다
+// 앱 셸 = 앱바(헤더) + 탭 내비. 탭 정의 한 목록을 <1024px 하단 5탭, ≥1024px 상단 헤더로 렌더한다
 // (DES-PWA-003 §8 2026-09-16 결정). 형태 차이는 hoondok.css .nav 가 담당하고 마크업은 하나다.
 // 제목·뒤로 링크·본문 폭·활성 탭은 화면 레지스트리(features/hoondok/screens.ts) 가 pathname 으로 정한다.
 // 오른쪽 끝은 사람(관리) · 종(알림센터) · 햄버거(전체 메뉴 드로어) 순이다. 햄버거는 탭이 있는 화면에서만 보인다.
@@ -75,11 +74,6 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             )}
             <h1 className="appbar__title">{title}</h1>
-            {!screen.hideSearchLink && (
-              <Link className="icon-btn icon-btn--search" href="/search" aria-label="말씀 검색">
-                <MagnifyingGlassIcon size={22} aria-hidden="true" />
-              </Link>
-            )}
             {!screen.hideSettingsLink && (
               <>
                 <Link
@@ -144,15 +138,6 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
-          <Link
-            className="nav__search"
-            href="/search"
-            // 앱바 아이콘을 숨기는 화면(AI 질문 등)이 모두 검색 화면은 아니다 — 현재 위치는 검색 화면에서만
-            aria-current={screen.match === "/search" ? "page" : undefined}
-          >
-            <MagnifyingGlassIcon size={20} aria-hidden="true" />
-            말씀 검색
-          </Link>
           {!screen.hideSettingsLink && (
             <>
               <Link

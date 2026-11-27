@@ -21,10 +21,8 @@ export type HoondokScreen = {
    * 프로토타입에서 `col--read` 를 쓰는 화면만 read 다. onb = 질문 흐름 — 앱바를 시각적으로 접고(h1 은 보조기기용) 화면이 자기 머리를 그린다.
    */
   variant: "home" | "read" | "app" | "onb";
-  /** true 면 앱바·헤더의 사람(관리)·종(알림센터) 아이콘을 함께 숨긴다. 탭 밖 흐름(온보딩·검색 등)이다 */
+  /** true 면 앱바·헤더의 사람(관리)·종(알림센터) 아이콘을 함께 숨긴다. 탭 밖 흐름(온보딩 등)이다 */
   hideSettingsLink?: true;
-  /** true 면 앱바의 검색 아이콘을 숨긴다(검색 화면 자신·AI 질문 계열). 헤더(≥1024px) 검색 자리는 남는다 */
-  hideSearchLink?: true;
   /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
   hideNav?: true;
 };
@@ -48,7 +46,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "onb",
     hideSettingsLink: true,
-    hideSearchLink: true,
     hideNav: true,
   },
   // 7일 정성 (읽기 정성 1a). 질문 흐름·읽기·마침표 모두 탭바 없이 화면이 자기 머리(PathTop)를 그린다
@@ -58,7 +55,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "onb",
     hideSettingsLink: true,
-    hideSearchLink: true,
     hideNav: true,
   },
   {
@@ -67,7 +63,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "onb",
     hideSettingsLink: true,
-    hideSearchLink: true,
     hideNav: true,
   },
   {
@@ -76,7 +71,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "onb",
     hideSettingsLink: true,
-    hideSearchLink: true,
     hideNav: true,
   },
   // 개인정보 처리방침 — 온보딩·설정·구글 동의 화면에서 들어온다. 들어온 곳으로 돌아가고, 바로 연 주소면 홈으로 간다.
@@ -88,7 +82,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backToHistory: true,
     tabId: "garden",
     variant: "read",
-    hideSearchLink: true,
   },
   {
     match: "/offline",
@@ -134,7 +127,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "ask",
     variant: "onb",
     hideSettingsLink: true,
-    hideSearchLink: true,
     hideNav: true,
   },
   {
@@ -169,11 +161,8 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   {
     match: "/search",
     title: "말씀 검색",
-    backHref: "/library",
-    tabId: "library",
+    tabId: "search",
     variant: "app",
-    hideSettingsLink: true,
-    hideSearchLink: true,
   },
   {
     match: "/words",
