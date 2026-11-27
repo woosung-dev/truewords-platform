@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Trash2 } from "lucide-react";
+import { ChevronRight, ShieldCheck, Trash2, UserMinus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -34,33 +34,35 @@ export function DeleteAccountCard() {
   // 문장 안 작은 링크는 탭 대상 24x24 (WCAG 2.2 SC 2.5.8) 를 세로로 못 넘긴다.
   if (!user) {
     return (
-      <div className="st-group">
-        <Link className="st-row st-row--link" href={onboardingHref(SETTINGS_PATH)}>
-          <span className="st-row__bd">
-            <b className="st-row__t">내 데이터 관리</b>
-            <span className="st-row__d">로그인하면 내 데이터를 관리할 수 있어요</span>
-          </span>
-          <span className="st-go" aria-hidden="true">
-            <ChevronRight size={20} />
-          </span>
-        </Link>
-      </div>
+      <Link className="ra-row" href={onboardingHref(SETTINGS_PATH)}>
+        <span className="ra-chip" aria-hidden="true">
+          <ShieldCheck size={20} />
+        </span>
+        <span className="ra-row__bd">
+          <b className="ra-row__t">내 데이터 관리</b>
+          <span className="ra-row__d">로그인하면 내 데이터를 관리할 수 있어요</span>
+        </span>
+        <span className="ra-go" aria-hidden="true">
+          <ChevronRight size={20} />
+        </span>
+      </Link>
     );
   }
 
   if (!isConfirming) {
     return (
-      <div className="st-group st-group--danger">
-        <button className="st-row st-row--link" type="button" onClick={() => setIsConfirming(true)}>
-          <span className="st-row__bd">
-            <b className="st-row__t">내 데이터 삭제</b>
-            <span className="st-row__d">질문과 노트, 기록을 모두 지워요</span>
-          </span>
-          <span className="st-go" aria-hidden="true">
-            <ChevronRight size={20} />
-          </span>
-        </button>
-      </div>
+      <button className="ra-row ra-row--danger" type="button" onClick={() => setIsConfirming(true)}>
+        <span className="ra-chip" aria-hidden="true">
+          <UserMinus size={20} />
+        </span>
+        <span className="ra-row__bd">
+          <b className="ra-row__t">내 데이터 삭제</b>
+          <span className="ra-row__d">질문과 노트, 기록을 모두 지워요</span>
+        </span>
+        <span className="ra-go" aria-hidden="true">
+          <ChevronRight size={20} />
+        </span>
+      </button>
     );
   }
 
@@ -76,7 +78,8 @@ export function DeleteAccountCard() {
   }
 
   return (
-    <div className="card st-danger" role="group" aria-label="내 데이터 삭제 확인">
+    <div className="ra-sub ra-sub--wide">
+    <div className="st-danger ra-confirm" role="group" aria-label="내 데이터 삭제 확인">
       <p className="st-danger__lead">
         <span className="st-danger__ic" aria-hidden="true">
           <Trash2 size={20} />
@@ -102,6 +105,7 @@ export function DeleteAccountCard() {
           <span>{FAILURE_TEXT}</span>
         </p>
       )}
+    </div>
     </div>
   );
 }

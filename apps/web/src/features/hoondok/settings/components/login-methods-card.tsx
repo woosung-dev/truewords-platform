@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
+import { KeyRound } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { startOAuth, oauthStartErrorMessage } from "@/features/identity/oauth";
@@ -75,71 +76,76 @@ export function LoginMethodsCard() {
   }
 
   return (
-    <div className="st-stack">
-      <div className="st-group">
-        {methods.map((method) => (
-          <div className="st-row" key={method.identity_id ?? method.provider}>
-            <span className="st-row__bd">
-              {method.provider === "google" ? (
-                <>
-                  <b className="st-row__t">구글</b>
-                  <span className="st-row__d">{method.email ?? "연결됨"}</span>
-                </>
-              ) : (
-                <>
-                  <b className="st-row__t">이메일·비밀번호</b>
-                  <span className="st-row__d">이전 방식이에요. 구글을 연결하면 사라져요</span>
-                </>
-              )}
-            </span>
-            {method.identity_id && (
-              <HoondokButton
-                variant="ghost"
-                isSmall
-                onClick={() => unlink.mutate(method.identity_id as string)}
-                disabled={isLastMethod || unlink.isPending}
-                aria-label="구글 연결 해제"
-              >
-                해제
-              </HoondokButton>
+    <>
+      {methods.map((method) => (
+        <div className="ra-row" key={method.identity_id ?? method.provider}>
+          <span className="ra-chip" aria-hidden="true">
+            <KeyRound size={20} />
+          </span>
+          <span className="ra-row__bd">
+            {method.provider === "google" ? (
+              <>
+                <b className="ra-row__t">구글</b>
+                <span className="ra-row__d">{method.email ?? "연결됨"}</span>
+              </>
+            ) : (
+              <>
+                <b className="ra-row__t">이메일·비밀번호</b>
+                <span className="ra-row__d">이전 방식이에요. 구글을 연결하면 사라져요</span>
+              </>
             )}
-          </div>
-        ))}
-      </div>
-      {isLastMethod && hasGoogle && <p className="hint">{LAST_METHOD_TEXT}</p>}
-      {!hasGoogle && !askPassword && (
-        <HoondokButton onClick={handleLinkClick} isLoading={isLinking}>
-          구글 계정 연결
-        </HoondokButton>
-      )}
-      {!hasGoogle && askPassword && (
-        <form className="form" onSubmit={handlePasswordSubmit} aria-label="구글 연결을 위한 비밀번호 확인">
-          <label className="field">
-            <span className="field__label">비밀번호 확인</span>
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              maxLength={128}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          <p className="field__help">계정을 지키기 위해 한 번 더 확인해요</p>
-          <HoondokButton type="submit" isLoading={isLinking}>
-            구글 계정 연결 계속하기
-          </HoondokButton>
-          <HoondokButton variant="ghost" onClick={handlePasswordCancel} disabled={isLinking}>
-            취소
-          </HoondokButton>
-        </form>
-      )}
-      {message && (
-        <p className="hint" role="alert">
-          <span>{message}</span>
-        </p>
-      )}
-    </div>
+          </span>
+          {method.identity_id && (
+            <HoondokButton
+              variant="ghost"
+              isSmall
+              onClick={() => unlink.mutate(method.identity_id as string)}
+              disabled={isLastMethod || unlink.isPending}
+              aria-label="구글 연결 해제"
+            >
+              해제
+            </HoondokButton>
+          )}
+        </div>
+      ))}
+      {(isLastMethod && hasGoogle) || !hasGoogle || message ? (
+        <div className="ra-sub">
+          {isLastMethod && hasGoogle && <p className="hint">{LAST_METHOD_TEXT}</p>}
+          {!hasGoogle && !askPassword && (
+            <HoondokButton onClick={handleLinkClick} isLoading={isLinking}>
+              구글 계정 연결
+            </HoondokButton>
+          )}
+          {!hasGoogle && askPassword && (
+            <form className="form" onSubmit={handlePasswordSubmit} aria-label="구글 연결을 위한 비밀번호 확인">
+              <label className="field">
+                <span className="field__label">비밀번호 확인</span>
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={128}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+              <p className="field__help">계정을 지키기 위해 한 번 더 확인해요</p>
+              <HoondokButton type="submit" isLoading={isLinking}>
+                구글 계정 연결 계속하기
+              </HoondokButton>
+              <HoondokButton variant="ghost" onClick={handlePasswordCancel} disabled={isLinking}>
+                취소
+              </HoondokButton>
+            </form>
+          )}
+          {message && (
+            <p className="hint" role="alert">
+              <span>{message}</span>
+            </p>
+          )}
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Smartphone } from "lucide-react";
+import { ChevronRight, Layers, Moon, ShieldCheck, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
@@ -67,9 +67,9 @@ export function SettingsScreen({ todayWeekday }: { todayWeekday: number }) {
   }, [hasLoggedOut]);
 
   return (
-    <section className="col ac-screen">
+    <section className="col ra-page ra-set">
       {isUserLoading ? (
-        <div className="ac-shell" aria-busy="true" aria-label="계정을 불러오는 중">
+        <div className="ac-shell ra-rec" aria-busy="true" aria-label="계정을 불러오는 중">
           <span className="ac-core skeleton ac-skel--hero" />
         </div>
       ) : user ? (
@@ -78,69 +78,78 @@ export function SettingsScreen({ todayWeekday }: { todayWeekday: number }) {
         <GuestHero hasLoggedOut={hasLoggedOut} titleRef={guestTitleRef} />
       )}
 
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">알림</h2>
-        </div>
-        <div className="st-stack">
-          <ReadNotificationCard push={push} />
-          {/* 누를 수 없는 줄이라 caret 을 두지 않는다 (§3.3) */}
-          <div className="st-group">
-            <div className="st-row">
-              <span className="st-row__bd">
-                <b className="st-row__t">그 밖의 알림</b>
-                <span className="st-row__d">기도하기 · 가정예배 · 공지</span>
+      <div className="ra-main">
+        <section className="ra-grp" aria-labelledby="ra-grp-alert">
+          <h2 className="ra-grp__t" id="ra-grp-alert">
+            알림
+          </h2>
+          <div className="ra-list">
+            <ReadNotificationCard push={push} />
+            {/* 누를 수 없는 줄이라 caret 을 두지 않는다 (§3.3) */}
+            <div className="ra-row ra-row--muted">
+              <span className="ra-chip" aria-hidden="true">
+                <Layers size={20} />
               </span>
-              <span className="st-row__soon">{SOON}</span>
+              <span className="ra-row__bd">
+                <b className="ra-row__t">그 밖의 알림</b>
+                <span className="ra-row__d">기도하기 · 가정예배 · 공지</span>
+              </span>
+              <span className="ra-soon">{SOON}</span>
             </div>
-            <div className="st-row">
-              <span className="st-row__bd">
-                <b className="st-row__t">조용한 시간</b>
-                <span className="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span>
+            <div className="ra-row ra-row--muted">
+              <span className="ra-chip" aria-hidden="true">
+                <Moon size={20} />
               </span>
-              <span className="st-row__soon">{SOON}</span>
+              <span className="ra-row__bd">
+                <b className="ra-row__t">조용한 시간</b>
+                <span className="ra-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span>
+              </span>
+              <span className="ra-soon">{SOON}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">화면</h2>
-        </div>
-        <InstallSection />
-      </div>
+        <section className="ra-grp" aria-labelledby="ra-grp-screen">
+          <h2 className="ra-grp__t" id="ra-grp-screen">
+            화면
+          </h2>
+          <InstallSection />
+        </section>
 
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">계정</h2>
-        </div>
-        <div className="st-stack">
-          <DisplayNameCard />
-          <LoginMethodsCard />
-          {user && <AccountSection user={user} logout={logout} />}
-          <DeleteAccountCard />
-        </div>
-      </div>
+        <section className="ra-grp" aria-labelledby="ra-grp-account">
+          <h2 className="ra-grp__t" id="ra-grp-account">
+            계정
+          </h2>
+          <div className="ra-list">
+            <DisplayNameCard />
+            <LoginMethodsCard />
+            {user && <AccountSection user={user} logout={logout} />}
+            <DeleteAccountCard />
+          </div>
+        </section>
 
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">안내</h2>
-        </div>
-        <div className="st-group">
-          <Link className="st-row st-row--link" href="/privacy">
-            <span className="st-row__bd">
-              <b className="st-row__t">개인정보 처리방침</b>
-              <span className="st-row__d">어떤 정보를 저장하고 어떻게 지우는지 알려드려요</span>
-            </span>
-            <span className="st-go" aria-hidden="true">
-              <ChevronRight size={20} />
-            </span>
-          </Link>
-        </div>
-      </div>
+        <section className="ra-grp" aria-labelledby="ra-grp-info">
+          <h2 className="ra-grp__t" id="ra-grp-info">
+            안내
+          </h2>
+          <div className="ra-list">
+            <Link className="ra-row" href="/privacy">
+              <span className="ra-chip" aria-hidden="true">
+                <ShieldCheck size={20} />
+              </span>
+              <span className="ra-row__bd">
+                <b className="ra-row__t">개인정보 처리방침</b>
+                <span className="ra-row__d">어떤 정보를 저장하고 어떻게 지우는지 알려드려요</span>
+              </span>
+              <span className="ra-go" aria-hidden="true">
+                <ChevronRight size={20} />
+              </span>
+            </Link>
+          </div>
+        </section>
 
-      <p className="notice">독립 운영 베타</p>
+        <p className="ra-foot">독립 운영 베타</p>
+      </div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { ChevronRight, LogOut, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import type { HoondokUser } from "@/features/identity/types";
@@ -36,7 +36,8 @@ export function AccountSection({ user, logout }: AccountSectionProps) {
   return (
     <>
       {isConfirming ? (
-        <fieldset className="card gd-logout" aria-label="로그아웃 확인" ref={cardRef}>
+        <div className="ra-sub ra-sub--wide">
+        <fieldset className="gd-logout ra-confirm" aria-label="로그아웃 확인" ref={cardRef}>
           <p className="st-danger__lead">
             <span className="st-danger__ic" aria-hidden="true">
               <LogOut size={20} />
@@ -87,23 +88,30 @@ export function AccountSection({ user, logout }: AccountSectionProps) {
             </p>
           )}
         </fieldset>
+        </div>
       ) : (
-        <div className="st-group">
-          <div className="st-row">
-            <span className="st-row__bd">
-              <b className="st-row__t gd-account__email">{user.email}</b>
-              <span className="st-row__d">이 계정으로 로그인돼 있어요</span>
+        <>
+          <div className="ra-row">
+            <span className="ra-chip" aria-hidden="true">
+              <Mail size={20} />
+            </span>
+            <span className="ra-row__bd">
+              <b className="ra-row__t gd-account__email">{user.email}</b>
+              <span className="ra-row__d">이 계정으로 로그인돼 있어요</span>
             </span>
           </div>
-          <button className="st-row st-row--link" type="button" onClick={() => setIsConfirming(true)}>
-            <span className="st-row__bd">
-              <b className="st-row__t">로그아웃</b>
-            </span>
-            <span className="st-go" aria-hidden="true">
+          <button className="ra-row" type="button" onClick={() => setIsConfirming(true)}>
+            <span className="ra-chip" aria-hidden="true">
               <LogOut size={20} />
             </span>
+            <span className="ra-row__bd">
+              <b className="ra-row__t">로그아웃</b>
+            </span>
+            <span className="ra-go" aria-hidden="true">
+              <ChevronRight size={20} />
+            </span>
           </button>
-        </div>
+        </>
       )}
     </>
   );

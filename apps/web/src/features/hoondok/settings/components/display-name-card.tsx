@@ -1,5 +1,6 @@
 "use client";
 
+import { User } from "lucide-react";
 import { useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { DisplayNameForm } from "@/features/identity/display-name-form";
@@ -20,42 +21,47 @@ export function DisplayNameCard() {
   }
 
   return (
-    <div className="st-stack">
-      <div className="st-group">
-        <div className="st-row">
-          <span className="st-row__bd">
-            <b className="st-row__t">이름</b>
-            <span className="st-row__d">{user.display_name}</span>
-          </span>
-          {!isEditing && (
-            <HoondokButton
-              variant="ghost"
-              isSmall
-              onClick={() => {
-                setSaved(false);
-                setIsEditing(true);
-              }}
-              aria-label="이름 바꾸기"
-            >
-              바꾸기
-            </HoondokButton>
-          )}
-        </div>
+    <>
+      <div className="ra-row">
+        <span className="ra-chip" aria-hidden="true">
+          <User size={20} />
+        </span>
+        <span className="ra-row__bd">
+          <b className="ra-row__t">이름</b>
+          <span className="ra-row__d">{user.display_name}</span>
+        </span>
+        {!isEditing && (
+          <HoondokButton
+            variant="ghost"
+            isSmall
+            onClick={() => {
+              setSaved(false);
+              setIsEditing(true);
+            }}
+            aria-label="이름 바꾸기"
+          >
+            바꾸기
+          </HoondokButton>
+        )}
       </div>
       {isEditing && (
-        <DisplayNameForm
-          initialName={user.display_name}
-          submitLabel="저장"
-          formLabel="이름 바꾸기"
-          onDone={handleDone}
-          onCancel={() => setIsEditing(false)}
-        />
+        <div className="ra-sub">
+          <DisplayNameForm
+            initialName={user.display_name}
+            submitLabel="저장"
+            formLabel="이름 바꾸기"
+            onDone={handleDone}
+            onCancel={() => setIsEditing(false)}
+          />
+        </div>
       )}
       {saved && (
-        <p className="hint" role="status">
-          <span>이름을 바꿨어요</span>
-        </p>
+        <div className="ra-sub">
+          <p className="hint" role="status">
+            <span>이름을 바꿨어요</span>
+          </p>
+        </div>
       )}
-    </div>
+    </>
   );
 }

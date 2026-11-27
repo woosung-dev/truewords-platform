@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, ChevronRight, Sprout } from "lucide-react";
+import { BellRing, ChevronRight, Settings, Sprout } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { HoondokMascot, type MascotPose } from "@/components/hoondok";
@@ -25,7 +25,7 @@ export function NotificationCenter() {
   const [tab, setTab] = useState<TabId>("alerts");
 
   return (
-    <section className="col nc-screen">
+    <section className="col ra-page ra-nc">
       <div className="pill-seg nc-tabs" role="tablist" onKeyDown={handleSegmentKeyDown} aria-label="알림 종류">
         {TABS.map((item) => (
           <button
@@ -43,7 +43,7 @@ export function NotificationCenter() {
           </button>
         ))}
       </div>
-      <div id="nc-panel" className="nc-panel" role="tabpanel" aria-labelledby={`nc-tab-${tab}`}>
+      <div id="nc-panel" className="ra-page" role="tabpanel" aria-labelledby={`nc-tab-${tab}`}>
         {tab === "alerts" ? (
           <AlertsPanel />
         ) : tab === "notices" ? (
@@ -51,7 +51,8 @@ export function NotificationCenter() {
         ) : (
           <EmptyCard pose="heart" title="아직 열린 행사가 없어요" body="함께 훈독하는 행사가 열리면 여기에서 알려드릴게요." />
         )}
-        <Link className="nc-settings" href="/settings">
+        <Link className="ra-set-link" href="/settings">
+          <Settings size={20} aria-hidden="true" />
           알림 설정
           <ChevronRight size={18} aria-hidden="true" />
         </Link>
@@ -73,18 +74,18 @@ function EmptyCard({
 }) {
   return (
     <div className="ac-shell">
-      <div className="ac-core nc-empty">
+      <div className="ac-core ra-empty">
         <HoondokMascot
           pose={pose}
           size={96}
           fallback={
-            <span className="empty__ic" aria-hidden="true">
+            <span className="ra-empty__ic" aria-hidden="true">
               <Sprout size={28} />
             </span>
           }
         />
-        <h2 className="nc-empty__title">{title}</h2>
-        <p className="nc-empty__body">{body}</p>
+        <h2 className="ra-empty__t">{title}</h2>
+        <p className="ra-empty__b">{body}</p>
         {children}
       </div>
     </div>
@@ -145,13 +146,13 @@ function SignedInAlerts() {
             훈독하기 알림 켜기
           </button>
           {push.message && (
-            <p className="nc-empty__body" role="status">
+            <p className="ra-empty__b" role="status">
               {push.message}
             </p>
           )}
         </>
       ) : (
-        <p className="nc-empty__body">
+        <p className="ra-empty__b">
           {push.support === "disabled" ? "알림 준비가 아직 끝나지 않았어요." : SUPPORT_HINTS[push.support]}
         </p>
       )}

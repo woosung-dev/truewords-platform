@@ -123,7 +123,7 @@ describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
     expect(screen.queryByText(/교회/)).toBeNull();
 
     // 조용한 시간은 누를 수 있는 줄(링크·버튼)이 아니라 '준비 중' 표시다
-    const quiet = screen.getByText("조용한 시간").closest(".st-row");
+    const quiet = screen.getByText("조용한 시간").closest(".ra-row");
     expect(quiet).toHaveTextContent("준비 중");
     expect(quiet?.querySelector("a, button")).toBeNull();
     // 알림함은 싣지 않는다 (PLAN-HD-002 W1-S)
