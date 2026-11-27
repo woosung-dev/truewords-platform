@@ -109,10 +109,10 @@ describe("훈독 앱 셸", () => {
     for (const link of screen.getAllByRole("link", { name: "관리" })) expect(link).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /나의 정원/ })).toHaveAttribute("aria-current", "page");
     expect(container.querySelector("main")).toHaveClass("app__main--app");
-    expect(screen.getAllByRole("link", { name: "말씀 검색" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "말씀 검색" })).toHaveLength(2);
   });
 
-  it("홈: 앱바 아이콘·헤더 검색이 /search 링크가 된다", async () => {
+  it("홈: 앱바 아이콘·헤더 검색 자리는 제자리 검색을 여는 버튼이다", async () => {
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");
@@ -121,9 +121,13 @@ describe("훈독 앱 셸", () => {
         <p>본문</p>
       </HoondokAppShell>,
     );
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(2);
-    for (const link of links) expect(link).toHaveAttribute("href", "/search");
+    const triggers = screen.getAllByRole("button", { name: "말씀 검색" });
+    expect(triggers).toHaveLength(2);
+    for (const trigger of triggers) {
+      expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    }
+    expect(screen.queryByRole("link", { name: "말씀 검색" })).toBeNull();
     expect(screen.queryByRole("link", { name: "뒤로" })).toBeNull();
   });
 });
@@ -159,19 +163,16 @@ describe("훈독 관리·알림센터 도달 경로 · 온보딩 탭바", () => 
       expect(link).toHaveAttribute("aria-current", "page");
   });
 
-  it("검색 화면 자신에서는 앱바 검색 아이콘을 숨기고 헤더 검색 자리를 현재 위치로 표시한다", async () => {
+  it("검색 화면 자신에서는 앱바 검색 아이콘을 숨기고 헤더 검색 자리만 남긴다", async () => {
     await shell("/search");
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveClass("nav__search");
-    expect(links[0]).toHaveAttribute("aria-current", "page");
+    const triggers = screen.getAllByRole("button", { name: "말씀 검색" });
+    expect(triggers).toHaveLength(1);
+    expect(triggers[0]).toHaveClass("nav__search");
   });
 
-  it("AI 질문도 앱바·헤더 둘 다 말씀 검색이 있고, 현재 위치로 표시하지 않는다", async () => {
+  it("AI 질문도 앱바·헤더 둘 다 말씀 검색을 여는 버튼이 있다", async () => {
     await shell("/ask");
-    const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(2);
-    for (const link of links) expect(link).not.toHaveAttribute("aria-current");
+    expect(screen.getAllByRole("button", { name: "말씀 검색" })).toHaveLength(2);
   });
 
   it("온보딩·검색·오프라인·새 질문에는 관리·알림센터 아이콘이 없다", async () => {

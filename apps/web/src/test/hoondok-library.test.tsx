@@ -148,7 +148,7 @@ describe("말씀 서고", () => {
 });
 describe("말씀 검색", () => {
   it("검색 결과에서 인용 청크가 포함된 원문 구간으로 이동한다", async () => {
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("참사랑");
     expect(await screen.findByRole("link", { name: /참사랑 말씀/ })).toHaveAttribute(
       "href",
@@ -160,7 +160,7 @@ describe("말씀 검색", () => {
     const near = { ...RESULT, chunk_id: "near-1", display_text: "하나님의 사랑을 닮는 삶" };
     const hit2 = { ...RESULT, chunk_id: "hit-2", display_text: "참사랑의 길" };
     vi.mocked(libraryAPI.search).mockResolvedValue({ results: [near, RESULT, hit2] });
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("참사랑");
     const words = await screen.findByRole("region", { name: "검색어가 나온 말씀" });
     const meaning = screen.getByRole("region", { name: "뜻이 가까운 말씀" });
@@ -179,38 +179,96 @@ describe("말씀 검색", () => {
     expect(words.compareDocumentPosition(meaning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it("한쪽 묶음이 0건이면 그 제목을 보이지 않는다", async () => {
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("참사랑");
     expect(await screen.findByRole("region", { name: "검색어가 나온 말씀" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "뜻이 가까운 말씀" })).toBeNull();
   });
   it("검색어가 하나도 나오지 않으면 뜻이 가까운 묶음만 보인다", async () => {
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("축복");
     expect(await screen.findByRole("region", { name: "뜻이 가까운 말씀" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "검색어가 나온 말씀" })).toBeNull();
   });
   it("검색만 허용된 결과는 원문 링크를 만들지 않는다", async () => {
     vi.mocked(libraryAPI.search).mockResolvedValue({ results: [{ ...RESULT, can_read_full_text: false }] });
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("참사랑");
     expect(await screen.findByText(/검색 인용만 허용/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /참사랑 말씀/ })).toBeNull();
   });
   it("0건과 장애를 구분하고 장애 때 입력을 보존한다", async () => {
     vi.mocked(libraryAPI.search).mockResolvedValueOnce({ results: [] }).mockRejectedValueOnce(new Error("down"));
-    show(SearchPage());
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     search("없는말");
     expect(await screen.findByText("검색 결과가 없어요")).toBeInTheDocument();
     search("다른말");
     expect(await screen.findByText("검색하지 못했어요")).toBeInTheDocument();
     expect(screen.getByLabelText("말씀 검색")).toHaveValue("다른말");
   });
-  it("분류 칩은 입력만 채우고 검색하지 않는다", () => {
-    show(SearchPage());
+  it("분류 칩은 입력만 채우고 검색하지 않는다", async () => {
+    show(await SearchPage({ searchParams: Promise.resolve({}) }));
     fireEvent.click(screen.getByRole("button", { name: "탕감복귀" }));
     expect(screen.getByLabelText("말씀 검색")).toHaveValue("탕감복귀");
     expect(libraryAPI.search).not.toHaveBeenCalled();
+  });
+});
+describe("주소의 검색어", () => {
+  it("/search?q= 로 열면 그 말로 바로 찾고 최근 검색에는 넣지 않는다", async () => {
+    show(await SearchPage({ searchParams: Promise.resolve({ q: " 참사랑 " }) }));
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("참사랑");
+    expect(await screen.findByRole("link", { name: /참사랑 말씀/ })).toBeInTheDocument();
+    expect(libraryAPI.search).toHaveBeenCalledWith("참사랑", expect.any(AbortSignal));
+    expect(screen.queryByRole("heading", { name: "최근 검색" })).toBeNull();
+  });
+});
+describe("머리글 제자리 검색", () => {
+  it("헤더 검색 자리를 누르면 패널이 열리고 Enter 로 찾으며 ESC 로 닫고 초점을 돌려준다", async () => {
+    show(<HoondokAppShell>본문</HoondokAppShell>);
+    const pill = document.querySelector<HTMLButtonElement>(".nav__search");
+    if (!pill) throw new Error("헤더 검색 자리가 없다");
+    fireEvent.click(pill);
+    const dialog = screen.getByRole("dialog", { name: "말씀 검색" });
+    expect(document.querySelector("main")).toHaveAttribute("inert");
+    const input = within(dialog).getByRole("searchbox", { name: "말씀 검색" });
+    expect(input).toHaveFocus();
+    // 타자마다 찾지 않는다
+    fireEvent.change(input, { target: { value: "참사랑" } });
+    expect(libraryAPI.search).not.toHaveBeenCalled();
+    fireEvent.submit(input);
+    expect(await within(dialog).findByRole("link", { name: /참사랑 말씀/ })).toBeInTheDocument();
+    expect(libraryAPI.search).toHaveBeenCalledWith("참사랑", expect.any(AbortSignal));
+    expect(within(dialog).getByRole("link", { name: /결과 페이지로 크게 보기/ })).toHaveAttribute(
+      "href",
+      `/search?q=${encodeURIComponent("참사랑")}`,
+    );
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector("main")).not.toHaveAttribute("inert");
+    await waitFor(() => expect(document.querySelector(".nav__search")).toHaveFocus());
+  });
+  it("초점이 대화상자 밖으로 빠져도 ESC 로 닫힌다", () => {
+    show(<HoondokAppShell>본문</HoondokAppShell>);
+    const pill = document.querySelector<HTMLButtonElement>(".nav__search");
+    if (!pill) throw new Error("헤더 검색 자리가 없다");
+    fireEvent.click(pill);
+    expect(screen.getByRole("dialog", { name: "말씀 검색" })).toBeInTheDocument();
+    // 패널 빈 곳을 누르거나 누른 버튼이 사라지면 초점이 body 로 간다
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+  it("모바일 돋보기는 기록 한 칸을 넣고 폰의 뒤로 가기로 검색 층을 닫는다", async () => {
+    const pushState = vi.spyOn(window.history, "pushState");
+    show(<HoondokAppShell>본문</HoondokAppShell>);
+    fireEvent.click(
+      within(document.querySelector(".appbar") as HTMLElement).getByRole("button", { name: "말씀 검색" }),
+    );
+    expect(pushState).toHaveBeenCalledWith({ hoondokSearch: true }, "");
+    expect(screen.getByRole("dialog", { name: "말씀 검색" })).toHaveClass("hs--mobile");
+    fireEvent.popState(window);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    pushState.mockRestore();
   });
 });
 describe("원문 읽기", () => {

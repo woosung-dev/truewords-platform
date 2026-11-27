@@ -1725,3 +1725,172 @@
     max-width: 100%;
   }
 }
+
+/* ---------- 머리글 제자리 검색 (B안) ----------
+   PC(≥1024)는 헤더 검색 자리가 입력으로 펼쳐지고 아래로 패널이 열린다. 그 아래 폭은 앱바 돋보기가
+   화면 전체 검색 층을 연다. 본문(결과·최근·찾는 법)은 /search 화면과 같은 마크업이다. */
+
+/* 모바일 검색 층이 열린 동안 뒤 화면은 스크롤하지 않는다 */
+body:has([data-app="hoondok"] .hs--mobile) {
+  overflow: hidden;
+}
+
+[data-app="hoondok"] {
+  .hs__field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    background: var(--surface);
+    color: var(--ink-3);
+  }
+  .hs__field:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .hs__field > svg {
+    flex: none;
+    color: var(--ink-2);
+  }
+  .hs__input {
+    flex: 1;
+    align-self: stretch;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--ink);
+    outline: none;
+  }
+  .hs__input::placeholder {
+    color: var(--ink-3);
+  }
+  /* 브라우저 기본 지우기 대신 44px ✕ 버튼을 쓴다 */
+  .hs__input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .hs__clear {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-full);
+    color: var(--ink-2);
+  }
+  .hs__clear:focus-visible {
+    outline-offset: -2px;
+  }
+  .hs__body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* PC: 헤더 자리에서 펼친 입력 + 오른쪽 끝을 맞춘 패널. 패널은 흐려진 탭 위로 왼쪽으로 넓어진다 */
+  .hs--pc {
+    position: relative;
+    width: 100%;
+  }
+  .hs--pc .hs__field {
+    height: 44px;
+    padding-left: 14px;
+    border-radius: var(--r-full);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
+  }
+  .hs--pc .hs__input {
+    font-size: var(--fs-md);
+  }
+  .hs--pc .hs__panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(580px, calc(100vw - 64px));
+    max-height: min(680px, calc(100dvh - 96px));
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+    overflow: hidden;
+  }
+  .hs--pc .hs__body {
+    flex: 1;
+    padding: 4px 20px 20px;
+  }
+  .hs__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: none;
+    padding: 0 20px;
+    border-top: 1px solid var(--line);
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+  }
+  .hs__foot a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  /* 패널 뒤 본문을 옅게 가린다. 헤더(72px)는 가리지 않는다 */
+  .hs-backdrop {
+    position: fixed;
+    inset: 72px 0 0;
+    z-index: 24;
+    background: var(--scrim-soft);
+    backdrop-filter: blur(3px);
+  }
+
+  /* 모바일: 앱바 자리가 입력 줄(← · 입력 · ✕)이 되고 화면 전체가 결과 층이다. 하단 탭은 숨긴다 */
+  .nav:has(~ .hs--mobile) {
+    visibility: hidden;
+  }
+  .hs--mobile {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+  }
+  .hs--mobile .hs__bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 52px;
+    padding: 10px var(--gutter) 8px;
+  }
+  .hs--mobile .hs__field {
+    flex: 1;
+    min-height: 44px;
+    padding-left: 12px;
+    border-radius: var(--r-sm);
+    border: 1.5px solid var(--ink-3);
+  }
+  .hs--mobile .hs__input {
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
+  }
+  .hs--mobile .hs__panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .hs--mobile .hs__body {
+    flex: 1;
+    padding: 0 var(--gutter) calc(28px + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) {
+    .hs--mobile .hs__bar,
+    .hs--mobile .hs__body {
+      width: 100%;
+      max-width: var(--measure-app);
+      margin: 0 auto;
+    }
+  }
+}
