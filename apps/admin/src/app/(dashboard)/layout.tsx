@@ -1,54 +1,20 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  BarChart3,
-  Bookmark,
-  Bot,
-  CalendarDays,
-  Database,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  MessageCircleQuestionMark,
-  MessageSquare,
-  ScrollText,
-  Settings,
-  Waypoints,
-} from "lucide-react";
-import Link from "next/link";
+import { LogOut, Menu, MessageSquare } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { MenuSearch } from "@/components/nav/menu-search";
+import { findActiveNavItem } from "@/components/nav/nav-items";
+import { NavPrefsProvider } from "@/components/nav/nav-prefs";
+import { SIDEBAR_FOCUS, SidebarNav } from "@/components/nav/sidebar-nav";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { authAPI } from "@/features/auth/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
-import { ScheduleStockNavBadge } from "@/features/hoondok/components/schedule-stock";
 import { WEB_ORIGIN } from "@/lib/origins";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
-  { href: "/chatbots", label: "챗봇", icon: Bot },
-  { href: "/hoondok/summaries", label: "말씀 AI 요약", icon: ScrollText },
-  { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
-  { href: "/hoondok/cards", label: "오늘의 책갈피", icon: Bookmark },
-  { href: "/hoondok/questions", label: "추천 질문 고르기", icon: MessageCircleQuestionMark },
-  { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
-  { href: "/data-sources", label: "데이터 소스", icon: Database },
-  { href: "/analytics", label: "검색 분석", icon: BarChart3 },
-  { href: "/rag-trace", label: "파이프라인 추적", icon: Waypoints },
-  { href: "/feedback", label: "피드백", icon: MessageSquare },
-  { href: "/audit-logs", label: "감사 로그", icon: ScrollText },
-  { href: "/settings", label: "설정", icon: Settings },
-];
-
-// 사이드바(slate-950) 위에서는 전역 outline-ring/50(1.2:1)이 보이지 않으므로 밝은 sidebar-ring 링을 따로 준다.
-const SIDEBAR_FOCUS =
-  "focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring";
-
 function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
-  const pathname = usePathname();
-
   return (
     <div className="flex flex-col h-full bg-sidebar">
       {/* 로고 */}
@@ -59,32 +25,7 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
         <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">TrueWords Admin</span>
       </div>
 
-      {/* 네비게이션 */}
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = NAV_ITEMS.find((candidate) => pathname.startsWith(candidate.href)) === item;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${SIDEBAR_FOCUS} ${
-                isActive
-                  ? // 활성 글자는 밝은 전경(16:1), brass 는 좌측 막대·아이콘에만 쓴다(글자로 쓰면 3.3:1 미달).
-                    "bg-sidebar-accent text-sidebar-foreground font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
-              {item.label}
-              {/* 편성 재고: 어느 관리 화면에서나 남은 일수를 본다. 편성 화면과 같은 쿼리라 요청이 늘지 않는다. */}
-              {item.href === "/hoondok" && <ScheduleStockNavBadge />}
-            </Link>
-          );
-        })}
-      </nav>
+      <SidebarNav onNavigate={onNavigate} />
 
       {/* 로그아웃 */}
       <div className="px-3 py-3 border-t border-sidebar-border">
@@ -109,8 +50,11 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
 
 function PageTitle() {
   const pathname = usePathname();
-  const found = NAV_ITEMS.find((item) => pathname.startsWith(item.href));
-  return <span className="text-sm font-medium text-foreground">{found?.label ?? ""}</span>;
+  return (
+    <span className="min-w-0 truncate text-sm font-medium text-foreground md:w-40 md:shrink-0">
+      {findActiveNavItem(pathname)?.label ?? ""}
+    </span>
+  );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -136,7 +80,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <AuthGuard requireAdmin>
-      {/* 키보드 사용자가 사이드바 14개 링크를 건너뛰고 본문으로 바로 가는 링크. 포커스될 때만 보인다. */}
+      <NavPrefsProvider>
+      {/* 키보드 사용자가 사이드바 메뉴를 건너뛰고 본문으로 바로 가는 링크. 포커스될 때만 보인다. */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:outline-2 focus:outline-offset-2 focus:outline-ring"
@@ -177,6 +122,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Sheet>
 
             <PageTitle />
+            <MenuSearch />
+            {/* 제목 폭과 맞춰 검색창을 가운데에 둔다 */}
+            <div aria-hidden="true" className="hidden md:block md:w-40 md:shrink-0" />
           </header>
 
           {/* 메인 콘텐츠 */}
@@ -185,6 +133,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
       </div>
+      </NavPrefsProvider>
     </AuthGuard>
   );
 }
