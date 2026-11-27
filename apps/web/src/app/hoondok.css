@@ -318,7 +318,7 @@
     padding: 4px var(--gutter) 28px;
   }
 
-  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
+  /* 하단 4탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
      스크롤과 무관하게 화면 하단에 붙인다 — 본문 끝까지 내려야 탭이 보이던 문제 */
   .nav {
     flex: none;
@@ -328,11 +328,12 @@
     background: var(--surface);
     border-top: 1px solid var(--line);
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     padding: 8px 6px env(safe-area-inset-bottom);
     min-height: calc(76px + env(safe-area-inset-bottom));
   }
   .nav__brand,
+  .nav__search,
   .nav__user {
     display: none;
   }
@@ -867,38 +868,40 @@
     .nav__ic {
       display: none;
     }
-    /* 헤더 높이를 채워 활성 막대를 헤더 밑변에 붙인다. 굵기는 고정해 활성 전환 때 글자 폭이 흔들리지 않는다 */
     .nav__item {
-      position: relative;
       flex-direction: row;
-      align-self: stretch;
-      height: auto;
-      padding: 0 14px;
+      height: 40px;
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: var(--r-xs);
       font-size: var(--fs-md);
-      font-weight: 600;
+      font-weight: 500;
       color: var(--ink-2);
-    }
-    .nav__item::after {
-      content: "";
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: -1px;
-      height: 3px;
-      border-radius: 3px 3px 0 0;
-      background: var(--accent);
-      transform: scaleX(0);
-      transition: transform 0.2s ease-out;
     }
     .nav__item[aria-current] {
       color: var(--ink);
+      font-weight: 600;
+      background: var(--surface-2);
     }
-    .nav__item[aria-current]::after {
-      transform: scaleX(1);
-    }
-    /* 탭 뒤 첫 버튼(관리 또는 전체 메뉴)부터 오른쪽 끝으로 민다 */
-    .nav__item + :not(.nav__item) {
+    .nav__search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      padding: 0 14px;
+      color: var(--ink-3);
+      flex: 1;
+      max-width: 360px;
       margin-left: auto;
+      border-radius: var(--r-full);
+      background: var(--surface-2);
+      font-size: var(--fs-md);
+    }
+    /* 검색 화면에서는 헤더 검색 자리가 현재 위치다 — 활성 탭처럼 글자를 진하게 */
+    .nav__search[aria-current] {
+      color: var(--ink);
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1.5px var(--ink-3);
     }
     /* 헤더 우측 원형 버튼 — 사람(관리)·종(알림센터) */
     .nav__user {
@@ -931,6 +934,9 @@
       overflow: hidden;
       clip: rect(0 0 0 0);
     }
+    .icon-btn--search {
+      display: none;
+    }
     /* 헤더 4 오른쪽 끝에 관리·알림센터 원형 버튼이 이미 있다 — 탭 헤더가 있는 화면의 앱바에서는 다시 그리지 않는다 */
     .app__main:not(.app__main--no-nav) .icon-btn--bell,
     .app__main:not(.app__main--no-nav) .icon-btn--account {
@@ -938,7 +944,7 @@
     }
     @media (hover: hover) {
       .nav__item:hover {
-        color: var(--ink);
+        background: var(--surface-2);
       }
       .btn-primary:hover {
         background: var(--accent-strong);
@@ -1390,7 +1396,10 @@ html:has([data-app="hoondok"]) {
 /* 가로로 든 태블릿도 상단 탐색을 손가락으로 누를 수 있다. */
 [data-app="hoondok"] {
   @media (min-width: 1024px) and (pointer: coarse) {
-    .nav__item {
+    .nav__item,
+    .nav__search {
+      height: 44px;
+      min-height: 44px;
       min-width: 44px;
     }
   }

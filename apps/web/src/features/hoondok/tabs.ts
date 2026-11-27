@@ -1,16 +1,15 @@
 import type { Icon } from "@phosphor-icons/react";
 import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
 import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/ssr/ChatCircleDots";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { PlantIcon } from "@phosphor-icons/react/dist/ssr/Plant";
 import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
 import { screenFor } from "./screens";
 
-// 하단 5탭 = 상단 헤더의 단일 정의 (DES-PWA-003 §2.8, DEC-PWA-015 명칭).
-// 말씀 검색을 앱바 아이콘·헤더 알약 대신 독립 탭으로 둔다 (2026-11-27, 검색 C안).
+// 하단 4탭 = 상단 헤더의 단일 정의 (DES-PWA-003 §2.8, DEC-PWA-015 명칭).
+// 공급이 정해지지 않은 5분 설교 탭은 빼고 평평한 4칸으로 둔다 (2026-11-03, 넷째 탭 리서치 선택지 2 · D3).
 // 두 형태는 CSS(hoondok.css .nav) 만 다르고 이 목록 하나를 렌더한다.
 export type HoondokTab = {
-  id: "today" | "ask" | "library" | "search" | "garden";
+  id: "today" | "ask" | "library" | "garden";
   label: string;
   href: string;
   icon: Icon;
@@ -26,7 +25,6 @@ export const TAB_STAGE: Record<HoondokTab["id"], "live" | "soon"> = {
   today: "live",
   ask: "live",
   library: "live",
-  search: "live",
   garden: "live",
 };
 
@@ -38,7 +36,6 @@ const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
   { id: "today", label: "오늘 훈독", href: "/", icon: SunHorizonIcon },
   { id: "ask", label: "AI 질문", href: "/ask", icon: ChatCircleDotsIcon },
   { id: "library", label: "말씀", href: "/library", icon: BooksIcon },
-  { id: "search", label: "검색", href: "/search", icon: MagnifyingGlassIcon },
   { id: "garden", label: "나의 정원", href: "/garden", icon: PlantIcon },
 ];
 

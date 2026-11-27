@@ -146,8 +146,6 @@ export function SearchScreen() {
             id={inputId}
             className="sf-input"
             type="search"
-            // 검색 탭에 들어오면 바로 입력한다 — 검색어는 항상 빈 값에서 시작한다
-            autoFocus
             enterKeyHint="search"
             autoComplete="off"
             maxLength={200}
