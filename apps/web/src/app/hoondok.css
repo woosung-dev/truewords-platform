@@ -118,6 +118,7 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-2: 0 10px 30px rgba(87, 62, 40, 0.1);
   --scrim: rgba(35, 33, 31, 0.45);
+  --scrim-soft: rgba(35, 33, 31, 0.16); /* 헤더 검색 패널 뒤 — 본문이 비쳐 보이게 옅게 */
   /* 반투명 색 — rgba 리터럴도 hex 처럼 이 블록에만 둔다(hoondok:check).
      --veil-* 는 --ink(35,33,31) 의 알파 단계로, 사진 히어로 베일(DES §3.2 대비 근거)과 토스트 바탕이 쓴다. */
   --veil-0: rgba(35, 33, 31, 0);
@@ -333,7 +334,7 @@
     min-height: calc(76px + env(safe-area-inset-bottom));
   }
   .nav__brand,
-  .nav__search,
+  .nav__search-slot,
   .nav__user {
     display: none;
   }
@@ -883,25 +884,35 @@
       font-weight: 600;
       background: var(--surface-2);
     }
+    /* 헤더 검색 자리 — 탭과 오른쪽 버튼 사이 남는 폭만 쓰므로(flex 1) 열려 넓어져도 서로 겹치지 않는다 */
+    .nav__search-slot {
+      display: flex;
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      max-width: 360px;
+      margin-left: auto;
+    }
+    .nav--searching .nav__search-slot {
+      max-width: 580px;
+    }
+    /* 검색이 열린 동안 탭은 흐리게 두고 누를 수 없다(inert) */
+    .nav--searching .nav__brand,
+    .nav--searching .nav__item {
+      opacity: 0.32;
+    }
     .nav__search {
       display: flex;
       align-items: center;
       gap: 8px;
-      height: 42px;
+      width: 100%;
+      /* 펼친 입력 칸과 같은 높이 — 열 때 높이가 튀지 않고 44px 누름 영역을 지킨다 */
+      height: 44px;
       padding: 0 14px;
       color: var(--ink-3);
-      flex: 1;
-      max-width: 360px;
-      margin-left: auto;
       border-radius: var(--r-full);
       background: var(--surface-2);
       font-size: var(--fs-md);
-    }
-    /* 검색 화면에서는 헤더 검색 자리가 현재 위치다 — 활성 탭처럼 글자를 진하게 */
-    .nav__search[aria-current] {
-      color: var(--ink);
-      font-weight: 600;
-      box-shadow: inset 0 0 0 1.5px var(--ink-3);
     }
     /* 헤더 우측 원형 버튼 — 사람(관리)·종(알림센터) */
     .nav__user {
